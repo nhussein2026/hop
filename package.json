@@ -1,0 +1,21 @@
+{
+  "name": "hop",
+  "private": true,
+  "version": "0.1.0",
+  "author": {
+    "name": "Nasser Hussein",
+    "website": "https://nhussein.io",
+    "email": "naser738nas@gmail.com"
+  },
+  "packageManager": "yarn@4.9.4",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "yarn workspaces foreach -A -pt run dev",
+    "build": "yarn workspaces foreach -A run build",
+    "typecheck": "yarn workspaces foreach -A run typecheck",
+    "test": "yarn workspaces foreach -A run test"
+  }
+}

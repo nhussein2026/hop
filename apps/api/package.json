@@ -1,0 +1,36 @@
+{
+  "name": "@hop/api",
+  "version": "0.1.0",
+  "author": {
+    "name": "Nasser Hussein",
+    "website": "https://nhussein.io",
+    "email": "naser738nas@gmail.com"
+  },
+  "private": true,
+  "type": "module",
+
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "typecheck": "tsc --noEmit",
+
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:studio": "drizzle-kit studio",
+
+    "test:task": "tsx src/scripts/test-task.ts"
+  },
+  "dependencies": {
+    "@hop/domain": "workspace:*",
+    "@hop/validation": "workspace:*",
+    "dotenv": "^17.4.2",
+    "drizzle-orm": "1.0.0-rc.4"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "drizzle-kit": "1.0.0-rc.4",
+    "tsx": "^4.19.0",
+    "typescript": "^5.9.0"
+  }
+}
