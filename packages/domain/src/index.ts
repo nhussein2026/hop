@@ -1,3 +1,11 @@
 export {};
 export * from './common.js';
+export * from './evidence.js';
+export * from './event.js';
+export * from './goal.js';
+export * from './habit.js';
+export * from './opportunity.js';
+export * from './project.js';
+export * from './skill.js';
 export * from './task.js';
+export * from './weekly-review.js';

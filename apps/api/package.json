@@ -8,17 +8,15 @@
   },
   "private": true,
   "type": "module",
-
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "build": "tsc",
     "start": "node dist/server.js",
     "typecheck": "tsc --noEmit",
-
+    "test": "tsx --test --test-concurrency=1 src/**/*.test.ts",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:studio": "drizzle-kit studio",
-
     "test:task": "tsx src/scripts/test-task.ts"
   },
   "dependencies": {

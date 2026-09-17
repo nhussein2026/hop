@@ -3,6 +3,7 @@ import { randomUUID } from 'node:crypto';
 import type {
   CreateTaskInput,
   Task,
+  UpdateTaskInput,
 } from '@hop/domain';
 
 import { taskRepository } from '../repositories/task.repository.js';
@@ -55,5 +56,29 @@ export const taskService = {
     };
 
     return taskRepository.create(task);
+  },
+
+  update(id: string, input: UpdateTaskInput): Task | undefined {
+    const existingTask = taskRepository.findById(id);
+
+    if (!existingTask) {
+      return undefined;
+    }
+
+    const now = new Date().toISOString();
+    const changes: Partial<Task> = {
+      ...input,
+      updatedAt: now,
+    };
+
+    if (input.status === 'completed' && existingTask.status !== 'completed') {
+      changes.completedAt = now;
+    }
+
+    if (input.status && input.status !== 'completed') {
+      changes.completedAt = null;
+    }
+
+    return taskRepository.update(id, changes);
   },
 };

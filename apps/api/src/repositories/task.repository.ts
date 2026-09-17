@@ -39,4 +39,14 @@ export const taskRepository = {
 
     return task;
   },
+
+  update(id: string, changes: Partial<Task>): Task | undefined {
+    db
+      .update(tasks)
+      .set(changes)
+      .where(eq(tasks.id, id))
+      .run();
+
+    return this.findById(id);
+  },
 };
