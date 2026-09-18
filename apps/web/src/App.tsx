@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
-import { buildPlanGroups } from './lib/plan.js'
+import { buildGoalHealth, buildGoalTaskSummary, buildPlanGroups, sortTasksForToday } from './lib/plan.js'
 import './App.css'
 
 type TaskStatus = 'todo' | 'in_progress' | 'completed' | 'cancelled'
@@ -229,6 +229,11 @@ function App() {
   const [isSavingReview, setIsSavingReview] = useState(false)
   const [isAddingHabit, setIsAddingHabit] = useState(false)
   const [isAddingEvent, setIsAddingEvent] = useState(false)
+  const [editingTaskId, setEditingTaskId] = useState<string | null>(null)
+  const [editingTaskTitle, setEditingTaskTitle] = useState('')
+  const [editingTaskDate, setEditingTaskDate] = useState('')
+  const [editingTaskPriority, setEditingTaskPriority] = useState<TaskPriority>('medium')
+  const [editingTaskGoalId, setEditingTaskGoalId] = useState<string>('')
   const [error, setError] = useState('')
 
   useEffect(() => {
@@ -305,12 +310,14 @@ function App() {
 
   const today = new Date().toISOString().slice(0, 10)
   const openTasks = tasks.filter((task) => task.status !== 'completed' && task.status !== 'cancelled')
-  const todayTasks = openTasks.filter((task) => task.scheduledDate === today || task.dueDate === today)
+  const todayTasks = sortTasksForToday(openTasks.filter((task) => task.scheduledDate === today || task.dueDate === today))
   const completedToday = tasks.filter((task) => task.completedAt?.slice(0, 10) === today).length
   const activeGoals = goals.filter((goal) => goal.status === 'active')
   const activeOpportunities = opportunities.filter((opportunity) => opportunity.stage !== 'accepted' && opportunity.stage !== 'declined' && opportunity.stage !== 'rejected' && opportunity.stage !== 'expired' && opportunity.stage !== 'withdrawn')
   const goalById = new Map(goals.map((goal) => [goal.id, goal]))
-  const planGroups = buildPlanGroups(openTasks)
+  const goalTaskSummary = buildGoalTaskSummary(openTasks)
+  const goalSummaryById = new Map(goalTaskSummary.map((summary) => [summary.goalId, summary]))
+  const planGroups = buildPlanGroups(sortTasksForToday(openTasks))
   const defaultGoalId = selectedGoalId || activeGoals[0]?.id || ''
   const opportunityAgendaItems: AgendaItem[] = opportunities.flatMap((opportunity) => {
     const items: AgendaItem[] = []
@@ -626,6 +633,64 @@ function App() {
     }
   }
 
+  async function deleteTask(taskId: string) {
+    try {
+      const response = await fetch(`/api/tasks/${taskId}`, {
+        method: 'DELETE',
+      })
+      if (!response.ok) throw new Error('Could not delete task')
+      setTasks((current) => current.filter((task) => task.id !== taskId))
+      if (editingTaskId === taskId) {
+        setEditingTaskId(null)
+        setEditingTaskTitle('')
+        setEditingTaskDate('')
+        setEditingTaskPriority('medium')
+      }
+    } catch {
+      setError('Could not remove that task. Try again in a moment.')
+    }
+  }
+
+  function beginTaskEdit(task: { id: string; title: string; scheduledDate: string | null; priority: TaskPriority; goalId: string | null }) {
+    setEditingTaskId(task.id)
+    setEditingTaskTitle(task.title)
+    setEditingTaskDate(task.scheduledDate ?? '')
+    setEditingTaskPriority(task.priority)
+    setEditingTaskGoalId(task.goalId ?? '')
+  }
+
+  function cancelTaskEdit() {
+    setEditingTaskId(null)
+    setEditingTaskTitle('')
+    setEditingTaskDate('')
+    setEditingTaskPriority('medium')
+    setEditingTaskGoalId('')
+  }
+
+  async function saveTaskEdit(taskId: string) {
+    const title = editingTaskTitle.trim()
+    if (!title) return
+
+    try {
+      const response = await fetch(`/api/tasks/${taskId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title,
+          scheduledDate: editingTaskDate || null,
+          priority: editingTaskPriority,
+          goalId: editingTaskGoalId || null,
+        }),
+      })
+      if (!response.ok) throw new Error('Could not update task')
+      const updated = await response.json() as Task
+      setTasks((current) => current.map((task) => task.id === updated.id ? updated : task))
+      cancelTaskEdit()
+    } catch {
+      setError('Could not update that task. Try again in a moment.')
+    }
+  }
+
   return (
     <div className="app-shell">
       <aside className="sidebar">
@@ -657,14 +722,45 @@ function App() {
                 <div className="task-list">
                   {(todayTasks.length ? todayTasks : openTasks.slice(0, 3)).map((task, index) => {
                     const linkedGoal = task.goalId ? goalById.get(task.goalId) : undefined
+                    const isEditing = editingTaskId === task.id
 
                     return (
                       <article className={`task-row priority-${task.priority}`} key={task.id}>
                         <button className="check-button" aria-label={`Complete ${task.title}`} onClick={() => completeTask(task)} type="button">{index + 1}</button>
-                        <div className="task-copy">
-                          <strong>{task.title}</strong>
-                          <span>{task.estimatedMinutes ? `${task.estimatedMinutes} min` : 'Open task'} · {task.priority} priority{linkedGoal ? ` · ${linkedGoal.name}` : ''}</span>
-                        </div>
+                        {isEditing ? (
+                          <div className="task-copy edit-task-copy">
+                            <input aria-label={`Edit ${task.title}`} onChange={(event) => setEditingTaskTitle(event.target.value)} value={editingTaskTitle} />
+                            <div className="task-edit-meta">
+                              <input aria-label={`Reschedule ${task.title}`} onChange={(event) => setEditingTaskDate(event.target.value)} type="date" value={editingTaskDate} />
+                              <select aria-label={`Priority for ${task.title}`} onChange={(event) => setEditingTaskPriority(event.target.value as TaskPriority)} value={editingTaskPriority}>
+                                <option value="low">Low</option>
+                                <option value="medium">Medium</option>
+                                <option value="high">High</option>
+                              </select>
+                              <select aria-label={`Goal for ${task.title}`} onChange={(event) => setEditingTaskGoalId(event.target.value)} value={editingTaskGoalId}>
+                                <option value="">No goal</option>
+                                {activeGoals.map((goal) => (
+                                  <option key={goal.id} value={goal.id}>{goal.name}</option>
+                                ))}
+                              </select>
+                            </div>
+                            <div className="task-edit-actions">
+                              <button className="text-button small" onClick={() => saveTaskEdit(task.id)} type="button">Save</button>
+                              <button className="text-button small" onClick={cancelTaskEdit} type="button">Cancel</button>
+                            </div>
+                          </div>
+                        ) : (
+                          <>
+                            <div className="task-copy">
+                              <strong>{task.title}</strong>
+                              <span>{task.estimatedMinutes ? `${task.estimatedMinutes} min` : 'Open task'} · {task.priority} priority{linkedGoal ? ` · ${linkedGoal.name}` : ''}</span>
+                            </div>
+                            <div className="task-actions">
+                              <button className="text-button small" aria-label={`Edit ${task.title}`} onClick={() => beginTaskEdit(task)} type="button">Edit</button>
+                              <button className="text-button small" aria-label={`Delete ${task.title}`} onClick={() => deleteTask(task.id)} type="button">Delete</button>
+                            </div>
+                          </>
+                        )}
                       </article>
                     )
                   })}
@@ -709,14 +805,45 @@ function App() {
                   <div className="plan-list">
                     {group.items.map((task) => {
                       const linkedGoal = task.goalId ? goalById.get(task.goalId) : undefined
+                      const isEditing = editingTaskId === task.id
 
                       return (
                         <article className={`task-row priority-${task.priority}`} key={task.id}>
                           <button className="check-button" aria-label={`Complete ${task.title}`} onClick={() => completeTask(task)} type="button">✓</button>
-                          <div className="task-copy">
-                            <strong>{task.title}</strong>
-                            <span>{task.priority} priority · {task.scheduledDate ?? task.dueDate ?? 'No date set'}{linkedGoal ? ` · ${linkedGoal.name}` : ''}</span>
-                          </div>
+                          {isEditing ? (
+                            <div className="task-copy edit-task-copy">
+                              <input aria-label={`Edit ${task.title}`} onChange={(event) => setEditingTaskTitle(event.target.value)} value={editingTaskTitle} />
+                              <div className="task-edit-meta">
+                                <input aria-label={`Reschedule ${task.title}`} onChange={(event) => setEditingTaskDate(event.target.value)} type="date" value={editingTaskDate} />
+                                <select aria-label={`Priority for ${task.title}`} onChange={(event) => setEditingTaskPriority(event.target.value as TaskPriority)} value={editingTaskPriority}>
+                                  <option value="low">Low</option>
+                                  <option value="medium">Medium</option>
+                                  <option value="high">High</option>
+                                </select>
+                                <select aria-label={`Goal for ${task.title}`} onChange={(event) => setEditingTaskGoalId(event.target.value)} value={editingTaskGoalId}>
+                                  <option value="">No goal</option>
+                                  {activeGoals.map((goal) => (
+                                    <option key={goal.id} value={goal.id}>{goal.name}</option>
+                                  ))}
+                                </select>
+                              </div>
+                              <div className="task-edit-actions">
+                                <button className="text-button small" onClick={() => saveTaskEdit(task.id)} type="button">Save</button>
+                                <button className="text-button small" onClick={cancelTaskEdit} type="button">Cancel</button>
+                              </div>
+                            </div>
+                          ) : (
+                            <>
+                              <div className="task-copy">
+                                <strong>{task.title}</strong>
+                                <span>{task.priority} priority · {task.scheduledDate ?? task.dueDate ?? 'No date set'}{linkedGoal ? ` · ${linkedGoal.name}` : ''}</span>
+                              </div>
+                              <div className="task-actions">
+                                <button className="text-button small" aria-label={`Edit ${task.title}`} onClick={() => beginTaskEdit(task)} type="button">Edit</button>
+                                <button className="text-button small" aria-label={`Delete ${task.title}`} onClick={() => deleteTask(task.id)} type="button">Delete</button>
+                              </div>
+                            </>
+                          )}
                         </article>
                       )
                     })}
@@ -733,25 +860,38 @@ function App() {
               <button disabled={isAddingGoal || !newGoalName.trim()} type="submit">{isAddingGoal ? 'Saving' : 'Add goal'}</button>
             </form>
             <div className="goal-grid">
-              {goals.length ? goals.map((goal) => (
-                <article className="goal-card" key={goal.id}>
-                  <div className="goal-card-header">
-                    <div>
-                      <p className="eyebrow">{goal.priority} priority</p>
-                      <h3>{goal.name}</h3>
+              {goals.length ? goals.map((goal) => {
+                const summary = goalSummaryById.get(goal.id)
+                const health = buildGoalHealth(goal, openTasks)
+                return (
+                  <article className="goal-card" key={goal.id}>
+                    <div className="goal-card-header">
+                      <div>
+                        <p className="eyebrow">{goal.priority} priority</p>
+                        <h3>{goal.name}</h3>
+                      </div>
+                      <span className={`status-pill ${goal.status}`}>{goal.status}</span>
                     </div>
-                    <span className={`status-pill ${goal.status}`}>{goal.status}</span>
-                  </div>
-                  <p className="goal-why">{goal.why || 'No rationale added yet.'}</p>
-                  <div className="progress-wrap">
-                    <div className="progress-bar" style={{ width: `${Math.min(Math.max(goal.progress, 0), 100)}%` }} />
-                  </div>
-                  <div className="goal-meta">
-                    <span>{goal.progress}% complete</span>
-                    <span>{goal.targetDate || 'No target date'}</span>
-                  </div>
-                </article>
-              )) : <div className="empty-state goals-empty"><span className="empty-spark">+</span><strong>No goals yet.</strong><span>Start with the outcome you want to reach next.</span></div>}
+                    <p className="goal-why">{goal.why || 'No rationale added yet.'}</p>
+                    <div className="goal-meta">
+                      <span>{health.label}</span>
+                      <span>{summary ? `${summary.nextTask}` : 'Add an action to begin'}</span>
+                    </div>
+                    <p className="muted">{health.detail}</p>
+                    <div className="goal-meta">
+                      <span>{summary ? `${summary.taskCount} linked actions` : 'No linked tasks yet'}</span>
+                      <span>{goal.progress}% complete</span>
+                    </div>
+                    <div className="progress-wrap">
+                      <div className="progress-bar" style={{ width: `${Math.min(Math.max(goal.progress, 0), 100)}%` }} />
+                    </div>
+                    <div className="goal-meta">
+                      <span>{goal.targetDate || 'No target date'}</span>
+                      <span>{goal.status === 'paused' ? 'Momentum paused' : goal.status === 'achieved' ? 'Goal achieved' : 'Active momentum'}</span>
+                    </div>
+                  </article>
+                )
+              }) : <div className="empty-state goals-empty"><span className="empty-spark">+</span><strong>No goals yet.</strong><span>Start with the outcome you want to reach next.</span></div>}
             </div>
           </section>
         ) : activeView === 'Career' ? (

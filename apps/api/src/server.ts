@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import { createServer } from 'node:http';
 
 import {
@@ -50,7 +51,9 @@ import { skillService } from './services/skill.service.js';
 import { taskService } from './services/task.service.js';
 import { weeklyReviewService } from './services/weekly-review.service.js';
 
-const port = Number(process.env.PORT ?? 4321);
+import { resolvePort } from './config.js';
+
+const port = resolvePort();
 
 function sendJson(response: import('node:http').ServerResponse, status: number, body: unknown) {
   response.writeHead(status, {
@@ -432,6 +435,18 @@ const server = createServer(async (request, response) => {
       }
 
       sendJson(response, 200, task);
+      return;
+    }
+
+    if (request.method === 'DELETE' && taskId) {
+      const deleted = taskService.delete(taskId);
+
+      if (!deleted) {
+        sendJson(response, 404, { error: 'Task not found' });
+        return;
+      }
+
+      sendJson(response, 200, { ok: true });
       return;
     }
 

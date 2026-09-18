@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import { goalService } from './goal.service.js';
+import { taskService } from './task.service.js';
 
 test('goalService.create assigns default values and persisted timestamps', () => {
   const goal = goalService.create({
@@ -36,4 +37,38 @@ test('goalService.update preserves progress and supports completion', () => {
   assert.equal(updated?.progress, 80);
   assert.equal(updated?.status, 'achieved');
   assert.ok(updated?.completedAt);
+});
+
+test('task completion updates linked goal progress and completion state', () => {
+  const goal = goalService.create({
+    name: 'Improve system design thinking',
+    status: 'active',
+    progress: 0,
+  });
+
+  const firstTask = taskService.create({
+    title: 'Read two architecture patterns',
+    goalId: goal.id,
+  });
+
+  const secondTask = taskService.create({
+    title: 'Write a design memo',
+    goalId: goal.id,
+  });
+
+  const afterFirst = taskService.update(firstTask.id, { status: 'completed' });
+  const partialGoal = goalService.getById(goal.id);
+
+  assert.ok(afterFirst);
+  assert.ok(partialGoal);
+  assert.equal(partialGoal?.progress, 50);
+  assert.equal(partialGoal?.status, 'active');
+
+  const afterSecond = taskService.update(secondTask.id, { status: 'completed' });
+  const completedGoal = goalService.getById(goal.id);
+
+  assert.ok(afterSecond);
+  assert.ok(completedGoal);
+  assert.equal(completedGoal?.progress, 100);
+  assert.equal(completedGoal?.status, 'achieved');
 });

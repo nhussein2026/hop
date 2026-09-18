@@ -6,7 +6,37 @@ import type {
   UpdateTaskInput,
 } from '@hop/domain';
 
+import { goalRepository } from '../repositories/goal.repository.js';
 import { taskRepository } from '../repositories/task.repository.js';
+
+function syncGoalProgress(goalId: string | null) {
+  if (!goalId) {
+    return;
+  }
+
+  const goal = goalRepository.findById(goalId);
+  if (!goal) {
+    return;
+  }
+
+  const linkedTasks = taskRepository.findAll().filter((task) => task.goalId === goalId && task.status !== 'cancelled');
+
+  if (linkedTasks.length === 0) {
+    return;
+  }
+
+  const completedTasks = linkedTasks.filter((task) => task.status === 'completed').length;
+  const progress = Math.round((completedTasks / linkedTasks.length) * 100);
+  const now = new Date().toISOString();
+  const nextStatus = progress >= 100 ? 'achieved' : goal.status === 'achieved' ? 'active' : goal.status;
+
+  goalRepository.update(goalId, {
+    progress,
+    status: nextStatus,
+    completedAt: progress >= 100 ? (goal.completedAt ?? now) : null,
+    updatedAt: now,
+  });
+}
 
 /**
  * Application/business logic for Tasks.
@@ -55,7 +85,9 @@ export const taskService = {
       updatedAt: now,
     };
 
-    return taskRepository.create(task);
+    const created = taskRepository.create(task);
+    syncGoalProgress(created.goalId);
+    return created;
   },
 
   update(id: string, input: UpdateTaskInput): Task | undefined {
@@ -79,6 +111,23 @@ export const taskService = {
       changes.completedAt = null;
     }
 
-    return taskRepository.update(id, changes);
+    const updated = taskRepository.update(id, changes);
+
+    if (updated) {
+      syncGoalProgress(updated.goalId);
+    }
+
+    return updated;
+  },
+
+  delete(id: string): boolean {
+    const task = taskRepository.findById(id);
+    const deleted = taskRepository.delete(id);
+
+    if (deleted && task) {
+      syncGoalProgress(task.goalId);
+    }
+
+    return deleted;
   },
 };

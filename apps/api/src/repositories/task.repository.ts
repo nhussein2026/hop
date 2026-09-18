@@ -49,4 +49,13 @@ export const taskRepository = {
 
     return this.findById(id);
   },
+
+  delete(id: string): boolean {
+    const result = db
+      .delete(tasks)
+      .where(eq(tasks.id, id))
+      .run();
+
+    return result.changes > 0;
+  },
 };

@@ -1,13 +1,12 @@
 import { mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { DatabaseSync } from 'node:sqlite';
 
 import { drizzle } from 'drizzle-orm/node-sqlite';
 
-const databasePath = fileURLToPath(
-  new URL('../../../../storage/hop.db', import.meta.url),
-);
+import { resolveDatabasePath } from '../config.js';
+
+const databasePath = resolveDatabasePath();
 
 mkdirSync(dirname(databasePath), {
   recursive: true,
