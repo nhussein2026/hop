@@ -1,0 +1,13 @@
+import { useState } from 'react'
+import { buildOpportunityHealth } from '../lib/plan.js'
+import type { Opportunity } from '../types/index.js'
+
+type CareerViewProps = { opportunities: Opportunity[]; addOpportunity: (body: unknown) => Promise<unknown>; error: string }
+
+export function CareerView({ opportunities, addOpportunity, error }: CareerViewProps) {
+  const [title, setTitle] = useState('')
+  const [organization, setOrganization] = useState('')
+  async function submit(event: React.FormEvent<HTMLFormElement>) { event.preventDefault(); if (!title.trim()) return; await addOpportunity({ title: title.trim(), organization: organization.trim() || undefined, type: 'job', stage: 'saved', priority: 'medium', source: 'manual' }); setTitle(''); setOrganization('') }
+  const active = opportunities.filter((opportunity) => !['accepted', 'declined', 'rejected', 'expired', 'withdrawn'].includes(opportunity.stage))
+  return <section className="career-page">{error && <p className="error-banner" role="alert">{error}</p>}<div className="section-heading goals-header"><div><p className="eyebrow">Career</p><h2>Opportunities</h2></div><span className="count-badge">{active.length}</span></div><form className="goal-form" onSubmit={(event) => void submit(event)}><input aria-label="Opportunity title" onChange={(event) => setTitle(event.target.value)} placeholder="Add a role, internship, or opportunity..." value={title} /><input aria-label="Organization" onChange={(event) => setOrganization(event.target.value)} placeholder="Organization" value={organization} /><button disabled={!title.trim()} type="submit">Add opportunity</button></form><div className="goal-grid">{opportunities.length ? opportunities.map((opportunity) => { const health = buildOpportunityHealth(opportunity); return <article className="goal-card" key={opportunity.id}><div className="goal-card-header"><div><p className="eyebrow">{opportunity.type} · {opportunity.priority}</p><h3>{opportunity.title}</h3></div><span className={`status-pill ${opportunity.stage}`}>{opportunity.stage}</span></div><p className="goal-why">{opportunity.organization || 'No organization recorded yet.'}</p><div className="goal-meta"><span>{health.label}</span><span>{opportunity.remote ? 'Remote' : 'On-site'}</span><span>{opportunity.nextEventDate || 'No next event'}</span></div><p className="muted">{health.detail}</p></article> }) : <div className="empty-state goals-empty"><span className="empty-spark">+</span><strong>No opportunities yet.</strong><span>Track the jobs and programs that matter next.</span></div>}</div></section>
+}

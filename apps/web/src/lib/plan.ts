@@ -7,6 +7,7 @@ export type PlanTask = {
   dueDate: string | null;
   goalId: string | null;
   estimatedMinutes?: number | null;
+  completedAt?: string | null;
 };
 
 export type PlanGroup = {
@@ -25,8 +26,125 @@ export type GoalHealth = {
   detail: string;
 };
 
+export type MomentumSignal = {
+  label: 'Strong momentum' | 'Steady momentum' | 'Starting to move' | 'Needs a reset';
+  detail: string;
+  score: number;
+};
+
+export type GoalFocusGuidance = {
+  overloaded: boolean;
+  detail: string;
+};
+
+export type OpportunityHealth = {
+  label: 'Active' | 'Needs attention' | 'Waiting' | 'Upcoming' | 'Closed';
+  detail: string;
+};
+
+export function buildOpportunityHealth(opportunity: {
+  stage: string;
+  deadline?: string | null;
+  nextEventDate?: string | null;
+  updatedAt?: string | null;
+}): OpportunityHealth {
+  const closedStages = ['accepted', 'declined', 'rejected', 'withdrawn', 'expired'];
+  if (closedStages.includes(opportunity.stage)) {
+    return { label: 'Closed', detail: 'This opportunity is closed.' };
+  }
+
+  const today = new Date().toISOString().slice(0, 10);
+  if (opportunity.deadline && opportunity.deadline < today) {
+    return { label: 'Needs attention', detail: `Deadline passed on ${opportunity.deadline}.` };
+  }
+
+  if (opportunity.nextEventDate && opportunity.nextEventDate < today) {
+    return { label: 'Needs attention', detail: `Follow-up was due on ${opportunity.nextEventDate}.` };
+  }
+
+  if (opportunity.nextEventDate) {
+    const daysUntilEvent = (new Date(`${opportunity.nextEventDate}T00:00:00`).getTime() - new Date(`${today}T00:00:00`).getTime()) / (1000 * 60 * 60 * 24);
+    if (daysUntilEvent <= 7) {
+      return { label: 'Upcoming', detail: `Next step is scheduled for ${opportunity.nextEventDate}.` };
+    }
+  }
+
+  if (['applied', 'screening', 'interview', 'assessment', 'final', 'offer'].includes(opportunity.stage)) {
+    return { label: 'Waiting', detail: 'This opportunity is in progress and waiting on the next decision or response.' };
+  }
+
+  if (opportunity.updatedAt) {
+    const idleDays = Math.floor((Date.now() - new Date(opportunity.updatedAt).getTime()) / (1000 * 60 * 60 * 24));
+    if (idleDays >= 14) {
+      return { label: 'Needs attention', detail: `No activity recorded for ${idleDays} days.` };
+    }
+  }
+
+  return { label: 'Active', detail: 'Keep the next action or follow-up visible.' };
+}
+
+export function buildGoalFocusGuidance(activeGoalCount: number): GoalFocusGuidance {
+  if (activeGoalCount > 3) {
+    return {
+      overloaded: true,
+      detail: `You currently have ${activeGoalCount} active goals. Consider reviewing your priorities.`,
+    };
+  }
+
+  return {
+    overloaded: false,
+    detail: `${activeGoalCount} active goal${activeGoalCount === 1 ? '' : 's'} is within the recommended focus range.`,
+  };
+}
+
+export function buildMomentumIndicator(
+  tasks: Array<Pick<PlanTask, 'status' | 'completedAt'>>,
+  habitCompletions: number,
+  activeGoalCount: number,
+): MomentumSignal {
+  const now = new Date();
+  const recentMeaningfulActions = tasks.filter((task) => {
+    if (task.status !== 'completed' || !task.completedAt) return false;
+    const completedOn = new Date(task.completedAt);
+    const daysDifference = (now.getTime() - completedOn.getTime()) / (1000 * 60 * 60 * 24);
+    return daysDifference <= 7;
+  }).length;
+
+  const score = recentMeaningfulActions + habitCompletions + Math.min(activeGoalCount, 2);
+
+  if (score >= 6) {
+    return {
+      label: 'Strong momentum',
+      detail: `${score} meaningful actions in the last 7 days. Your system is moving with intention.`,
+      score,
+    };
+  }
+
+  if (score >= 3) {
+    return {
+      label: 'Steady momentum',
+      detail: `${score} meaningful actions in the last 7 days. Keep the next action small and useful.`,
+      score,
+    };
+  }
+
+  if (score >= 1) {
+    return {
+      label: 'Starting to move',
+      detail: `${score} meaningful action in the last 7 days. Pick the next small win and keep going.`,
+      score,
+    };
+  }
+
+  return {
+    label: 'Needs a reset',
+    detail: 'No meaningful actions recorded in the last 7 days. Start with one small action and build from there.',
+    score: 0,
+  };
+}
+
 export function buildGoalHealth(
-  goal: { id: string; status: 'active' | 'paused' | 'achieved' | 'abandoned' | 'archived'; progress: number },
+  goal: { id: string; status: 'active' | 'paused' | 'achieved' | 'abandoned' | 'archived'; progress: number; updatedAt?: string | null },
   tasks: PlanTask[],
 ): GoalHealth {
   if (goal.status === 'paused') {
@@ -58,6 +176,16 @@ export function buildGoalHealth(
       label: 'Completed',
       detail: 'Every linked action is complete.',
     };
+  }
+
+  if (goal.updatedAt) {
+    const idleDays = Math.floor((Date.now() - new Date(goal.updatedAt).getTime()) / (1000 * 60 * 60 * 24));
+    if (idleDays >= 14) {
+      return {
+        label: 'Needs attention',
+        detail: `This goal has been quiet for ${idleDays} days. Add the next action that moves it forward.`,
+      };
+    }
   }
 
   return {

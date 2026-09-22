@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { buildGoalHealth, buildGoalTaskSummary, buildPlanGroups, sortTasksForToday } from './plan.js';
+import { buildGoalFocusGuidance, buildGoalHealth, buildGoalTaskSummary, buildMomentumIndicator, buildOpportunityHealth, buildPlanGroups, sortTasksForToday } from './plan.js';
 
 test('sortTasksForToday prioritizes earlier dates, then urgency, then alphabetical tie-breaks', () => {
   const ordered = sortTasksForToday([
@@ -95,5 +95,76 @@ test('buildGoalHealth explains whether a goal is on track, paused, or needs atte
   assert.deepEqual(paused, {
     label: 'Paused',
     detail: 'This goal is paused. Resume it when the next action is ready.',
+  });
+});
+
+test('buildMomentumIndicator explains whether recent activity is building or stalled', () => {
+  const strong = buildMomentumIndicator([
+    { status: 'completed', completedAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 2).toISOString() },
+    { status: 'completed', completedAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 4).toISOString() },
+    { status: 'completed', completedAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 6).toISOString() },
+    { status: 'todo', completedAt: null },
+  ], 2, 3);
+
+  const low = buildMomentumIndicator([], 0, 0);
+
+  assert.deepEqual(strong.label, 'Strong momentum');
+  assert.match(strong.detail, /meaningful actions in the last 7 days/i);
+  assert.deepEqual(low.label, 'Needs a reset');
+  assert.match(low.detail, /No meaningful actions recorded/i);
+});
+
+test('buildGoalFocusGuidance makes active-goal overload visible without blocking extra goals', () => {
+  const focused = buildGoalFocusGuidance(3);
+  const overloaded = buildGoalFocusGuidance(8);
+
+  assert.deepEqual(focused, {
+    overloaded: false,
+    detail: '3 active goals is within the recommended focus range.',
+  });
+  assert.deepEqual(overloaded, {
+    overloaded: true,
+    detail: 'You currently have 8 active goals. Consider reviewing your priorities.',
+  });
+});
+
+test('buildOpportunityHealth explains opportunity status from deadlines, events, and stage', () => {
+  const overdue = buildOpportunityHealth({ stage: 'interested', deadline: '2026-09-17' });
+  const upcoming = buildOpportunityHealth({ stage: 'interested', nextEventDate: '2026-09-20' });
+  const waiting = buildOpportunityHealth({ stage: 'applied' });
+  const closed = buildOpportunityHealth({ stage: 'rejected' });
+
+  assert.deepEqual(overdue, {
+    label: 'Needs attention',
+    detail: 'Deadline passed on 2026-09-17.',
+  });
+  assert.deepEqual(upcoming, {
+    label: 'Upcoming',
+    detail: 'Next step is scheduled for 2026-09-20.',
+  });
+  assert.deepEqual(waiting, {
+    label: 'Waiting',
+    detail: 'This opportunity is in progress and waiting on the next decision or response.',
+  });
+  assert.deepEqual(closed, {
+    label: 'Closed',
+    detail: 'This opportunity is closed.',
+  });
+});
+
+test('buildGoalHealth flags goals that have gone quiet even when they still have open tasks', () => {
+  const stale = buildGoalHealth({
+    id: 'goal-8',
+    status: 'active',
+    progress: 35,
+    updatedAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 18).toISOString(),
+  }, [
+    { id: '6', title: 'Polish case study', status: 'todo', priority: 'medium', scheduledDate: null, dueDate: null, goalId: 'goal-8', completedAt: null },
+    { id: '7', title: 'Send outreach', status: 'todo', priority: 'low', scheduledDate: null, dueDate: null, goalId: 'goal-8', completedAt: null },
+  ]);
+
+  assert.deepEqual(stale, {
+    label: 'Needs attention',
+    detail: 'This goal has been quiet for 18 days. Add the next action that moves it forward.',
   });
 });

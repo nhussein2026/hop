@@ -1,0 +1,13 @@
+import { useState } from 'react'
+import { buildGoalHealth, buildGoalTaskSummary } from '../lib/plan.js'
+import type { Goal, Task } from '../types/index.js'
+
+type GoalsViewProps = { goals: Goal[]; tasks: Task[]; addGoal: (body: unknown) => Promise<unknown>; error: string }
+
+export function GoalsView({ goals, tasks, addGoal, error }: GoalsViewProps) {
+  const [name, setName] = useState('')
+  const openTasks = tasks.filter((task) => task.status !== 'completed' && task.status !== 'cancelled')
+  const summaries = new Map(buildGoalTaskSummary(openTasks).map((summary) => [summary.goalId, summary]))
+  async function submit(event: React.FormEvent<HTMLFormElement>) { event.preventDefault(); if (!name.trim()) return; await addGoal({ name: name.trim(), status: 'active', progress: 0, priority: 'medium' }); setName('') }
+  return <section className="goals-page">{error && <p className="error-banner" role="alert">{error}</p>}<div className="section-heading goals-header"><div><p className="eyebrow">Direction</p><h2>Goals</h2></div><span className="count-badge">{goals.filter((goal) => goal.status === 'active').length}</span></div><form className="goal-form" onSubmit={(event) => void submit(event)}><input aria-label="Goal name" onChange={(event) => setName(event.target.value)} placeholder="Add a new goal..." value={name} /><button disabled={!name.trim()} type="submit">Add goal</button></form><div className="goal-grid">{goals.length ? goals.map((goal) => { const summary = summaries.get(goal.id); const health = buildGoalHealth(goal, openTasks); return <article className="goal-card" key={goal.id}><div className="goal-card-header"><div><p className="eyebrow">{goal.priority} priority</p><h3>{goal.name}</h3></div><span className={`status-pill ${goal.status}`}>{goal.status}</span></div><p className="goal-why">{goal.why || 'No rationale added yet.'}</p><div className="goal-meta"><span>{health.label}</span><span>{summary ? summary.nextTask : 'Add an action to begin'}</span></div><p className="muted">{health.detail}</p><div className="goal-meta"><span>{summary ? `${summary.taskCount} linked actions` : 'No linked tasks yet'}</span><span>{goal.progress}% complete</span></div><div className="progress-wrap"><div className="progress-bar" style={{ width: `${Math.min(Math.max(goal.progress, 0), 100)}%` }} /></div><div className="goal-meta"><span>{goal.targetDate || 'No target date'}</span><span>{goal.status === 'paused' ? 'Momentum paused' : goal.status === 'achieved' ? 'Goal achieved' : 'Active momentum'}</span></div></article> }) : <div className="empty-state goals-empty"><span className="empty-spark">+</span><strong>No goals yet.</strong><span>Start with the outcome you want to reach next.</span></div>}</div></section>
+}
