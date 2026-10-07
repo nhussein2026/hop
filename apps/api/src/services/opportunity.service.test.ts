@@ -35,3 +35,16 @@ test('opportunityService.update records closedAt when the opportunity is accepte
   assert.equal(updated?.stage, 'accepted');
   assert.ok(updated?.closedAt);
 });
+
+test('opportunityService records closedAt for every terminal stage and clears it when reopened', () => {
+  const opportunity = opportunityService.create({ title: 'Platform engineer', stage: 'applied' });
+  const rejected = opportunityService.update(opportunity.id, { stage: 'rejected' });
+
+  assert.ok(rejected?.closedAt);
+
+  const reopened = opportunityService.update(opportunity.id, { stage: 'interview' });
+  assert.equal(reopened?.closedAt, null);
+
+  const createdClosed = opportunityService.create({ title: 'Expired fellowship', stage: 'expired' });
+  assert.ok(createdClosed.closedAt);
+});

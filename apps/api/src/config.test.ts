@@ -23,3 +23,7 @@ test('resolvePort uses the configured PORT when present', () => {
     }
   }
 });
+
+test('tests run against an in-memory database', () => {
+  assert.equal(process.env.DATABASE_URL, ':memory:');
+});

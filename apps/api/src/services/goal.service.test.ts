@@ -72,3 +72,30 @@ test('task completion updates linked goal progress and completion state', () => 
   assert.equal(completedGoal?.progress, 100);
   assert.equal(completedGoal?.status, 'achieved');
 });
+
+test('moving a task to another goal recalculates progress for both goals', () => {
+  const first = goalService.create({ name: 'First goal' });
+  const second = goalService.create({ name: 'Second goal' });
+  const done = taskService.create({ title: 'Finished step', goalId: first.id });
+  const moving = taskService.create({ title: 'Step to move', goalId: first.id });
+  taskService.update(done.id, { status: 'completed' });
+
+  assert.equal(goalService.getById(first.id)?.progress, 50);
+
+  taskService.update(moving.id, { goalId: second.id });
+
+  assert.equal(goalService.getById(first.id)?.progress, 100);
+  assert.equal(goalService.getById(second.id)?.progress, 0);
+});
+
+test('task completion does not change the status of a paused goal', () => {
+  const goal = goalService.create({ name: 'Paused goal', status: 'paused' });
+  const task = taskService.create({ title: 'Only step', goalId: goal.id });
+
+  taskService.update(task.id, { status: 'completed' });
+
+  const updated = goalService.getById(goal.id);
+  assert.equal(updated?.progress, 100);
+  assert.equal(updated?.status, 'paused');
+  assert.equal(updated?.completedAt, null);
+});

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useEntityCollection } from './useEntityCollection.js'
+import { addDays } from '../lib/date.js'
 import type { Habit, HabitCompletion } from '../types/index.js'
 
 export function useHabits(today: string) {
@@ -14,7 +15,7 @@ export function useHabits(today: string) {
     const controller = new AbortController()
     const activeControllers = controllers.current
     activeControllers.add(controller)
-    fetch(`/api/habits/completions?date=${today}`, { signal: controller.signal })
+    fetch(`/api/habits/completions?from=${addDays(today, -6)}&to=${today}`, { signal: controller.signal })
       .then((response) => {
         if (!response.ok) throw new Error('Could not load habit completions')
         return response.json() as Promise<HabitCompletion[]>
@@ -34,7 +35,7 @@ export function useHabits(today: string) {
   }, [today])
 
   async function completeHabit(habitId: string) {
-    if (habitCompletions.some((completion) => completion.habitId === habitId)) return
+    if (habitCompletions.some((completion) => completion.habitId === habitId && completion.date === today)) return
     const controller = new AbortController()
     controllers.current.add(controller)
     try {
@@ -57,7 +58,8 @@ export function useHabits(today: string) {
   return {
     ...resource,
     habits: resource.items,
-    habitCompletions,
+    habitCompletions: habitCompletions.filter((completion) => completion.date === today),
+    recentHabitCompletionCount: habitCompletions.length,
     error: resource.error || completionError,
     addHabit: (body: unknown) => resource.add(body),
     completeHabit,

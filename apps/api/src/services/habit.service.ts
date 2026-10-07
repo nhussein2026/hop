@@ -9,8 +9,8 @@ export const habitService = {
     return habitRepository.findAll();
   },
 
-  getCompletions(date: string): HabitCompletion[] {
-    return habitRepository.findCompletions(date);
+  getCompletions(from: string, to = from): HabitCompletion[] {
+    return habitRepository.findCompletions(from, to);
   },
 
   create(input: CreateHabitInput): Habit {
@@ -29,7 +29,11 @@ export const habitService = {
     return habitRepository.create(habit);
   },
 
-  complete(habitId: string, date: string): HabitCompletion {
+  complete(habitId: string, date: string): HabitCompletion | undefined {
+    if (!habitRepository.findById(habitId)) {
+      return undefined;
+    }
+
     return habitRepository.complete({
       id: randomUUID(),
       habitId,

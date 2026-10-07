@@ -1,12 +1,18 @@
 import { randomUUID } from 'node:crypto';
 
+import { OPPORTUNITY_CLOSED_STAGES } from '@hop/domain';
 import type {
   CreateOpportunityInput,
   Opportunity,
+  OpportunityStage,
   UpdateOpportunityInput,
 } from '@hop/domain';
 
 import { opportunityRepository } from '../repositories/opportunity.repository.js';
+
+function isClosedStage(stage: OpportunityStage) {
+  return (OPPORTUNITY_CLOSED_STAGES as readonly OpportunityStage[]).includes(stage);
+}
 
 export const opportunityService = {
   getAll(): Opportunity[] {
@@ -19,6 +25,7 @@ export const opportunityService = {
 
   create(input: CreateOpportunityInput): Opportunity {
     const now = new Date().toISOString();
+    const stage = input.stage ?? 'saved';
 
     const opportunity: Opportunity = {
       id: randomUUID(),
@@ -26,7 +33,7 @@ export const opportunityService = {
       organization: input.organization ?? null,
       url: input.url ?? null,
       type: input.type ?? 'other',
-      stage: input.stage ?? 'saved',
+      stage,
       priority: input.priority ?? 'medium',
       location: input.location ?? null,
       remote: input.remote ?? false,
@@ -44,7 +51,7 @@ export const opportunityService = {
       notes: input.notes ?? null,
       createdAt: now,
       updatedAt: now,
-      closedAt: null,
+      closedAt: isClosedStage(stage) ? now : null,
     };
 
     return opportunityRepository.create(opportunity);
@@ -63,11 +70,11 @@ export const opportunityService = {
       updatedAt: now,
     };
 
-    if (input.stage === 'accepted' && existingOpportunity.stage !== 'accepted') {
+    if (input.stage && isClosedStage(input.stage) && !isClosedStage(existingOpportunity.stage)) {
       changes.closedAt = now;
     }
 
-    if (input.stage && input.stage !== 'accepted') {
+    if (input.stage && !isClosedStage(input.stage)) {
       changes.closedAt = null;
     }
 

@@ -1,3 +1,4 @@
+export * from './common.js';
 export {};
 export * from './goal.js';
 export * from './habit.js';

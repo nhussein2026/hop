@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { DataSafetyPanel } from '../components/DataSafetyPanel.js'
+import { toLocalDate, weekStartOf } from '../lib/date.js'
 import type { WeeklyReview } from '../types/index.js'
 
 type ReviewDraft = { wins: string; progress: string; career: string; learning: string; projects: string; problems: string; nextWeek: string; energy: string; focus: string }
@@ -8,15 +9,8 @@ type ReviewViewProps = { weeklyReviews: WeeklyReview[]; saveWeeklyReview: (id: s
 
 const emptyDraft: ReviewDraft = { wins: '', progress: '', career: '', learning: '', projects: '', problems: '', nextWeek: '', energy: '', focus: '' }
 
-function weekStart(date: Date) {
-  const value = new Date(date)
-  const day = value.getDay()
-  value.setDate(value.getDate() + (day === 0 ? -6 : 1 - day))
-  return value.toISOString().slice(0, 10)
-}
-
 export function ReviewView({ weeklyReviews, saveWeeklyReview, error }: ReviewViewProps) {
-  const currentWeek = weekStart(new Date())
+  const currentWeek = weekStartOf(toLocalDate())
   const existing = weeklyReviews.find((review) => review.weekStart === currentWeek)
   const [draft, setDraft] = useState<ReviewDraft>(() => existing ? { wins: existing.wins, progress: existing.progress, career: existing.career, learning: existing.learning, projects: existing.projects, problems: existing.problems, nextWeek: existing.nextWeek, energy: existing.energy?.toString() ?? '', focus: existing.focus?.toString() ?? '' } : emptyDraft)
   function setField(field: keyof ReviewDraft, value: string) { setDraft((current) => ({ ...current, [field]: value })) }

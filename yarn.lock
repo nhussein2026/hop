@@ -677,6 +677,7 @@ __metadata:
   resolution: "@hop/validation@workspace:packages/validation"
   dependencies:
     "@hop/domain": "workspace:*"
+    tsx: "npm:^4.19.0"
     typescript: "npm:^5.9.0"
     zod: "npm:^4.1.0"
   languageName: unknown

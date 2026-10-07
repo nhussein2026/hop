@@ -5,17 +5,7 @@ import {
   TASK_STATUSES,
 } from '@hop/domain';
 
-const entityIdSchema = z
-  .string()
-  .trim()
-  .min(1, 'ID cannot be empty');
-
-const dateSchema = z
-  .string()
-  .regex(
-    /^\d{4}-\d{2}-\d{2}$/,
-    'Date must use YYYY-MM-DD format',
-  );
+import { dateSchema, entityIdSchema } from './common.js';
 
 const titleSchema = z
   .string()

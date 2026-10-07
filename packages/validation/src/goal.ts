@@ -5,6 +5,8 @@ import {
   GOAL_STATUSES,
 } from '@hop/domain';
 
+import { dateSchema } from './common.js';
+
 const goalNameSchema = z
   .string()
   .trim()
@@ -16,12 +18,9 @@ const goalTextSchema = z
   .trim()
   .max(5000, 'Goal text cannot exceed 5000 characters');
 
-const dateSchema = z
-  .string()
-  .regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must use YYYY-MM-DD format');
-
 const progressSchema = z
   .number()
+  .int('Progress must be a whole number')
   .min(0, 'Progress must be between 0 and 100')
   .max(100, 'Progress must be between 0 and 100');
 

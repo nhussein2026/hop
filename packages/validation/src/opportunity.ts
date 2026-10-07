@@ -6,9 +6,10 @@ import {
   OPPORTUNITY_TYPES,
 } from '@hop/domain';
 
+import { dateSchema } from './common.js';
+
 const titleSchema = z.string().trim().min(1, 'Opportunity title is required').max(200, 'Opportunity title cannot exceed 200 characters');
 const textSchema = z.string().trim().max(5000, 'Text cannot exceed 5000 characters');
-const dateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must use YYYY-MM-DD format');
 const tagsSchema = z.array(z.string().trim().min(1)).max(50, 'Too many technology tags');
 
 export const opportunityTypeSchema = z.enum(OPPORTUNITY_TYPES);

@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { buildGoalFocusGuidance, buildGoalHealth, buildGoalTaskSummary, buildMomentumIndicator, buildOpportunityHealth, buildPlanGroups, sortTasksForToday } from './plan.js';
+import { buildGoalFocusGuidance, buildGoalHealth, buildGoalTaskSummary, buildMomentumIndicator, buildOpportunityHealth, buildPlanGroups, isTaskDueBy, isTaskOverdue, sortTasksForToday } from './plan.js';
 
 test('sortTasksForToday prioritizes earlier dates, then urgency, then alphabetical tie-breaks', () => {
   const ordered = sortTasksForToday([
@@ -170,4 +170,17 @@ test('buildGoalHealth flags goals that have gone quiet even when they still have
     label: 'Needs attention',
     detail: 'This goal has been quiet for 18 days. Add the next action that moves it forward.',
   });
+});
+
+test('isTaskOverdue and isTaskDueBy derive Today membership from dates', () => {
+  const today = '2026-10-07';
+
+  assert.equal(isTaskOverdue({ scheduledDate: '2026-10-06', dueDate: null }, today), true);
+  assert.equal(isTaskOverdue({ scheduledDate: '2026-10-06', dueDate: '2026-10-09' }, today), false);
+  assert.equal(isTaskOverdue({ scheduledDate: null, dueDate: '2026-10-07' }, today), false);
+  assert.equal(isTaskOverdue({ scheduledDate: null, dueDate: null }, today), false);
+
+  assert.equal(isTaskDueBy({ scheduledDate: '2026-10-05', dueDate: null }, today), true);
+  assert.equal(isTaskDueBy({ scheduledDate: '2026-10-08', dueDate: '2026-10-07' }, today), true);
+  assert.equal(isTaskDueBy({ scheduledDate: '2026-10-08', dueDate: null }, today), false);
 });

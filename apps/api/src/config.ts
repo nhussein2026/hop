@@ -30,3 +30,10 @@ export function resolveBackupDirectory(backupDir = process.env.BACKUP_DIR ?? './
   const value = backupDir.trim() || './storage/backups';
   return value.startsWith('/') ? value : resolve(repoRoot, value);
 }
+
+/**
+ * Hop has no authentication yet, so it only listens on the local machine unless HOST is set explicitly.
+ */
+export function resolveHost(host = process.env.HOST ?? '127.0.0.1') {
+  return host.trim() || '127.0.0.1';
+}

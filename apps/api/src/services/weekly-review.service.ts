@@ -6,6 +6,7 @@ import type {
   WeeklyReview,
 } from '@hop/domain';
 
+import { ConflictError } from '../errors.js';
 import { weeklyReviewRepository } from '../repositories/weekly-review.repository.js';
 
 export const weeklyReviewService = {
@@ -18,6 +19,10 @@ export const weeklyReviewService = {
   },
 
   create(input: CreateWeeklyReviewInput): WeeklyReview {
+    if (weeklyReviewRepository.findByWeekStart(input.weekStart)) {
+      throw new ConflictError(`A weekly review already exists for the week of ${input.weekStart}`);
+    }
+
     const now = new Date().toISOString();
     const review: WeeklyReview = {
       id: randomUUID(),
@@ -41,6 +46,12 @@ export const weeklyReviewService = {
   update(id: string, input: UpdateWeeklyReviewInput): WeeklyReview | undefined {
     if (!weeklyReviewRepository.findById(id)) {
       return undefined;
+    }
+
+    const sameWeek = input.weekStart ? weeklyReviewRepository.findByWeekStart(input.weekStart) : undefined;
+
+    if (sameWeek && sameWeek.id !== id) {
+      throw new ConflictError(`A weekly review already exists for the week of ${input.weekStart}`);
     }
 
     return weeklyReviewRepository.update(id, {

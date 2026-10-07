@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
-const entityId = z.string().trim().min(1, 'ID cannot be empty');
-const date = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must use YYYY-MM-DD format');
+import { dateSchema as date, entityIdSchema as entityId } from './common.js';
+
 const text = (label: string, max: number) => z.string().trim().max(max, `${label} cannot exceed ${max} characters`);
 
 const evidenceFields = {
@@ -11,7 +11,7 @@ const evidenceFields = {
   projectId: entityId.nullable().optional(),
   opportunityId: entityId.nullable().optional(),
   goalId: entityId.nullable().optional(),
-  url: z.string().url('Evidence URL must be valid').nullable().optional(),
+  url: z.string().trim().url('Evidence URL must be valid').nullable().optional(),
   date: date.nullable().optional(),
 };
 

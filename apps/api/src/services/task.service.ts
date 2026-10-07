@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 
 import type {
   CreateTaskInput,
+  Goal,
   Task,
   UpdateTaskInput,
 } from '@hop/domain';
@@ -28,14 +29,21 @@ function syncGoalProgress(goalId: string | null) {
   const completedTasks = linkedTasks.filter((task) => task.status === 'completed').length;
   const progress = Math.round((completedTasks / linkedTasks.length) * 100);
   const now = new Date().toISOString();
-  const nextStatus = progress >= 100 ? 'achieved' : goal.status === 'achieved' ? 'active' : goal.status;
+  const changes: Partial<Goal> = { progress, updatedAt: now };
 
-  goalRepository.update(goalId, {
-    progress,
-    status: nextStatus,
-    completedAt: progress >= 100 ? (goal.completedAt ?? now) : null,
-    updatedAt: now,
-  });
+  // Only active goals complete automatically, and only achieved goals reopen.
+  // Paused, abandoned, and archived goals keep the status the user chose.
+  if (goal.status === 'active' && progress >= 100) {
+    changes.status = 'achieved';
+    changes.completedAt = now;
+  }
+
+  if (goal.status === 'achieved' && progress < 100) {
+    changes.status = 'active';
+    changes.completedAt = null;
+  }
+
+  goalRepository.update(goalId, changes);
 }
 
 /**
@@ -115,6 +123,10 @@ export const taskService = {
 
     if (updated) {
       syncGoalProgress(updated.goalId);
+
+      if (existingTask.goalId !== updated.goalId) {
+        syncGoalProgress(existingTask.goalId);
+      }
     }
 
     return updated;

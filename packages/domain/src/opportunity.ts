@@ -29,6 +29,15 @@ export const OPPORTUNITY_STAGES = [
   'declined',
 ] as const;
 
+/** Stages that end an opportunity. Closed opportunities keep their history but need no follow-up. */
+export const OPPORTUNITY_CLOSED_STAGES = [
+  'rejected',
+  'withdrawn',
+  'expired',
+  'accepted',
+  'declined',
+] as const satisfies readonly (typeof OPPORTUNITY_STAGES)[number][];
+
 export const OPPORTUNITY_PRIORITIES = ['low', 'medium', 'high'] as const;
 
 export type OpportunityType = (typeof OPPORTUNITY_TYPES)[number];

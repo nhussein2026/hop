@@ -2,7 +2,8 @@ import { z } from 'zod';
 
 import { PROJECT_STATUSES } from '@hop/domain';
 
-const dateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must use YYYY-MM-DD format');
+import { dateSchema } from './common.js';
+
 const textField = (label: string, max: number) => z.string().trim().max(max, `${label} cannot exceed ${max} characters`);
 const idList = z.array(z.string().trim().min(1, 'ID cannot be empty')).max(50);
 

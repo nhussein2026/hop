@@ -2,8 +2,8 @@ import { z } from 'zod';
 
 import { EVENT_TYPES } from '@hop/domain';
 
-const id = z.string().trim().min(1, 'ID cannot be empty');
-const date = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must use YYYY-MM-DD format');
+import { dateSchema as date, entityIdSchema as id } from './common.js';
+
 const time = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'Time must use HH:MM format');
 const text = (label: string, max: number) => z.string().trim().max(max, `${label} cannot exceed ${max} characters`);
 
@@ -19,5 +19,11 @@ const eventFields = {
   opportunityId: id.nullable().optional(),
 };
 
-export const createEventSchema = z.object({ ...eventFields, type: eventFields.type.optional() }).strict();
-export const updateEventSchema = z.object(eventFields).partial().strict();
+function validateEventTimes(value: { startTime?: string | null | undefined; endTime?: string | null | undefined }, ctx: z.RefinementCtx) {
+  if (value.startTime && value.endTime && value.endTime < value.startTime) {
+    ctx.addIssue({ code: 'custom', path: ['endTime'], message: 'End time cannot be earlier than the start time' });
+  }
+}
+
+export const createEventSchema = z.object({ ...eventFields, type: eventFields.type.optional() }).strict().superRefine(validateEventTimes);
+export const updateEventSchema = z.object(eventFields).partial().strict().superRefine(validateEventTimes);

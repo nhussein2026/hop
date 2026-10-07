@@ -2,8 +2,7 @@ import { z } from 'zod';
 
 import { HABIT_FREQUENCIES } from '@hop/domain';
 
-const id = z.string().trim().min(1, 'ID cannot be empty');
-const date = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must use YYYY-MM-DD format');
+import { dateSchema as date, entityIdSchema as id } from './common.js';
 
 export const createHabitSchema = z.object({
   name: z.string().trim().min(1, 'Habit name is required').max(160, 'Habit name cannot exceed 160 characters'),
@@ -13,3 +12,8 @@ export const createHabitSchema = z.object({
 }).strict();
 
 export const habitCompletionSchema = z.object({ date }).strict();
+
+export const habitCompletionRangeSchema = z.object({ from: date, to: date }).strict().refine(
+  (value) => value.from <= value.to,
+  { message: 'The start date cannot be after the end date', path: ['to'] },
+);

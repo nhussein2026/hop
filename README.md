@@ -67,6 +67,8 @@ The web workspace is named `web`, not `@hop/web`.
 
 If port `4321` is already in use, change `PORT` in `.env` and update the proxy target in `apps/web/vite.config.ts` to match.
 
+The API listens on `127.0.0.1` only, because Hop has no authentication yet. Do not set `HOST=0.0.0.0` until authentication is in place. The web app reaches the API through the Vite proxy on the same origin, so the API sends no CORS headers.
+
 ## Verify The Environment
 
 Check the API health endpoint:
@@ -113,11 +115,11 @@ From the repository root:
 yarn dev                              # Start all workspaces with a dev script
 yarn build                            # Build all workspaces with a build script
 yarn typecheck                        # Typecheck all workspaces with a typecheck script
-yarn test                             # Run all workspaces with a test script
+yarn test                             # Run all workspaces with a test script (API tests use an in-memory database)
 yarn workspace web build              # Build the frontend
 yarn workspace web lint               # Lint the frontend
 yarn workspace @hop/api typecheck     # Typecheck the API
-yarn workspace @hop/api test:task      # Exercise task persistence directly
+yarn workspace @hop/api test:task      # Exercise task persistence directly (writes to the configured database)
 ```
 
 The API also exposes these database commands:
@@ -189,7 +191,7 @@ Updates task fields. Set `status` to `completed` to record completion time, or s
 
 Valid statuses are `todo`, `in_progress`, `completed`, and `cancelled`. Valid priorities are `low`, `medium`, and `high`.
 
-Invalid request bodies return HTTP `400`. Missing tasks return HTTP `404`.
+Invalid request bodies, malformed JSON, and impossible dates (such as `2026-02-31`) return HTTP `400`. Bodies over 1 MB return `413`. Missing records return `404`. A second weekly review for the same week returns `409`. Unexpected server failures return `500`.
 
 ### `GET /api/export`
 

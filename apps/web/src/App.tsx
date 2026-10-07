@@ -9,6 +9,7 @@ import { useProjects } from './hooks/useProjects.js'
 import { useSkills } from './hooks/useSkills.js'
 import { useTasks } from './hooks/useTasks.js'
 import { useWeeklyReviews } from './hooks/useWeeklyReviews.js'
+import { toLocalDate } from './lib/date.js'
 import { CareerView } from './views/CareerView.js'
 import { GoalsView } from './views/GoalsView.js'
 import { GrowthView } from './views/GrowthView.js'
@@ -21,7 +22,7 @@ type ViewName = typeof navigation[number]
 
 function App() {
   const [activeView, setActiveView] = useState<ViewName>('Today')
-  const today = new Date().toISOString().slice(0, 10)
+  const today = toLocalDate()
   const tasks = useTasks()
   const goals = useGoals()
   const opportunities = useOpportunities()
@@ -34,7 +35,7 @@ function App() {
   const error = [tasks.error, goals.error, opportunities.error, skills.error, projects.error, evidence.error, reviews.error, habits.error, events.error].find(Boolean) ?? ''
 
   function renderView() {
-    if (activeView === 'Today') return <TodayView addHabit={habits.addHabit} addTask={tasks.addTask} completeHabit={habits.completeHabit} completeTask={tasks.completeTask} deleteTask={tasks.deleteTask} error={error} goals={goals.goals} habitCompletions={habits.habitCompletions} habits={habits.habits} tasks={tasks.tasks} updateTask={tasks.updateTask} />
+    if (activeView === 'Today') return <TodayView addHabit={habits.addHabit} addTask={tasks.addTask} completeHabit={habits.completeHabit} completeTask={tasks.completeTask} deleteTask={tasks.deleteTask} error={error} goals={goals.goals} habitCompletions={habits.habitCompletions} habits={habits.habits} recentHabitCompletionCount={habits.recentHabitCompletionCount} today={today} tasks={tasks.tasks} updateTask={tasks.updateTask} />
     if (activeView === 'Plan') return <PlanView addEvent={events.addEvent} completeTask={tasks.completeTask} deleteTask={tasks.deleteTask} error={error} events={events.events} goals={goals.goals} opportunities={opportunities.opportunities} tasks={tasks.tasks} updateTask={tasks.updateTask} weeklyReviews={reviews.weeklyReviews} />
     if (activeView === 'Goals') return <GoalsView addGoal={goals.addGoal} error={error} goals={goals.goals} tasks={tasks.tasks} />
     if (activeView === 'Career') return <CareerView addOpportunity={opportunities.addOpportunity} error={error} opportunities={opportunities.opportunities} />

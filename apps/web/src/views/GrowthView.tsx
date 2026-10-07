@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
+import { toLocalDate } from '../lib/date.js'
 import type { Evidence, Project, ProjectStatus, Skill, SkillLevel } from '../types/index.js'
 
 type GrowthViewProps = {
@@ -27,21 +28,21 @@ export function GrowthView({ skills, projects, evidence, addSkill, updateSkill, 
   async function submitSkill(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (!skillName.trim()) return
-    await addSkill({ name: skillName.trim(), category: skillCategory.trim() || undefined })
+    if (!await addSkill({ name: skillName.trim(), category: skillCategory.trim() || undefined })) return
     setSkillName(''); setSkillCategory('')
   }
 
   async function submitProject(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (!projectName.trim()) return
-    await addProject({ name: projectName.trim(), blurb: projectBlurb.trim() || undefined })
+    if (!await addProject({ name: projectName.trim(), blurb: projectBlurb.trim() || undefined })) return
     setProjectName(''); setProjectBlurb('')
   }
 
   async function submitEvidence(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (!evidenceTitle.trim()) return
-    await addEvidence({ title: evidenceTitle.trim(), description: evidenceDescription.trim() || undefined, skillId: skillId || undefined, projectId: projectId || undefined, date: new Date().toISOString().slice(0, 10) })
+    if (!await addEvidence({ title: evidenceTitle.trim(), description: evidenceDescription.trim() || undefined, skillId: skillId || undefined, projectId: projectId || undefined, date: toLocalDate() })) return
     setEvidenceTitle(''); setEvidenceDescription(''); setSkillId(''); setProjectId('')
   }
 

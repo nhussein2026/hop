@@ -1,4 +1,4 @@
-import { and, eq } from 'drizzle-orm';
+import { and, between, eq } from 'drizzle-orm';
 
 import type { Habit, HabitCompletion } from '@hop/domain';
 
@@ -10,6 +10,10 @@ export const habitRepository = {
     return db.select().from(habits).where(eq(habits.active, true)).all();
   },
 
+  findById(id: string): Habit | undefined {
+    return db.select().from(habits).where(eq(habits.id, id)).get();
+  },
+
   create(habit: Habit): Habit {
     db.insert(habits).values(habit).run();
     return habit;
@@ -19,8 +23,8 @@ export const habitRepository = {
     return db.select().from(habitCompletions).where(and(eq(habitCompletions.habitId, habitId), eq(habitCompletions.date, date))).get();
   },
 
-  findCompletions(date: string): HabitCompletion[] {
-    return db.select().from(habitCompletions).where(eq(habitCompletions.date, date)).all();
+  findCompletions(from: string, to: string): HabitCompletion[] {
+    return db.select().from(habitCompletions).where(between(habitCompletions.date, from, to)).all();
   },
 
   complete(completion: HabitCompletion): HabitCompletion {

@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
+import { ConflictError } from '../errors.js';
 import { weeklyReviewService } from './weekly-review.service.js';
 
 test('weeklyReviewService.create stores the weekly template', () => {
@@ -28,4 +29,13 @@ test('weeklyReviewService.update records ratings and problems', () => {
   assert.equal(updated?.problems, 'Too much context switching.');
   assert.equal(updated?.energy, 4);
   assert.equal(updated?.focus, 3);
+});
+
+test('weeklyReviewService allows only one review per week', () => {
+  const review = weeklyReviewService.create({ weekStart: '2026-10-05' });
+  const other = weeklyReviewService.create({ weekStart: '2026-10-12' });
+
+  assert.throws(() => weeklyReviewService.create({ weekStart: '2026-10-05' }), ConflictError);
+  assert.throws(() => weeklyReviewService.update(other.id, { weekStart: '2026-10-05' }), ConflictError);
+  assert.equal(weeklyReviewService.update(review.id, { weekStart: '2026-10-05', wins: 'Kept it' })?.wins, 'Kept it');
 });

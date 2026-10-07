@@ -1,3 +1,5 @@
+import { toLocalDate } from './date.js';
+
 export type PlanTask = {
   id: string;
   title: string;
@@ -42,18 +44,23 @@ export type OpportunityHealth = {
   detail: string;
 };
 
+const closedOpportunityStages = ['accepted', 'declined', 'rejected', 'withdrawn', 'expired'];
+
+export function isClosedOpportunity(opportunity: { stage: string }): boolean {
+  return closedOpportunityStages.includes(opportunity.stage);
+}
+
 export function buildOpportunityHealth(opportunity: {
   stage: string;
   deadline?: string | null;
   nextEventDate?: string | null;
   updatedAt?: string | null;
 }): OpportunityHealth {
-  const closedStages = ['accepted', 'declined', 'rejected', 'withdrawn', 'expired'];
-  if (closedStages.includes(opportunity.stage)) {
+  if (isClosedOpportunity(opportunity)) {
     return { label: 'Closed', detail: 'This opportunity is closed.' };
   }
 
-  const today = new Date().toISOString().slice(0, 10);
+  const today = toLocalDate();
   if (opportunity.deadline && opportunity.deadline < today) {
     return { label: 'Needs attention', detail: `Deadline passed on ${opportunity.deadline}.` };
   }
@@ -192,6 +199,17 @@ export function buildGoalHealth(
     label: 'On track',
     detail: `${completed} of ${linkedTasks.length} linked actions are complete.`,
   };
+}
+
+/** Overdue is derived from dates and status: a due date, or else a scheduled date, before today. */
+export function isTaskOverdue(task: Pick<PlanTask, 'scheduledDate' | 'dueDate'>, today: string): boolean {
+  const deadline = task.dueDate ?? task.scheduledDate;
+  return deadline !== null && deadline < today;
+}
+
+/** Tasks that belong on Today: scheduled or due today, or carried over from an earlier day. */
+export function isTaskDueBy(task: Pick<PlanTask, 'scheduledDate' | 'dueDate'>, today: string): boolean {
+  return (task.scheduledDate !== null && task.scheduledDate <= today) || (task.dueDate !== null && task.dueDate <= today);
 }
 
 export function sortTasksForToday(tasks: PlanTask[]): PlanTask[] {

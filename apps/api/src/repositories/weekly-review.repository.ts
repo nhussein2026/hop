@@ -14,6 +14,10 @@ export const weeklyReviewRepository = {
     return db.select().from(weeklyReviews).where(eq(weeklyReviews.id, id)).get();
   },
 
+  findByWeekStart(weekStart: string): WeeklyReview | undefined {
+    return db.select().from(weeklyReviews).where(eq(weeklyReviews.weekStart, weekStart)).get();
+  },
+
   create(review: WeeklyReview): WeeklyReview {
     db.insert(weeklyReviews).values(review).run();
     return review;

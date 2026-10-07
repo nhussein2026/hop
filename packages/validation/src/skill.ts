@@ -2,14 +2,13 @@ import { z } from 'zod';
 
 import { SKILL_LEVELS } from '@hop/domain';
 
-const dateSchema = z
-  .string()
-  .regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must use YYYY-MM-DD format');
+import { dateSchema } from './common.js';
 
 const optionalText = (label: string, max: number) => z
   .string()
   .trim()
   .max(max, `${label} cannot exceed ${max} characters`)
+  .nullable()
   .optional();
 
 const skillFields = {
@@ -25,8 +24,8 @@ const skillFields = {
 export const createSkillSchema = z.object({
   ...skillFields,
   level: skillFields.level.optional(),
-});
+}).strict();
 
 export const updateSkillSchema = z.object({
   ...skillFields,
-}).partial();
+}).partial().strict();

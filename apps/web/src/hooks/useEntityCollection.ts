@@ -19,8 +19,8 @@ export function useEntityCollection<T extends Entity>(endpoint: string) {
       const response = await fetch(path, { ...init, signal: controller.signal })
       if (!response.ok) throw new Error(`Request failed with ${response.status}`)
       const result = await response.json() as R
-      if (id !== requestId.current) return undefined
-      setError('')
+      // A newer request supersedes this one's error state, but a saved change must still reach the UI.
+      if (id === requestId.current) setError('')
       return result
     } catch (cause) {
       if (cause instanceof DOMException && cause.name === 'AbortError') return undefined

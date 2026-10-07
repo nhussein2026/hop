@@ -4,6 +4,7 @@ import { createServer } from 'node:http';
 import {
   createGoalSchema,
   createHabitSchema,
+  habitCompletionRangeSchema,
   habitCompletionSchema,
   createEvidenceSchema,
   createEventSchema,
@@ -52,9 +53,12 @@ import { skillService } from './services/skill.service.js';
 import { taskService } from './services/task.service.js';
 import { weeklyReviewService } from './services/weekly-review.service.js';
 
-import { resolvePort } from './config.js';
+import { resolveHost, resolvePort } from './config.js';
+import { ConflictError, RequestError } from './errors.js';
 
 const port = resolvePort();
+const host = resolveHost();
+const maxBodyBytes = 1024 * 1024;
 const backupCheckIntervalMs = 60 * 60 * 1000;
 
 function runDailyBackup() {
@@ -71,9 +75,6 @@ function runDailyBackup() {
 
 function sendJson(response: import('node:http').ServerResponse, status: number, body: unknown) {
   response.writeHead(status, {
-    'Access-Control-Allow-Headers': 'Content-Type',
-    'Access-Control-Allow-Methods': 'GET, POST, PATCH, DELETE, OPTIONS',
-    'Access-Control-Allow-Origin': '*',
     'Content-Type': 'application/json; charset=utf-8',
   });
 
@@ -81,21 +82,27 @@ function sendJson(response: import('node:http').ServerResponse, status: number, 
 }
 
 async function readBody(request: import('node:http').IncomingMessage) {
-  let body = '';
+  const chunks: Buffer[] = [];
+  let size = 0;
 
-  for await (const chunk of request) {
-    body += chunk;
+  for await (const chunk of request as AsyncIterable<Buffer>) {
+    size += chunk.length;
+
+    if (size > maxBodyBytes) {
+      throw new RequestError(413, 'Request body is too large');
+    }
+
+    chunks.push(chunk);
   }
 
-  return JSON.parse(body) as unknown;
+  try {
+    return JSON.parse(Buffer.concat(chunks).toString('utf8')) as unknown;
+  } catch {
+    throw new RequestError(400, 'Request body must be valid JSON');
+  }
 }
 
 const server = createServer(async (request, response) => {
-  if (request.method === 'OPTIONS') {
-    sendJson(response, 204, null);
-    return;
-  }
-
   const url = new URL(request.url ?? '/', `http://${request.headers.host ?? 'localhost'}`);
 
   try {
@@ -227,14 +234,17 @@ const server = createServer(async (request, response) => {
 
     if (request.method === 'GET' && url.pathname === '/api/habits/completions') {
       const date = url.searchParams.get('date');
-      const result = habitCompletionSchema.safeParse({ date });
+      const result = habitCompletionRangeSchema.safeParse({
+        from: date ?? url.searchParams.get('from'),
+        to: date ?? url.searchParams.get('to'),
+      });
 
       if (!result.success) {
         sendJson(response, 400, { error: result.error.flatten() });
         return;
       }
 
-      sendJson(response, 200, habitService.getCompletions(result.data.date));
+      sendJson(response, 200, habitService.getCompletions(result.data.from, result.data.to));
       return;
     }
 
@@ -248,7 +258,14 @@ const server = createServer(async (request, response) => {
         return;
       }
 
-      sendJson(response, 201, habitService.complete(habitId, result.data.date));
+      const completion = habitService.complete(habitId, result.data.date);
+
+      if (!completion) {
+        sendJson(response, 404, { error: 'Habit not found' });
+        return;
+      }
+
+      sendJson(response, 201, completion);
       return;
     }
 
@@ -489,13 +506,23 @@ const server = createServer(async (request, response) => {
 
     sendJson(response, 404, { error: 'Route not found' });
   } catch (error) {
+    if (error instanceof RequestError) {
+      sendJson(response, error.status, { error: error.message });
+      return;
+    }
+
+    if (error instanceof ConflictError) {
+      sendJson(response, 409, { error: error.message });
+      return;
+    }
+
     console.error(error);
-    sendJson(response, 400, { error: 'Request could not be processed' });
+    sendJson(response, 500, { error: 'The server could not complete the request' });
   }
 });
 
-server.listen(port, () => {
-  console.log(`Hop API running on http://localhost:${port}`);
+server.listen(port, host, () => {
+  console.log(`Hop API running on http://${host}:${port}`);
   runDailyBackup();
   setInterval(runDailyBackup, backupCheckIntervalMs).unref();
 });

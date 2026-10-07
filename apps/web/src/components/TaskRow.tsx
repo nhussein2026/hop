@@ -28,13 +28,20 @@ export function TaskRow({ task, linkedGoal, activeGoals, onComplete, onUpdate, o
     setEditing(false)
   }
 
-  function cancel() {
+  function startEditing() {
     setTitle(task.title)
     setScheduledDate(task.scheduledDate ?? '')
     setPriority(task.priority)
     setGoalId(task.goalId ?? '')
-    setEditing(false)
+    setEditing(true)
   }
+
+  function confirmDelete() {
+    if (window.confirm(`Delete "${task.title}"? This cannot be undone.`)) void onDelete(task.id)
+  }
+
+  // Keep the current goal selectable even when it is no longer active, so saving does not silently unlink it.
+  const goalOptions = linkedGoal && !activeGoals.some((goal) => goal.id === linkedGoal.id) ? [linkedGoal, ...activeGoals] : activeGoals
 
   return (
     <article className={`task-row priority-${task.priority}`}>
@@ -49,12 +56,12 @@ export function TaskRow({ task, linkedGoal, activeGoals, onComplete, onUpdate, o
             </select>
             <select aria-label={`Goal for ${task.title}`} onChange={(event) => setGoalId(event.target.value)} value={goalId}>
               <option value="">No goal</option>
-              {activeGoals.map((goal) => <option key={goal.id} value={goal.id}>{goal.name}</option>)}
+              {goalOptions.map((goal) => <option key={goal.id} value={goal.id}>{goal.name}</option>)}
             </select>
           </div>
           <div className="task-edit-actions">
             <button className="text-button small" onClick={() => void save()} type="button">Save</button>
-            <button className="text-button small" onClick={cancel} type="button">Cancel</button>
+            <button className="text-button small" onClick={() => setEditing(false)} type="button">Cancel</button>
           </div>
         </div>
       ) : (
@@ -64,8 +71,8 @@ export function TaskRow({ task, linkedGoal, activeGoals, onComplete, onUpdate, o
             <span>{task.estimatedMinutes ? `${task.estimatedMinutes} min` : 'Open task'} · {task.priority} priority{linkedGoal ? ` · ${linkedGoal.name}` : ''}</span>
           </div>
           <div className="task-actions">
-            <button className="text-button small" aria-label={`Edit ${task.title}`} onClick={() => setEditing(true)} type="button">Edit</button>
-            <button className="text-button small" aria-label={`Delete ${task.title}`} onClick={() => void onDelete(task.id)} type="button">Delete</button>
+            <button className="text-button small" aria-label={`Edit ${task.title}`} onClick={startEditing} type="button">Edit</button>
+            <button className="text-button small" aria-label={`Delete ${task.title}`} onClick={confirmDelete} type="button">Delete</button>
           </div>
         </>
       )}
