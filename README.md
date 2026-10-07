@@ -191,6 +191,14 @@ Valid statuses are `todo`, `in_progress`, `completed`, and `cancelled`. Valid pr
 
 Invalid request bodies return HTTP `400`. Missing tasks return HTTP `404`.
 
+### `GET /api/export`
+
+Downloads a full JSON snapshot of every table (`hop-export-YYYY-MM-DD.json`).
+
+### `GET /api/backups` and `POST /api/backups`
+
+Lists server-side backups, or creates one immediately. The API also creates one backup per day on startup and hourly checks, keeping the 7 most recent days plus the newest backup from each of the last 4 weeks. Backups are written to `BACKUP_DIR` (default `storage/backups`). The Review screen shows the latest backup and offers **Back up now** and **Download export**.
+
 ## Data And Privacy
 
 Hop is designed for private, self-hosted use. Local data stays in the server's SQLite database and is not sent to an external application service by the current implementation.
@@ -198,7 +206,7 @@ Hop is designed for private, self-hosted use. Local data stays in the server's S
 - Do not commit `.env` or database files.
 - Do not expose `storage/` as public static files.
 - Back up `storage/hop.db` before migrations or experiments.
-- Authentication, secure sessions, backups, attachments, and private-network deployment are planned requirements, not complete features yet.
+- Authentication, secure sessions, attachments, restore/import, and private-network deployment are planned requirements, not complete features yet.
 
 ## Product Roadmap
 

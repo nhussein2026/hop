@@ -25,3 +25,8 @@ export function resolvePort(port = process.env.PORT ?? '4321') {
   const parsed = Number.parseInt(port, 10);
   return Number.isFinite(parsed) && parsed > 0 ? parsed : 4321;
 }
+
+export function resolveBackupDirectory(backupDir = process.env.BACKUP_DIR ?? './storage/backups') {
+  const value = backupDir.trim() || './storage/backups';
+  return value.startsWith('/') ? value : resolve(repoRoot, value);
+}

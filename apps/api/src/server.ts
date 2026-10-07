@@ -41,6 +41,7 @@ import type {
   UpdateWeeklyReviewInput,
 } from '@hop/domain';
 
+import { backupService } from './services/backup.service.js';
 import { goalService } from './services/goal.service.js';
 import { habitService } from './services/habit.service.js';
 import { evidenceService } from './services/evidence.service.js';
@@ -54,11 +55,24 @@ import { weeklyReviewService } from './services/weekly-review.service.js';
 import { resolvePort } from './config.js';
 
 const port = resolvePort();
+const backupCheckIntervalMs = 60 * 60 * 1000;
+
+function runDailyBackup() {
+  try {
+    const backup = backupService.runDailyBackup();
+
+    if (backup) {
+      console.log(`Hop backup created: ${backup.fileName}`);
+    }
+  } catch (error) {
+    console.error('Hop daily backup failed', error);
+  }
+}
 
 function sendJson(response: import('node:http').ServerResponse, status: number, body: unknown) {
   response.writeHead(status, {
     'Access-Control-Allow-Headers': 'Content-Type',
-    'Access-Control-Allow-Methods': 'GET, POST, PATCH, OPTIONS',
+    'Access-Control-Allow-Methods': 'GET, POST, PATCH, DELETE, OPTIONS',
     'Access-Control-Allow-Origin': '*',
     'Content-Type': 'application/json; charset=utf-8',
   });
@@ -87,6 +101,29 @@ const server = createServer(async (request, response) => {
   try {
     if (request.method === 'GET' && url.pathname === '/api/health') {
       sendJson(response, 200, { name: 'Hop API', status: 'ok' });
+      return;
+    }
+
+    if (request.method === 'GET' && url.pathname === '/api/export') {
+      const snapshot = backupService.createSnapshot();
+      const fileName = `hop-export-${snapshot.exportedAt.slice(0, 10)}.json`;
+
+      response.writeHead(200, {
+        'Content-Disposition': `attachment; filename="${fileName}"`,
+        'Content-Type': 'application/json; charset=utf-8',
+      });
+      response.end(JSON.stringify(snapshot, null, 2));
+      return;
+    }
+
+    if (request.method === 'GET' && url.pathname === '/api/backups') {
+      sendJson(response, 200, backupService.listBackups().map(({ fileName, date, sizeBytes }) => ({ fileName, date, sizeBytes })));
+      return;
+    }
+
+    if (request.method === 'POST' && url.pathname === '/api/backups') {
+      const { fileName, date, sizeBytes } = backupService.exportDatabase();
+      sendJson(response, 201, { fileName, date, sizeBytes });
       return;
     }
 
@@ -459,4 +496,6 @@ const server = createServer(async (request, response) => {
 
 server.listen(port, () => {
   console.log(`Hop API running on http://localhost:${port}`);
+  runDailyBackup();
+  setInterval(runDailyBackup, backupCheckIntervalMs).unref();
 });

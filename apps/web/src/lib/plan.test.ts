@@ -129,18 +129,21 @@ test('buildGoalFocusGuidance makes active-goal overload visible without blocking
 });
 
 test('buildOpportunityHealth explains opportunity status from deadlines, events, and stage', () => {
-  const overdue = buildOpportunityHealth({ stage: 'interested', deadline: '2026-09-17' });
-  const upcoming = buildOpportunityHealth({ stage: 'interested', nextEventDate: '2026-09-20' });
+  const daysFromToday = (days: number) => new Date(Date.now() + days * 1000 * 60 * 60 * 24).toISOString().slice(0, 10);
+  const pastDeadline = daysFromToday(-3);
+  const nextEventDate = daysFromToday(3);
+  const overdue = buildOpportunityHealth({ stage: 'interested', deadline: pastDeadline });
+  const upcoming = buildOpportunityHealth({ stage: 'interested', nextEventDate });
   const waiting = buildOpportunityHealth({ stage: 'applied' });
   const closed = buildOpportunityHealth({ stage: 'rejected' });
 
   assert.deepEqual(overdue, {
     label: 'Needs attention',
-    detail: 'Deadline passed on 2026-09-17.',
+    detail: `Deadline passed on ${pastDeadline}.`,
   });
   assert.deepEqual(upcoming, {
     label: 'Upcoming',
-    detail: 'Next step is scheduled for 2026-09-20.',
+    detail: `Next step is scheduled for ${nextEventDate}.`,
   });
   assert.deepEqual(waiting, {
     label: 'Waiting',
