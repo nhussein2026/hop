@@ -37,3 +37,13 @@ export function resolveBackupDirectory(backupDir = process.env.BACKUP_DIR ?? './
 export function resolveHost(host = process.env.HOST ?? '127.0.0.1') {
   return host.trim() || '127.0.0.1';
 }
+
+export function resolveMigrationsFolder() {
+  return resolve(repoRoot, 'db/migrations');
+}
+
+/** The built web app (`yarn workspace web build`). The API serves it when the directory exists. */
+export function resolveWebDistDirectory(webDistDir = process.env.WEB_DIST_DIR ?? './apps/web/dist') {
+  const value = webDistDir.trim() || './apps/web/dist';
+  return value.startsWith('/') ? value : resolve(repoRoot, value);
+}

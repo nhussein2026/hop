@@ -649,6 +649,20 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@fontsource/dm-sans@npm:^5.3.0":
+  version: 5.3.0
+  resolution: "@fontsource/dm-sans@npm:5.3.0"
+  checksum: 10c0/e283f1b5a1cccd881457014de27894cf82bde0a4274b98d94608aefbea0cb31c3ead2276ffcd4edf6e9b79041e2054e2123ecdb78b140f8390d14fdad0e5f7d1
+  languageName: node
+  linkType: hard
+
+"@fontsource/space-grotesk@npm:^5.3.0":
+  version: 5.3.0
+  resolution: "@fontsource/space-grotesk@npm:5.3.0"
+  checksum: 10c0/6804603d339edb99e50419e951c153d6ab0c175cd1a3c5044341c5efa261dcae63aec2288d5dd4d698d82b44c9a23a34f065881055b08887de08df2769c9791a
+  languageName: node
+  linkType: hard
+
 "@hop/api@workspace:apps/api":
   version: 0.0.0-use.local
   resolution: "@hop/api@workspace:apps/api"
@@ -2770,6 +2784,8 @@ __metadata:
   resolution: "web@workspace:apps/web"
   dependencies:
     "@eslint/js": "npm:^10.0.1"
+    "@fontsource/dm-sans": "npm:^5.3.0"
+    "@fontsource/space-grotesk": "npm:^5.3.0"
     "@types/node": "npm:^24.13.3"
     "@types/react": "npm:^19.2.18"
     "@types/react-dom": "npm:^19.2.7"

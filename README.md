@@ -65,9 +65,49 @@ yarn workspace web dev
 
 The web workspace is named `web`, not `@hop/web`.
 
-If port `4321` is already in use, change `PORT` in `.env` and update the proxy target in `apps/web/vite.config.ts` to match.
+If port `4321` is already in use, change `PORT` in `.env`. The Vite proxy reads the same value.
 
-The API listens on `127.0.0.1` only, because Hop has no authentication yet. Do not set `HOST=0.0.0.0` until authentication is in place. The web app reaches the API through the Vite proxy on the same origin, so the API sends no CORS headers.
+The API listens on `127.0.0.1` by default. The web app reaches it through the Vite proxy on the same origin, so the API sends no CORS headers.
+
+## Run Hop For Daily Use
+
+For everyday use, build once and run a single process. The API serves the web app and `/api` from the same origin:
+
+```bash
+yarn build
+yarn start
+```
+
+Then open [http://localhost:4321](http://localhost:4321). Run `yarn build` again after pulling changes.
+
+### Install On Your Phone Or Laptop
+
+Hop is a Progressive Web App. Browsers only allow installing it over HTTPS or on `localhost`. To use it from your phone:
+
+1. Complete password setup on the server machine first.
+2. Serve Hop over HTTPS on your private network. With Tailscale, run `tailscale serve` on the server and point it at `http://127.0.0.1:4321` (see `tailscale serve --help` for your version). Hop can keep `HOST=127.0.0.1`, because Tailscale connects to it locally.
+3. Set `COOKIE_SECURE=true` and restart Hop.
+4. Open the HTTPS address on your phone and choose **Install app** (Chrome/Android) or **Share → Add to Home Screen** (Safari/iOS).
+
+### Offline Behavior
+
+- The app shell is cached, so Hop opens without a connection.
+- Data you loaded recently stays readable offline. A banner shows when you are offline.
+- Changes made offline are not saved or queued. They fail with a visible error, and the server remains the only source of truth. Queued offline edits need a conflict strategy first (see the product spec, §86–87).
+- Signing out, or a session ending, deletes the offline copy of your data from that device.
+- The service worker only runs in production builds (`yarn build`), not under `yarn dev`.
+
+## Sign In
+
+The first time you open Hop, it asks you to create a password (at least 12 characters). After that, every API route except `/api/health` and `/api/auth/*` requires a signed-in session.
+
+- Sessions last 30 days. The session cookie is `HttpOnly` and `SameSite=Strict`, and the database stores only a hash of each session token.
+- Requests that change data must come from Hop's own origin.
+- After 5 failed password attempts, sign-in is blocked for 15 minutes.
+- Changing your password (Review → Password) signs out every other device.
+- If you forget your password, stop the API and run `yarn workspace @hop/api auth:reset`. Your data is kept. Open Hop on the server machine and create a new password.
+
+To open Hop from other devices, set `HOST` to the server's private-network address (for example its Tailscale IP). Hop refuses to listen on a non-local address until a password exists, so nobody else on the network can claim the setup screen first. When you serve Hop over HTTPS, set `COOKIE_SECURE=true`.
 
 ## Verify The Environment
 
@@ -83,16 +123,24 @@ Expected response:
 {"name":"Hop API","status":"ok"}
 ```
 
+The other routes require a session. Open the web app once to create your password, then sign in from the terminal:
+
+```bash
+curl -c cookies.txt -X POST http://localhost:4321/api/auth/login \
+  -H 'Content-Type: application/json' \
+  -d '{"password":"<your password>"}'
+```
+
 List persisted tasks:
 
 ```bash
-curl http://localhost:4321/api/tasks
+curl -b cookies.txt http://localhost:4321/api/tasks
 ```
 
 Create a task:
 
 ```bash
-curl -X POST http://localhost:4321/api/tasks \
+curl -b cookies.txt -X POST http://localhost:4321/api/tasks \
   -H 'Content-Type: application/json' \
   -d '{"title":"Read the Hop product spec","scheduledDate":"2026-09-16"}'
 ```
@@ -100,7 +148,7 @@ curl -X POST http://localhost:4321/api/tasks \
 Complete a task by replacing `<task-id>` with the returned ID:
 
 ```bash
-curl -X PATCH http://localhost:4321/api/tasks/<task-id> \
+curl -b cookies.txt -X PATCH http://localhost:4321/api/tasks/<task-id> \
   -H 'Content-Type: application/json' \
   -d '{"status":"completed"}'
 ```
@@ -113,7 +161,8 @@ From the repository root:
 
 ```bash
 yarn dev                              # Start all workspaces with a dev script
-yarn build                            # Build all workspaces with a build script
+yarn build                            # Build the web app and typecheck the API
+yarn start                            # Serve the built web app and API on one port
 yarn typecheck                        # Typecheck all workspaces with a typecheck script
 yarn test                             # Run all workspaces with a test script (API tests use an in-memory database)
 yarn workspace web build              # Build the frontend
@@ -130,7 +179,15 @@ yarn workspace @hop/api db:migrate
 yarn workspace @hop/api db:studio
 ```
 
-The current first-start initialization creates the `tasks` table automatically. As more entities are added, use explicit Drizzle migrations before changing persisted production data.
+The schema is managed with Drizzle migrations in `db/migrations`. The API applies pending migrations on startup in a single transaction, so `db:migrate` is only needed when you want to migrate without starting the server. Databases created before migrations existed are detected and baselined automatically.
+
+To change the schema:
+
+1. Edit the tables in `apps/api/src/db/schema/`.
+2. Run `yarn workspace @hop/api db:generate --name <short-description>`.
+3. Review the generated `migration.sql` and commit it with the schema change.
+
+Back up `storage/hop.db` before applying migrations to real data. The API also creates a daily backup on startup.
 
 ## Repository Layout
 
@@ -140,6 +197,7 @@ apps/
     src/db/             SQLite and Drizzle schema
     src/repositories/   Persistence-only operations
     src/services/       Application and business logic
+    src/static.ts       Serves the built web app in production
     src/server.ts       HTTP API
   web/                 React + TypeScript + Vite frontend
     src/App.tsx         Today experience and task workflow
@@ -148,7 +206,7 @@ packages/
   domain/              Shared domain types
   validation/          Shared Zod request schemas
 docs/                  Architecture and repository notes
-db/                    Future migration and seed location
+db/migrations/         Drizzle SQL migrations, applied on API startup
 storage/               Local database, backups, and attachments
 ```
 
@@ -161,6 +219,16 @@ HTTP route -> validation -> service -> repository -> SQLite
 The web app talks to the API through `/api`. It does not write directly to SQLite.
 
 ## Current API
+
+### Authentication
+
+- `GET /api/auth/session` returns `{ setupRequired, authenticated }`.
+- `POST /api/auth/setup` with `{ "password": "..." }` creates the password. Returns `409` if one already exists.
+- `POST /api/auth/login` with `{ "password": "..." }` starts a session. Returns `401` for a wrong password, and `429` after too many attempts.
+- `POST /api/auth/logout` ends the current session.
+- `POST /api/auth/password` with `{ "currentPassword": "...", "newPassword": "..." }` changes the password and signs out other devices.
+
+Every other route below requires the session cookie. The `curl` examples above need it too. Sign in with `curl -c cookies.txt`, then pass `-b cookies.txt` on later requests.
 
 ### `GET /api/health`
 
@@ -208,7 +276,7 @@ Hop is designed for private, self-hosted use. Local data stays in the server's S
 - Do not commit `.env` or database files.
 - Do not expose `storage/` as public static files.
 - Back up `storage/hop.db` before migrations or experiments.
-- Authentication, secure sessions, attachments, restore/import, and private-network deployment are planned requirements, not complete features yet.
+- Attachments, restore/import, and offline editing are planned, not complete features yet.
 
 ## Product Roadmap
 
@@ -244,9 +312,9 @@ yarn workspace @hop/api dev
 
 Then refresh the web page.
 
-### The API cannot find the tasks table
+### The API cannot find a table
 
-Restart the API. The SQLite client initializes the current `tasks` table on startup. For future schema changes, generate and apply a Drizzle migration.
+Restart the API. It applies pending migrations from `db/migrations` on startup. If startup reports that it cannot baseline the database, the database has only some of Hop's tables. Restore it from a backup in `storage/backups`, or move it aside to start fresh.
 
 ### A port is busy
 

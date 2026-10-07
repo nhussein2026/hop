@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { apiFetch } from '../lib/api.js'
 
 type BackupSummary = { fileName: string; date: string; sizeBytes: number }
 
@@ -8,7 +9,7 @@ export function DataSafetyPanel() {
 
   useEffect(() => {
     const controller = new AbortController()
-    fetch('/api/backups', { signal: controller.signal })
+    apiFetch('/api/backups', { signal: controller.signal })
       .then((response) => response.ok ? response.json() as Promise<BackupSummary[]> : Promise.reject(new Error(`Request failed with ${response.status}`)))
       .then(setBackups)
       .catch((cause: unknown) => { if (!(cause instanceof DOMException && cause.name === 'AbortError')) setStatus('Backups could not be loaded.') })
@@ -18,7 +19,7 @@ export function DataSafetyPanel() {
   async function backUpNow() {
     setStatus('Creating backup...')
     try {
-      const response = await fetch('/api/backups', { method: 'POST' })
+      const response = await apiFetch('/api/backups', { method: 'POST' })
       if (!response.ok) throw new Error(`Request failed with ${response.status}`)
       const backup = await response.json() as BackupSummary
       setBackups((current) => [backup, ...current])

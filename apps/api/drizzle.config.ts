@@ -1,10 +1,8 @@
-import { fileURLToPath } from 'node:url';
+import 'dotenv/config';
 
 import { defineConfig } from 'drizzle-kit';
 
-const databasePath = fileURLToPath(
-  new URL('../../storage/hop.db', import.meta.url),
-);
+import { resolveDatabasePath } from './src/config.js';
 
 export default defineConfig({
   dialect: 'sqlite',
@@ -14,6 +12,6 @@ export default defineConfig({
   out: '../../db/migrations',
 
   dbCredentials: {
-    url: databasePath,
+    url: resolveDatabasePath(),
   },
 });

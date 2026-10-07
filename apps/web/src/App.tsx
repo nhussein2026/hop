@@ -9,6 +9,7 @@ import { useProjects } from './hooks/useProjects.js'
 import { useSkills } from './hooks/useSkills.js'
 import { useTasks } from './hooks/useTasks.js'
 import { useWeeklyReviews } from './hooks/useWeeklyReviews.js'
+import { OfflineBanner } from './components/OfflineBanner.js'
 import { toLocalDate } from './lib/date.js'
 import { CareerView } from './views/CareerView.js'
 import { GoalsView } from './views/GoalsView.js'
@@ -20,7 +21,9 @@ import { TodayView } from './views/TodayView.js'
 const navigation = ['Today', 'Plan', 'Goals', 'Career', 'Growth', 'Review'] as const
 type ViewName = typeof navigation[number]
 
-function App() {
+type AppProps = { onSignOut: () => Promise<void> }
+
+function App({ onSignOut }: AppProps) {
   const [activeView, setActiveView] = useState<ViewName>('Today')
   const today = toLocalDate()
   const tasks = useTasks()
@@ -55,7 +58,8 @@ function App() {
         <div className="sidebar-footer"><span className="status-dot" aria-hidden="true" /> Private workspace</div>
       </aside>
       <main className="main-content">
-        <header className="topbar"><div><p className="eyebrow">{activeView}</p><h1>{activeView === 'Today' ? 'Make today count.' : activeView === 'Growth' ? 'Make progress visible.' : `${activeView} is coming next.`}</h1></div><div className="topbar-actions"><button className="icon-button" aria-label="Notifications" type="button">○</button><button className="avatar" aria-label="Open profile" type="button">N</button></div></header>
+        <header className="topbar"><div><p className="eyebrow">{activeView}</p><h1>{activeView === 'Today' ? 'Make today count.' : activeView === 'Growth' ? 'Make progress visible.' : `${activeView} is coming next.`}</h1></div><div className="topbar-actions"><button className="icon-button" aria-label="Notifications" type="button">○</button><button className="text-button sign-out" onClick={() => void onSignOut()} type="button">Sign out</button></div></header>
+        <OfflineBanner />
         {renderView()}
       </main>
     </div>

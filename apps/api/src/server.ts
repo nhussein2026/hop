@@ -2,9 +2,12 @@ import 'dotenv/config';
 import { createServer } from 'node:http';
 
 import {
+  changePasswordSchema,
   createGoalSchema,
   createHabitSchema,
   habitCompletionRangeSchema,
+  loginSchema,
+  setupPasswordSchema,
   habitCompletionSchema,
   createEvidenceSchema,
   createEventSchema,
@@ -42,6 +45,7 @@ import type {
   UpdateWeeklyReviewInput,
 } from '@hop/domain';
 
+import { authService } from './services/auth.service.js';
 import { backupService } from './services/backup.service.js';
 import { goalService } from './services/goal.service.js';
 import { habitService } from './services/habit.service.js';
@@ -53,13 +57,22 @@ import { skillService } from './services/skill.service.js';
 import { taskService } from './services/task.service.js';
 import { weeklyReviewService } from './services/weekly-review.service.js';
 
-import { resolveHost, resolvePort } from './config.js';
+import { resolveHost, resolvePort, resolveWebDistDirectory } from './config.js';
+import { clearedSessionCookie, isSameOriginRequest, readSessionToken, sessionCookie } from './auth/http.js';
+import { createRateLimiter } from './auth/rate-limit.js';
 import { ConflictError, RequestError } from './errors.js';
+import { serveWebApp } from './static.js';
 
 const port = resolvePort();
 const host = resolveHost();
+const webDistDir = resolveWebDistDirectory();
 const maxBodyBytes = 1024 * 1024;
 const backupCheckIntervalMs = 60 * 60 * 1000;
+const passwordAttempts = createRateLimiter({ maxFailures: 5, windowMs: 15 * 60 * 1000 });
+
+function isLoopbackHost(value: string) {
+  return value === 'localhost' || value === '::1' || value.startsWith('127.');
+}
 
 function runDailyBackup() {
   try {
@@ -73,8 +86,9 @@ function runDailyBackup() {
   }
 }
 
-function sendJson(response: import('node:http').ServerResponse, status: number, body: unknown) {
+function sendJson(response: import('node:http').ServerResponse, status: number, body: unknown, headers: Record<string, string> = {}) {
   response.writeHead(status, {
+    ...headers,
     'Content-Type': 'application/json; charset=utf-8',
   });
 
@@ -106,8 +120,109 @@ const server = createServer(async (request, response) => {
   const url = new URL(request.url ?? '/', `http://${request.headers.host ?? 'localhost'}`);
 
   try {
+    if (!url.pathname.startsWith('/api/')) {
+      if (!serveWebApp(request, response, webDistDir, url.pathname)) {
+        sendJson(response, 404, { error: 'Not found' });
+      }
+
+      return;
+    }
+
+    if (request.method !== 'GET' && !isSameOriginRequest(request)) {
+      sendJson(response, 403, { error: 'Cross-site requests are not allowed' });
+      return;
+    }
+
     if (request.method === 'GET' && url.pathname === '/api/health') {
       sendJson(response, 200, { name: 'Hop API', status: 'ok' });
+      return;
+    }
+
+    const sessionToken = readSessionToken(request);
+    const authenticated = sessionToken !== undefined && authService.validateSession(sessionToken);
+    const userAgent = request.headers['user-agent'] ?? null;
+    const clientKey = request.socket.remoteAddress ?? 'unknown';
+
+    if (request.method === 'GET' && url.pathname === '/api/auth/session') {
+      sendJson(response, 200, { setupRequired: authService.isSetupRequired(), authenticated });
+      return;
+    }
+
+    if (request.method === 'POST' && url.pathname === '/api/auth/setup') {
+      const result = setupPasswordSchema.safeParse(await readBody(request));
+
+      if (!result.success) {
+        sendJson(response, 400, { error: result.error.flatten() });
+        return;
+      }
+
+      const session = await authService.setup(result.data.password, userAgent);
+      sendJson(response, 201, { authenticated: true }, { 'Set-Cookie': sessionCookie(session.token, session.expiresAt) });
+      return;
+    }
+
+    if (request.method === 'POST' && (url.pathname === '/api/auth/login' || url.pathname === '/api/auth/password')) {
+      const retryAfter = passwordAttempts.retryAfterSeconds(clientKey);
+
+      if (retryAfter > 0) {
+        sendJson(response, 429, { error: 'Too many attempts. Try again later.' }, { 'Retry-After': String(retryAfter) });
+        return;
+      }
+    }
+
+    if (request.method === 'POST' && url.pathname === '/api/auth/login') {
+      const result = loginSchema.safeParse(await readBody(request));
+
+      if (!result.success) {
+        sendJson(response, 400, { error: result.error.flatten() });
+        return;
+      }
+
+      const session = await authService.login(result.data.password, userAgent);
+
+      if (!session) {
+        passwordAttempts.recordFailure(clientKey);
+        sendJson(response, 401, { error: 'Incorrect password' });
+        return;
+      }
+
+      passwordAttempts.reset(clientKey);
+      sendJson(response, 200, { authenticated: true }, { 'Set-Cookie': sessionCookie(session.token, session.expiresAt) });
+      return;
+    }
+
+    if (request.method === 'POST' && url.pathname === '/api/auth/logout') {
+      if (sessionToken) {
+        authService.logout(sessionToken);
+      }
+
+      sendJson(response, 200, { authenticated: false }, { 'Set-Cookie': clearedSessionCookie() });
+      return;
+    }
+
+    if (!authenticated) {
+      sendJson(response, 401, { error: 'Sign in to continue' });
+      return;
+    }
+
+    if (request.method === 'POST' && url.pathname === '/api/auth/password') {
+      const result = changePasswordSchema.safeParse(await readBody(request));
+
+      if (!result.success) {
+        sendJson(response, 400, { error: result.error.flatten() });
+        return;
+      }
+
+      const session = await authService.changePassword(result.data.currentPassword, result.data.newPassword, userAgent);
+
+      if (!session) {
+        passwordAttempts.recordFailure(clientKey);
+        sendJson(response, 401, { error: 'Current password is incorrect' });
+        return;
+      }
+
+      passwordAttempts.reset(clientKey);
+      sendJson(response, 200, { authenticated: true }, { 'Set-Cookie': sessionCookie(session.token, session.expiresAt) });
       return;
     }
 
@@ -520,6 +635,11 @@ const server = createServer(async (request, response) => {
     sendJson(response, 500, { error: 'The server could not complete the request' });
   }
 });
+
+if (!isLoopbackHost(host) && authService.isSetupRequired()) {
+  console.error(`Refusing to listen on ${host}: set a Hop password first. Start Hop with the default HOST, open it on this machine, and complete setup.`);
+  process.exit(1);
+}
 
 server.listen(port, host, () => {
   console.log(`Hop API running on http://${host}:${port}`);

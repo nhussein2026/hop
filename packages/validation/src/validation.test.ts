@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
+import { setupPasswordSchema } from './auth.js';
 import { dateSchema } from './common.js';
 import { createEventSchema } from './event.js';
 import { habitCompletionRangeSchema } from './habit.js';
@@ -34,4 +35,9 @@ test('habitCompletionRangeSchema requires from to be on or before to', () => {
 test('updateSkillSchema rejects unknown fields and allows clearing notes', () => {
   assert.equal(updateSkillSchema.safeParse({ notes: null }).success, true);
   assert.equal(updateSkillSchema.safeParse({ unexpected: true }).success, false);
+});
+
+test('setupPasswordSchema requires at least 12 characters and keeps surrounding spaces', () => {
+  assert.equal(setupPasswordSchema.safeParse({ password: 'short' }).success, false);
+  assert.equal(setupPasswordSchema.safeParse({ password: ' twelve chars ' }).data?.password, ' twelve chars ');
 });

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useEntityCollection } from './useEntityCollection.js'
+import { apiFetch } from '../lib/api.js'
 import { addDays } from '../lib/date.js'
 import type { Habit, HabitCompletion } from '../types/index.js'
 
@@ -15,7 +16,7 @@ export function useHabits(today: string) {
     const controller = new AbortController()
     const activeControllers = controllers.current
     activeControllers.add(controller)
-    fetch(`/api/habits/completions?from=${addDays(today, -6)}&to=${today}`, { signal: controller.signal })
+    apiFetch(`/api/habits/completions?from=${addDays(today, -6)}&to=${today}`, { signal: controller.signal })
       .then((response) => {
         if (!response.ok) throw new Error('Could not load habit completions')
         return response.json() as Promise<HabitCompletion[]>
@@ -39,7 +40,7 @@ export function useHabits(today: string) {
     const controller = new AbortController()
     controllers.current.add(controller)
     try {
-      const response = await fetch(`/api/habits/${habitId}/completions`, {
+      const response = await apiFetch(`/api/habits/${habitId}/completions`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ date: today }),

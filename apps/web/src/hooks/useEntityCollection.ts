@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { apiFetch } from '../lib/api.js'
 
 type Entity = { id: string }
 
@@ -16,7 +17,7 @@ export function useEntityCollection<T extends Entity>(endpoint: string) {
     controllers.current.add(controller)
 
     try {
-      const response = await fetch(path, { ...init, signal: controller.signal })
+      const response = await apiFetch(path, { ...init, signal: controller.signal })
       if (!response.ok) throw new Error(`Request failed with ${response.status}`)
       const result = await response.json() as R
       // A newer request supersedes this one's error state, but a saved change must still reach the UI.
@@ -43,7 +44,7 @@ export function useEntityCollection<T extends Entity>(endpoint: string) {
     const controller = new AbortController()
     const activeControllers = controllers.current
     activeControllers.add(controller)
-    fetch(endpoint, { signal: controller.signal })
+    apiFetch(endpoint, { signal: controller.signal })
       .then((response) => {
         if (!response.ok) throw new Error(`Request failed with ${response.status}`)
         return response.json() as Promise<T[]>
