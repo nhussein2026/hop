@@ -2,49 +2,12 @@ import { randomUUID } from 'node:crypto';
 
 import type {
   CreateTaskInput,
-  Goal,
   Task,
   UpdateTaskInput,
 } from '@hop/domain';
 
-import { goalRepository } from '../repositories/goal.repository.js';
 import { taskRepository } from '../repositories/task.repository.js';
-
-function syncGoalProgress(goalId: string | null) {
-  if (!goalId) {
-    return;
-  }
-
-  const goal = goalRepository.findById(goalId);
-  if (!goal) {
-    return;
-  }
-
-  const linkedTasks = taskRepository.findAll().filter((task) => task.goalId === goalId && task.status !== 'cancelled');
-
-  if (linkedTasks.length === 0) {
-    return;
-  }
-
-  const completedTasks = linkedTasks.filter((task) => task.status === 'completed').length;
-  const progress = Math.round((completedTasks / linkedTasks.length) * 100);
-  const now = new Date().toISOString();
-  const changes: Partial<Goal> = { progress, updatedAt: now };
-
-  // Only active goals complete automatically, and only achieved goals reopen.
-  // Paused, abandoned, and archived goals keep the status the user chose.
-  if (goal.status === 'active' && progress >= 100) {
-    changes.status = 'achieved';
-    changes.completedAt = now;
-  }
-
-  if (goal.status === 'achieved' && progress < 100) {
-    changes.status = 'active';
-    changes.completedAt = null;
-  }
-
-  goalRepository.update(goalId, changes);
-}
+import { goalService } from './goal.service.js';
 
 /**
  * Application/business logic for Tasks.
@@ -55,6 +18,8 @@ function syncGoalProgress(goalId: string | null) {
  * - timestamps
  * - normalization
  * - Task behavior
+ *
+ * Completing tasks never changes a goal's progress: progress comes from the goal's success criteria.
  */
 export const taskService = {
   getAll(): Task[] {
@@ -93,9 +58,7 @@ export const taskService = {
       updatedAt: now,
     };
 
-    const created = taskRepository.create(task);
-    syncGoalProgress(created.goalId);
-    return created;
+    return taskRepository.create(task);
   },
 
   update(id: string, input: UpdateTaskInput): Task | undefined {
@@ -121,25 +84,15 @@ export const taskService = {
 
     const updated = taskRepository.update(id, changes);
 
-    if (updated) {
-      syncGoalProgress(updated.goalId);
-
-      if (existingTask.goalId !== updated.goalId) {
-        syncGoalProgress(existingTask.goalId);
-      }
+    if (updated && changes.completedAt) {
+      // A finished task is recent activity on its goal, so the goal is not flagged as quiet.
+      goalService.touch(updated.goalId);
     }
 
     return updated;
   },
 
   delete(id: string): boolean {
-    const task = taskRepository.findById(id);
-    const deleted = taskRepository.delete(id);
-
-    if (deleted && task) {
-      syncGoalProgress(task.goalId);
-    }
-
-    return deleted;
+    return taskRepository.delete(id);
   },
 };

@@ -23,7 +23,8 @@ export const evidenceService = {
       id: randomUUID(),
       title: input.title,
       description: input.description ?? null,
-      skillId: input.skillId ?? null,
+      skillId: input.skillIds?.[0] ?? input.skillId ?? null,
+      skillIds: input.skillIds ?? (input.skillId ? [input.skillId] : []),
       projectId: input.projectId ?? null,
       opportunityId: input.opportunityId ?? null,
       goalId: input.goalId ?? null,
@@ -41,9 +42,15 @@ export const evidenceService = {
       return undefined;
     }
 
-    return evidenceRepository.update(id, {
-      ...input,
-      updatedAt: new Date().toISOString(),
-    });
+    const changes: Partial<Evidence> = { ...input, updatedAt: new Date().toISOString() };
+
+    // Keep the single skill link and the list in step, whichever the client sent.
+    if (input.skillIds) {
+      changes.skillId = input.skillIds[0] ?? null;
+    } else if (input.skillId !== undefined) {
+      changes.skillIds = input.skillId ? [input.skillId] : [];
+    }
+
+    return evidenceRepository.update(id, changes);
   },
 };

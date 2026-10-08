@@ -8,7 +8,9 @@ export interface Evidence {
   id: EntityId;
   title: string;
   description: string | null;
+  /** First linked skill, kept for older clients. skillIds holds every linked skill. */
   skillId: EntityId | null;
+  skillIds: EntityId[];
   projectId: EntityId | null;
   opportunityId: EntityId | null;
   goalId: EntityId | null;

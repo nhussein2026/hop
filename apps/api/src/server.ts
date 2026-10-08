@@ -1,9 +1,27 @@
 import 'dotenv/config';
 import { createReadStream } from 'node:fs';
 import { createServer } from 'node:http';
+import type { IncomingMessage, ServerResponse } from 'node:http';
 
 import {
   changePasswordSchema,
+  closeOpportunitySchema,
+  createContactSchema,
+  createGoalCriterionSchema,
+  createInteractionSchema,
+  createMilestoneSchema,
+  createOpportunityActivitySchema,
+  createOpportunityPrepSchema,
+  createResumeSchema,
+  saveReflectionSchema,
+  updateContactSchema,
+  updateGoalCriterionSchema,
+  updateHabitSchema,
+  updateMilestoneSchema,
+  updateOpportunityPrepSchema,
+  updateResumeSchema,
+  updateSettingsSchema,
+  dateSchema,
   createGoalSchema,
   createHabitSchema,
   habitCompletionRangeSchema,
@@ -27,7 +45,19 @@ import {
   updateTaskSchema,
   updateWeeklyReviewSchema,
 } from '@hop/validation';
+import type { ZodType } from 'zod';
 import type {
+  CreateContactInput,
+  CreateInteractionInput,
+  CreateMilestoneInput,
+  CreateOpportunityActivityInput,
+  CreateResumeInput,
+  SaveReflectionInput,
+  UpdateContactInput,
+  UpdateHabitInput,
+  UpdateMilestoneInput,
+  UpdateResumeInput,
+  UpdateSettingsInput,
   CreateGoalInput,
   CreateHabitInput,
   CreateEvidenceInput,
@@ -46,9 +76,15 @@ import type {
   UpdateTaskInput,
   UpdateWeeklyReviewInput,
 } from '@hop/domain';
+import { RESUME_FILE_MAX_BYTES } from '@hop/domain';
 
 import { authService } from './services/auth.service.js';
 import { backupService } from './services/backup.service.js';
+import { contactService } from './services/contact.service.js';
+import { milestoneService } from './services/milestone.service.js';
+import { reflectionService } from './services/reflection.service.js';
+import { resumeService } from './services/resume.service.js';
+import { settingsService } from './services/settings.service.js';
 import { goalService } from './services/goal.service.js';
 import { habitService } from './services/habit.service.js';
 import { evidenceService } from './services/evidence.service.js';
@@ -60,7 +96,7 @@ import { skillService } from './services/skill.service.js';
 import { taskService } from './services/task.service.js';
 import { weeklyReviewService } from './services/weekly-review.service.js';
 
-import { resolveHost, resolvePort, resolveWebDistDirectory } from './config.js';
+import { resolveBackupDirectory, resolveDatabasePath, resolveHost, resolvePort, resolveWebDistDirectory } from './config.js';
 import { clearedSessionCookie, isSameOriginRequest, readSessionToken, sessionCookie } from './auth/http.js';
 import { createRateLimiter } from './auth/rate-limit.js';
 import { ConflictError, InvalidInputError, RequestError } from './errors.js';
@@ -100,7 +136,7 @@ function sendJson(response: import('node:http').ServerResponse, status: number, 
   response.end(JSON.stringify(body));
 }
 
-async function readBody(request: import('node:http').IncomingMessage, maxBytes = maxBodyBytes) {
+async function readRawBody(request: IncomingMessage, maxBytes = maxBodyBytes) {
   const chunks: Buffer[] = [];
   let size = 0;
 
@@ -114,11 +150,39 @@ async function readBody(request: import('node:http').IncomingMessage, maxBytes =
     chunks.push(chunk);
   }
 
+  return Buffer.concat(chunks);
+}
+
+async function readBody(request: IncomingMessage, maxBytes = maxBodyBytes) {
+  const body = await readRawBody(request, maxBytes);
+
   try {
-    return JSON.parse(Buffer.concat(chunks).toString('utf8')) as unknown;
+    return JSON.parse(body.toString('utf8')) as unknown;
   } catch {
     throw new RequestError(400, 'Request body must be valid JSON');
   }
+}
+
+/** Validate a JSON body. Sends a 400 with the validation errors and returns undefined when it is invalid. */
+async function readValid<T>(request: IncomingMessage, response: ServerResponse, schema: ZodType): Promise<T | undefined> {
+  const result = schema.safeParse(await readBody(request));
+
+  if (!result.success) {
+    sendJson(response, 400, { error: result.error.flatten() });
+    return undefined;
+  }
+
+  return result.data as T;
+}
+
+/** Send the updated record, or a 404 when the service found nothing to update. */
+function sendFound(response: ServerResponse, value: unknown, notFound: string, status = 200) {
+  if (value === undefined) {
+    sendJson(response, 404, { error: notFound });
+    return;
+  }
+
+  sendJson(response, status, value);
 }
 
 const server = createServer(async (request, response) => {
@@ -192,7 +256,7 @@ const server = createServer(async (request, response) => {
       }
 
       passwordAttempts.reset(clientKey);
-      sendJson(response, 200, { authenticated: true }, { 'Set-Cookie': sessionCookie(session.token, session.expiresAt) });
+      sendJson(response, 200, { authenticated: true }, { 'Set-Cookie': sessionCookie(session.token, session.expiresAt, result.data.remember ?? true) });
       return;
     }
 
@@ -228,6 +292,243 @@ const server = createServer(async (request, response) => {
 
       passwordAttempts.reset(clientKey);
       sendJson(response, 200, { authenticated: true }, { 'Set-Cookie': sessionCookie(session.token, session.expiresAt) });
+      return;
+    }
+
+    if (request.method === 'GET' && url.pathname === '/api/auth/sessions') {
+      sendJson(response, 200, authService.listSessions(sessionToken));
+      return;
+    }
+
+    const deviceSessionId = url.pathname.match(/^\/api\/auth\/sessions\/([^/]+)$/)?.[1];
+
+    if (request.method === 'DELETE' && deviceSessionId) {
+      sendFound(response, authService.revokeSession(deviceSessionId) ? { ok: true } : undefined, 'Session not found');
+      return;
+    }
+
+    if (request.method === 'GET' && url.pathname === '/api/settings') {
+      sendJson(response, 200, settingsService.get());
+      return;
+    }
+
+    if (request.method === 'PATCH' && url.pathname === '/api/settings') {
+      const input = await readValid<UpdateSettingsInput>(request, response, updateSettingsSchema);
+      if (input) sendJson(response, 200, settingsService.update(input));
+      return;
+    }
+
+    if (request.method === 'GET' && url.pathname === '/api/system') {
+      sendJson(response, 200, { databasePath: resolveDatabasePath(), backupDirectory: resolveBackupDirectory() });
+      return;
+    }
+
+    if (request.method === 'POST' && url.pathname === '/api/backups/test') {
+      sendJson(response, 200, restoreService.testLatestBackup());
+      return;
+    }
+
+    if (request.method === 'GET' && url.pathname === '/api/milestones') {
+      sendJson(response, 200, milestoneService.getAll());
+      return;
+    }
+
+    if (request.method === 'POST' && url.pathname === '/api/milestones') {
+      const input = await readValid<CreateMilestoneInput>(request, response, createMilestoneSchema);
+      if (input) sendJson(response, 201, milestoneService.create(input));
+      return;
+    }
+
+    const milestoneId = url.pathname.match(/^\/api\/milestones\/([^/]+)$/)?.[1];
+
+    if (request.method === 'PATCH' && milestoneId) {
+      const input = await readValid<UpdateMilestoneInput>(request, response, updateMilestoneSchema);
+      if (input) sendFound(response, milestoneService.update(milestoneId, input), 'Milestone not found');
+      return;
+    }
+
+    if (request.method === 'DELETE' && milestoneId) {
+      sendFound(response, milestoneService.delete(milestoneId) ? { ok: true } : undefined, 'Milestone not found');
+      return;
+    }
+
+    if (request.method === 'GET' && url.pathname === '/api/contacts') {
+      sendJson(response, 200, contactService.getAll());
+      return;
+    }
+
+    if (request.method === 'POST' && url.pathname === '/api/contacts') {
+      const input = await readValid<CreateContactInput>(request, response, createContactSchema);
+      if (input) sendJson(response, 201, contactService.create(input));
+      return;
+    }
+
+    const contactId = url.pathname.match(/^\/api\/contacts\/([^/]+)$/)?.[1];
+
+    if (request.method === 'PATCH' && contactId) {
+      const input = await readValid<UpdateContactInput>(request, response, updateContactSchema);
+      if (input) sendFound(response, contactService.update(contactId, input), 'Person not found');
+      return;
+    }
+
+    if (request.method === 'GET' && url.pathname === '/api/interactions') {
+      sendJson(response, 200, contactService.getInteractions());
+      return;
+    }
+
+    const interactionContactId = url.pathname.match(/^\/api\/contacts\/([^/]+)\/interactions$/)?.[1];
+
+    if (request.method === 'POST' && interactionContactId) {
+      const input = await readValid<CreateInteractionInput>(request, response, createInteractionSchema);
+      if (input) sendFound(response, contactService.logInteraction(interactionContactId, input), 'Person not found', 201);
+      return;
+    }
+
+    if (request.method === 'GET' && url.pathname === '/api/resumes') {
+      sendJson(response, 200, resumeService.getAll());
+      return;
+    }
+
+    if (request.method === 'POST' && url.pathname === '/api/resumes') {
+      const input = await readValid<CreateResumeInput>(request, response, createResumeSchema);
+      if (input) sendJson(response, 201, resumeService.create(input));
+      return;
+    }
+
+    const resumeId = url.pathname.match(/^\/api\/resumes\/([^/]+)$/)?.[1];
+
+    if (request.method === 'PATCH' && resumeId) {
+      const input = await readValid<UpdateResumeInput>(request, response, updateResumeSchema);
+      if (input) sendFound(response, resumeService.update(resumeId, input), 'Resume not found');
+      return;
+    }
+
+    const resumeFileId = url.pathname.match(/^\/api\/resumes\/([^/]+)\/file$/)?.[1];
+
+    // The document is sent as the raw request body, with its name in X-File-Name (URI-encoded).
+    if (request.method === 'PUT' && resumeFileId) {
+      const data = await readRawBody(request, RESUME_FILE_MAX_BYTES);
+      let fileName = 'resume';
+
+      try {
+        fileName = decodeURIComponent(String(request.headers['x-file-name'] ?? 'resume'));
+      } catch {
+        // Keep the fallback name; the type check below still applies.
+      }
+
+      sendFound(response, resumeService.attachFile(resumeFileId, fileName, data), 'Resume not found');
+      return;
+    }
+
+    if (request.method === 'DELETE' && resumeFileId) {
+      sendFound(response, resumeService.removeFile(resumeFileId), 'Resume not found');
+      return;
+    }
+
+    if (request.method === 'GET' && resumeFileId) {
+      const file = resumeService.getFile(resumeFileId);
+
+      if (!file) {
+        sendJson(response, 404, { error: 'This version has no file' });
+        return;
+      }
+
+      // PDFs open in the browser unless a download is asked for; Word files always download.
+      const inline = file.type === 'application/pdf' && url.searchParams.get('download') !== '1';
+      response.writeHead(200, {
+        'Content-Type': file.type,
+        'Content-Length': String(file.size),
+        'Content-Disposition': `${inline ? 'inline' : 'attachment'}; filename*=UTF-8''${encodeURIComponent(file.name)}`,
+        'Content-Security-Policy': 'sandbox',
+        'X-Content-Type-Options': 'nosniff',
+        'Cache-Control': 'private, no-store',
+      });
+      response.end(file.data);
+      return;
+    }
+
+    if (request.method === 'GET' && url.pathname === '/api/reflections') {
+      sendJson(response, 200, reflectionService.getAll());
+      return;
+    }
+
+    if (request.method === 'POST' && url.pathname === '/api/reflections') {
+      const input = await readValid<SaveReflectionInput>(request, response, saveReflectionSchema);
+      if (input) sendJson(response, 200, reflectionService.save(input));
+      return;
+    }
+
+    const criteriaGoalId = url.pathname.match(/^\/api\/goals\/([^/]+)\/criteria$/)?.[1];
+
+    if (request.method === 'POST' && criteriaGoalId) {
+      const input = await readValid<{ text: string; note?: string }>(request, response, createGoalCriterionSchema);
+      if (input) sendFound(response, goalService.addCriterion(criteriaGoalId, input), 'Goal not found', 201);
+      return;
+    }
+
+    const criterionPath = url.pathname.match(/^\/api\/goals\/([^/]+)\/criteria\/([^/]+)$/);
+
+    if (request.method === 'PATCH' && criterionPath) {
+      const input = await readValid<{ text?: string; note?: string | null; done?: boolean }>(request, response, updateGoalCriterionSchema);
+      if (input) sendFound(response, goalService.updateCriterion(criterionPath[1]!, criterionPath[2]!, input), 'Criterion not found');
+      return;
+    }
+
+    const opportunityAction = url.pathname.match(/^\/api\/opportunities\/([^/]+)\/(close|reopen|prep|activities)$/);
+
+    if (request.method === 'POST' && opportunityAction) {
+      const [, id, action] = opportunityAction as unknown as [string, string, string];
+
+      if (action === 'close') {
+        const input = await readValid<{ outcome: (typeof closeOpportunitySchema)['_output']['outcome']; note?: string }>(request, response, closeOpportunitySchema);
+        if (input) sendFound(response, opportunityService.close(id, input.outcome, input.note), 'Opportunity not found');
+      } else if (action === 'reopen') {
+        sendFound(response, opportunityService.reopen(id), 'Opportunity not found');
+      } else if (action === 'prep') {
+        const input = await readValid<{ text: string }>(request, response, createOpportunityPrepSchema);
+        if (input) sendFound(response, opportunityService.addPrepItem(id, input.text), 'Opportunity not found', 201);
+      } else {
+        const input = await readValid<CreateOpportunityActivityInput>(request, response, createOpportunityActivitySchema);
+        if (input) sendFound(response, opportunityService.logActivity(id, input), 'Opportunity not found', 201);
+      }
+
+      return;
+    }
+
+    const activityPath = url.pathname.match(/^\/api\/opportunities\/([^/]+)\/activities\/([^/]+)$/);
+
+    if (request.method === 'DELETE' && activityPath) {
+      sendFound(response, opportunityService.deleteActivity(activityPath[1]!, activityPath[2]!), 'Activity not found');
+      return;
+    }
+
+    const prepPath = url.pathname.match(/^\/api\/opportunities\/([^/]+)\/prep\/([^/]+)$/);
+
+    if (request.method === 'PATCH' && prepPath) {
+      const input = await readValid<{ text?: string; done?: boolean }>(request, response, updateOpportunityPrepSchema);
+      if (input) sendFound(response, opportunityService.updatePrepItem(prepPath[1]!, prepPath[2]!, input), 'Preparation item not found');
+      return;
+    }
+
+    const habitPath = url.pathname.match(/^\/api\/habits\/([^/]+)$/)?.[1];
+
+    if (request.method === 'PATCH' && habitPath && habitPath !== 'completions') {
+      const input = await readValid<UpdateHabitInput>(request, response, updateHabitSchema);
+      if (input) sendFound(response, habitService.update(habitPath, input), 'Habit not found');
+      return;
+    }
+
+    const completionPath = url.pathname.match(/^\/api\/habits\/([^/]+)\/completions\/([^/]+)$/);
+
+    if (request.method === 'DELETE' && completionPath) {
+      const date = dateSchema.safeParse(completionPath[2]);
+
+      if (!date.success) {
+        sendJson(response, 400, { error: 'Date must use YYYY-MM-DD format' });
+        return;
+      }
+
+      sendFound(response, habitService.uncomplete(completionPath[1]!, date.data) ? { ok: true } : undefined, 'Completion not found');
       return;
     }
 

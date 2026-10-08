@@ -29,6 +29,10 @@ export const authRepository = {
     db.insert(sessions).values(session).run();
   },
 
+  findSessions(): SessionRow[] {
+    return db.select().from(sessions).all();
+  },
+
   findSession(id: string): SessionRow | undefined {
     return db.select().from(sessions).where(eq(sessions.id, id)).get();
   },

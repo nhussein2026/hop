@@ -649,17 +649,17 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@fontsource/dm-sans@npm:^5.3.0":
+"@fontsource/atkinson-hyperlegible-next@npm:^5.3.0":
   version: 5.3.0
-  resolution: "@fontsource/dm-sans@npm:5.3.0"
-  checksum: 10c0/e283f1b5a1cccd881457014de27894cf82bde0a4274b98d94608aefbea0cb31c3ead2276ffcd4edf6e9b79041e2054e2123ecdb78b140f8390d14fdad0e5f7d1
+  resolution: "@fontsource/atkinson-hyperlegible-next@npm:5.3.0"
+  checksum: 10c0/49d9005de5a79482bf45cb4a877c18490269257614f404b4d282a232333123d5f70abab9ea378b9c3eddd5e35603059f75f5cc0191c9056d734b07cc9849648c
   languageName: node
   linkType: hard
 
-"@fontsource/space-grotesk@npm:^5.3.0":
+"@fontsource/schibsted-grotesk@npm:^5.3.0":
   version: 5.3.0
-  resolution: "@fontsource/space-grotesk@npm:5.3.0"
-  checksum: 10c0/6804603d339edb99e50419e951c153d6ab0c175cd1a3c5044341c5efa261dcae63aec2288d5dd4d698d82b44c9a23a34f065881055b08887de08df2769c9791a
+  resolution: "@fontsource/schibsted-grotesk@npm:5.3.0"
+  checksum: 10c0/b2516bbc6a0a4d3bfb3b94479346cd673b381048dcca2ebc70348c21157a0d43077e4419e3bb2b44269273502309639347162966962f754b2532b1243449d4ee
   languageName: node
   linkType: hard
 
@@ -2784,8 +2784,9 @@ __metadata:
   resolution: "web@workspace:apps/web"
   dependencies:
     "@eslint/js": "npm:^10.0.1"
-    "@fontsource/dm-sans": "npm:^5.3.0"
-    "@fontsource/space-grotesk": "npm:^5.3.0"
+    "@fontsource/atkinson-hyperlegible-next": "npm:^5.3.0"
+    "@fontsource/schibsted-grotesk": "npm:^5.3.0"
+    "@hop/domain": "workspace:*"
     "@types/node": "npm:^24.13.3"
     "@types/react": "npm:^19.2.18"
     "@types/react-dom": "npm:^19.2.7"

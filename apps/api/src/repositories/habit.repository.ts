@@ -7,7 +7,7 @@ import { habitCompletions, habits } from '../db/schema/index.js';
 
 export const habitRepository = {
   findAll(): Habit[] {
-    return db.select().from(habits).where(eq(habits.active, true)).all();
+    return db.select().from(habits).all();
   },
 
   findById(id: string): Habit | undefined {
@@ -19,12 +19,21 @@ export const habitRepository = {
     return habit;
   },
 
+  update(id: string, changes: Partial<Habit>): Habit | undefined {
+    db.update(habits).set(changes).where(eq(habits.id, id)).run();
+    return this.findById(id);
+  },
+
   findCompletion(habitId: string, date: string): HabitCompletion | undefined {
     return db.select().from(habitCompletions).where(and(eq(habitCompletions.habitId, habitId), eq(habitCompletions.date, date))).get();
   },
 
   findCompletions(from: string, to: string): HabitCompletion[] {
     return db.select().from(habitCompletions).where(between(habitCompletions.date, from, to)).all();
+  },
+
+  deleteCompletion(habitId: string, date: string): boolean {
+    return db.delete(habitCompletions).where(and(eq(habitCompletions.habitId, habitId), eq(habitCompletions.date, date))).run().changes > 0;
   },
 
   complete(completion: HabitCompletion): HabitCompletion {

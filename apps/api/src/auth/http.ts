@@ -25,8 +25,10 @@ function secureAttribute() {
   return process.env.COOKIE_SECURE === 'true' ? '; Secure' : '';
 }
 
-export function sessionCookie(token: string, expiresAt: string) {
-  return `${SESSION_COOKIE}=${token}; Path=/; HttpOnly; SameSite=Strict; Expires=${new Date(expiresAt).toUTCString()}${secureAttribute()}`;
+/** persistent: false makes a browser-session cookie, so closing the browser signs this device out. */
+export function sessionCookie(token: string, expiresAt: string, persistent = true) {
+  const expires = persistent ? `; Expires=${new Date(expiresAt).toUTCString()}` : '';
+  return `${SESSION_COOKIE}=${token}; Path=/; HttpOnly; SameSite=Strict${expires}${secureAttribute()}`;
 }
 
 export function clearedSessionCookie() {

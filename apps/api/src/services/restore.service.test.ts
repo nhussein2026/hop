@@ -18,7 +18,7 @@ function exportSnapshot() {
 }
 
 test('restore replaces all data with the backup and keeps a safety backup of the previous data', () => {
-  const goal = goalService.create({ name: 'Goal in the backup' });
+  const goal = goalService.create({ name: 'Goal in the backup', criteria: ['Done'] });
   taskService.create({ title: 'Task in the backup', goalId: goal.id });
   projectService.create({ name: 'Project in the backup', stack: ['TypeScript'] });
   opportunityService.create({ title: 'Role in the backup', technologyTags: ['SQLite'] });
@@ -26,7 +26,7 @@ test('restore replaces all data with the backup and keeps a safety backup of the
   habitService.complete(habit.id, '2026-10-01');
   const snapshot = exportSnapshot();
 
-  goalService.create({ name: 'Goal added after the backup' });
+  goalService.create({ name: 'Goal added after the backup', criteria: ['Done'] });
 
   const preview = restoreService.preview(snapshot);
   assert.equal(preview.tables.find((table) => table.table === 'goals')?.incoming, snapshot.goals.length);
@@ -46,11 +46,11 @@ test('restore replaces all data with the backup and keeps a safety backup of the
 });
 
 test('restore rejects a file that is not a valid backup and leaves data unchanged', () => {
-  goalService.create({ name: 'Still here' });
+  goalService.create({ name: 'Still here', criteria: ['Done'] });
   const before = backupRepository.countRows();
 
   assert.throws(() => restoreService.restore({ version: 1 }), InvalidInputError);
-  assert.throws(() => restoreService.restore({ ...exportSnapshot(), version: 2 }), /Only version 1/);
+  assert.throws(() => restoreService.restore({ ...exportSnapshot(), version: 3 }), /Only version 1 and 2/);
 
   const broken = exportSnapshot();
   broken.goals[0] = { ...broken.goals[0]!, status: 'unknown' as never };
@@ -61,7 +61,7 @@ test('restore rejects a file that is not a valid backup and leaves data unchange
 
 test('restore accepts backups from older versions that had several reviews in one week', () => {
   const snapshot = exportSnapshot();
-  const review = { id: 'r1', weekStart: '2026-09-14', wins: '', progress: '', career: '', learning: '', projects: '', problems: '', nextWeek: '', energy: null, focus: null, createdAt: '2026-09-14T00:00:00.000Z', updatedAt: '2026-09-14T00:00:00.000Z' };
+  const review = { id: 'r1', weekStart: '2026-09-14', wins: '', progress: '', career: '', learning: '', projects: '', problems: '', nextWeek: '', energy: null, focus: null, change: '', topThree: [], status: 'completed' as const, facts: null, completedAt: null, createdAt: '2026-09-14T00:00:00.000Z', updatedAt: '2026-09-14T00:00:00.000Z' };
   snapshot.weeklyReviews = [review, { ...review, id: 'r2' }];
 
   restoreService.restore(snapshot);
@@ -70,7 +70,7 @@ test('restore accepts backups from older versions that had several reviews in on
 });
 
 test('replaceAllTables rolls back completely when a row cannot be inserted', () => {
-  goalService.create({ name: 'Must survive a failed restore' });
+  goalService.create({ name: 'Must survive a failed restore', criteria: ['Done'] });
   const before = exportSnapshot();
   const invalid = exportSnapshot();
   // Two completions for the same habit and date violate the table's unique constraint.
@@ -83,4 +83,31 @@ test('replaceAllTables rolls back completely when a row cannot be inserted', () 
 
   assert.deepEqual(exportSnapshot().goals, before.goals);
   assert.deepEqual(exportSnapshot().habitCompletions, before.habitCompletions);
+});
+
+test('restore accepts a version 1 backup and fills the newer tables and columns with defaults', () => {
+  const current = exportSnapshot();
+  const habit = { id: 'h-v1', name: 'Read', frequency: 'daily', targetPerWeek: 7, goalId: null, active: true, createdAt: '2026-09-01T00:00:00.000Z', updatedAt: '2026-09-01T00:00:00.000Z' };
+  const v1 = {
+    version: 1,
+    exportedAt: current.exportedAt,
+    goals: [], tasks: [], habits: [habit], habitCompletions: [], events: [], opportunities: [], projects: [], skills: [], evidence: [], weeklyReviews: [],
+  };
+
+  restoreService.restore(v1);
+
+  assert.deepEqual(habitService.getAll().map((item) => [item.id, item.days, item.minutes]), [['h-v1', [0, 1, 2, 3, 4, 5, 6], 30]]);
+  assert.equal(backupRepository.countRows().goalCriteria, 0);
+});
+
+test('testLatestBackup restores the newest backup into a scratch database without changing data', () => {
+  goalService.create({ name: 'Checked by the restore test', criteria: ['One criterion'] });
+  const backup = backupService.exportDatabase();
+  const before = backupRepository.countRows();
+
+  const result = restoreService.testLatestBackup();
+
+  assert.equal(result.fileName, backup.fileName);
+  assert.equal(result.records, Object.values(before).reduce((total, count) => total + count, 0));
+  assert.deepEqual(backupRepository.countRows(), before);
 });

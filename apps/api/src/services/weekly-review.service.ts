@@ -36,6 +36,11 @@ export const weeklyReviewService = {
       nextWeek: input.nextWeek ?? '',
       energy: input.energy ?? null,
       focus: input.focus ?? null,
+      change: input.change ?? '',
+      topThree: input.topThree ?? [],
+      status: input.status ?? 'draft',
+      facts: input.facts ?? null,
+      completedAt: input.status === 'completed' ? now : null,
       createdAt: now,
       updatedAt: now,
     };
@@ -44,7 +49,9 @@ export const weeklyReviewService = {
   },
 
   update(id: string, input: UpdateWeeklyReviewInput): WeeklyReview | undefined {
-    if (!weeklyReviewRepository.findById(id)) {
+    const existing = weeklyReviewRepository.findById(id);
+
+    if (!existing) {
       return undefined;
     }
 
@@ -54,9 +61,17 @@ export const weeklyReviewService = {
       throw new ConflictError(`A weekly review already exists for the week of ${input.weekStart}`);
     }
 
-    return weeklyReviewRepository.update(id, {
-      ...input,
-      updatedAt: new Date().toISOString(),
-    });
+    const now = new Date().toISOString();
+    const changes: Partial<WeeklyReview> = { ...input, updatedAt: now };
+
+    if (input.status === 'completed' && existing.status !== 'completed') {
+      changes.completedAt = now;
+    }
+
+    if (input.status === 'draft') {
+      changes.completedAt = null;
+    }
+
+    return weeklyReviewRepository.update(id, changes);
   },
 };

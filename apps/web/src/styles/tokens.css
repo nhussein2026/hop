@@ -1,0 +1,162 @@
+/* ==========================================================================
+   Hop design tokens
+   --------------------------------------------------------------------------
+   Direction: a quiet working surface with a pond-green signature.
+   Calm, professional, slightly warm, lightly playful (spec §60).
+
+   Layout concept: sidebar + one focused column of work; overlays only for
+   short tasks (add, confirm, search). Content is left-aligned everywhere.
+
+   Rules
+   - Meaning comes from semantic tokens, never from a literal colour.
+   - Panels are separated by borders and surface tone, not by shadows.
+     Shadows are reserved for things that float (menus, dialogs, toasts).
+   - Radius follows role: controls 6px, panels 10px, sheets 16px.
+   - The pond accent is used for the primary action and current location.
+     Status uses success / warning / danger / info, always with an icon
+     or text label as well (spec §59: never colour alone).
+   ========================================================================== */
+
+:root {
+  /* ---- Colour: light (default) ---------------------------------------- */
+  --bg: #f3f5f2;              /* page ground, faint green bias          */
+  --surface: #ffffff;         /* panels, rows                           */
+  --surface-2: #ecf0eb;       /* sunken areas, hover, table headers     */
+  --surface-3: #e2e8e1;       /* pressed / selected neutral             */
+  --border: #d9e0d8;
+  --border-strong: #b9c4b9;
+
+  --text: #15201b;
+  --text-muted: #55635b;      /* 6.1:1 on white                         */
+  --text-faint: #6f7d75;      /* 4.5:1 on white, meta only              */
+
+  --primary: #0d6554;         /* "pond"                                 */
+  --primary-hover: #0a5143;
+  --primary-soft: #e0efe9;
+  --primary-line: #a9d2c5;
+  --on-primary: #ffffff;
+
+  --success: #276b2c;
+  --success-soft: #e4f1e1;
+  --warning: #87510a;
+  --warning-mark: #c98418;
+  --warning-soft: #fbefd9;
+  --danger: #b0261b;
+  --danger-soft: #fbe8e5;
+  --info: #2a55a1;
+  --info-soft: #e6edf9;
+
+  --focus: #1c6fd6;
+  --overlay: rgba(14, 24, 20, 0.42);
+  --shadow-float: 0 1px 2px rgba(15, 30, 24, 0.08), 0 8px 24px rgba(15, 30, 24, 0.12);
+
+  /* ---- Type ----------------------------------------------------------- */
+  --font-ui: "Atkinson Hyperlegible Next", "Atkinson Hyperlegible", system-ui, -apple-system,
+    "Segoe UI", Roboto, sans-serif;
+  --font-display: "Schibsted Grotesk", "Atkinson Hyperlegible Next", system-ui, -apple-system,
+    "Segoe UI", sans-serif;
+
+  --fs-xs: 0.75rem;    /* 12  meta, captions            */
+  --fs-sm: 0.8125rem;  /* 13  labels, badges            */
+  --fs-base: 0.9375rem;/* 15  body                      */
+  --fs-md: 1.0625rem;  /* 17  row titles, emphasis      */
+  --fs-lg: 1.25rem;    /* 20  section headings          */
+  --fs-xl: 1.625rem;   /* 26  page titles               */
+  --fs-2xl: 2rem;      /* 32  the one "next hop" title  */
+
+  --lh-tight: 1.2;
+  --lh-ui: 1.4;
+  --lh-read: 1.6;
+
+  /* ---- Space (4px grid) ------------------------------------------------ */
+  --s-1: 4px;
+  --s-2: 8px;
+  --s-3: 12px;
+  --s-4: 16px;
+  --s-5: 20px;
+  --s-6: 24px;
+  --s-8: 32px;
+  --s-10: 40px;
+  --s-12: 48px;
+
+  /* ---- Shape ------------------------------------------------------------ */
+  --r-control: 6px;
+  --r-panel: 10px;
+  --r-sheet: 16px;
+  --r-pill: 999px;
+
+  /* ---- Layout ------------------------------------------------------------ */
+  --sidebar-w: 236px;
+  --rail-w: 72px;
+  --content-max: 1160px;
+  --tap: 44px;               /* minimum touch target */
+
+  --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --dur: 160ms;
+
+  color-scheme: light;
+}
+
+/* ---- Colour: dark, following the OS unless the user chose light -------- */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e1412;
+    --surface: #151d1a;
+    --surface-2: #1b2521;
+    --surface-3: #24302b;
+    --border: #28342f;
+    --border-strong: #3b4a44;
+    --text: #e2e9e4;
+    --text-muted: #a3b1a9;
+    --text-faint: #8c9a93;
+    --primary: #5ec5a9;
+    --primary-hover: #7dd3bc;
+    --primary-soft: #16362e;
+    --primary-line: #2d6b5b;
+    --on-primary: #05221b;
+    --success: #7cc47d;
+    --success-soft: #19301b;
+    --warning: #e6ae52;
+    --warning-mark: #e6ae52;
+    --warning-soft: #352812;
+    --danger: #f2948a;
+    --danger-soft: #3a1d1a;
+    --info: #92b5f3;
+    --info-soft: #1a2742;
+    --focus: #84b6ff;
+    --overlay: rgba(0, 0, 0, 0.55);
+    --shadow-float: 0 1px 2px rgba(0, 0, 0, 0.4), 0 10px 28px rgba(0, 0, 0, 0.45);
+    color-scheme: dark;
+  }
+}
+
+/* ---- Colour: dark, chosen explicitly in Settings ------------------------ */
+:root[data-theme="dark"] {
+  --bg: #0e1412;
+  --surface: #151d1a;
+  --surface-2: #1b2521;
+  --surface-3: #24302b;
+  --border: #28342f;
+  --border-strong: #3b4a44;
+  --text: #e2e9e4;
+  --text-muted: #a3b1a9;
+  --text-faint: #8c9a93;
+  --primary: #5ec5a9;
+  --primary-hover: #7dd3bc;
+  --primary-soft: #16362e;
+  --primary-line: #2d6b5b;
+  --on-primary: #05221b;
+  --success: #7cc47d;
+  --success-soft: #19301b;
+  --warning: #e6ae52;
+  --warning-mark: #e6ae52;
+  --warning-soft: #352812;
+  --danger: #f2948a;
+  --danger-soft: #3a1d1a;
+  --info: #92b5f3;
+  --info-soft: #1a2742;
+  --focus: #84b6ff;
+  --overlay: rgba(0, 0, 0, 0.55);
+  --shadow-float: 0 1px 2px rgba(0, 0, 0, 0.4), 0 10px 28px rgba(0, 0, 0, 0.45);
+  color-scheme: dark;
+}

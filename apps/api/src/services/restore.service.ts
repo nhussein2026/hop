@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+
 import { BACKUP_TABLES, backupSnapshotSchema } from '@hop/validation';
 import type { BackupSnapshot, BackupTable } from '@hop/validation';
 
@@ -39,7 +41,47 @@ function describe(snapshot: BackupSnapshot): RestorePreview {
   };
 }
 
+export type RestoreTestResult = {
+  fileName: string;
+  exportedAt: string;
+  records: number;
+};
+
 export const restoreService = {
+  /**
+   * Prove the latest backup can be restored: load it into a scratch database and check that every
+   * row arrived. Throws InvalidInputError when there is no backup or it cannot be restored.
+   */
+  testLatestBackup(): RestoreTestResult {
+    const latest = backupService.listBackups()[0];
+
+    if (!latest) {
+      throw new InvalidInputError('There is no backup to test yet. Create one with Back up now.');
+    }
+
+    let contents: unknown;
+
+    try {
+      contents = JSON.parse(readFileSync(latest.filePath, 'utf8'));
+    } catch {
+      throw new InvalidInputError(`${latest.fileName} could not be read as a Hop backup.`);
+    }
+
+    const snapshot = parseSnapshot(contents);
+    const restored = backupRepository.restoreIntoScratch(snapshot);
+    const missing = BACKUP_TABLES.find((table) => restored[table] !== snapshot[table].length);
+
+    if (missing) {
+      throw new InvalidInputError(`Restore test failed: ${missing} has ${restored[missing]} of ${snapshot[missing].length} records after restoring ${latest.fileName}.`);
+    }
+
+    return {
+      fileName: latest.fileName,
+      exportedAt: snapshot.exportedAt,
+      records: BACKUP_TABLES.reduce((total, table) => total + restored[table], 0),
+    };
+  },
+
   preview(input: unknown): RestorePreview {
     return describe(parseSnapshot(input));
   },

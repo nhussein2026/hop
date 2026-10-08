@@ -9,6 +9,9 @@ const touchIntervalMs = 5 * 60 * 1000;
 
 export type NewSession = { token: string; expiresAt: string };
 
+/** A signed-in device, as shown in Settings. The id is a hash of the token, so it cannot be used to sign in. */
+export type DeviceSession = { id: string; userAgent: string | null; createdAt: string; lastSeenAt: string; current: boolean };
+
 function hashToken(token: string) {
   return createHash('sha256').update(token).digest('hex');
 }
@@ -81,6 +84,27 @@ export const authService = {
       authRepository.touchSession(id, now.toISOString());
     }
 
+    return true;
+  },
+
+  listSessions(currentToken: string): DeviceSession[] {
+    const now = new Date().toISOString();
+    const currentId = hashToken(currentToken);
+
+    return authRepository
+      .findSessions()
+      .filter((session) => session.expiresAt > now)
+      .sort((a, b) => b.lastSeenAt.localeCompare(a.lastSeenAt))
+      .map(({ id, userAgent, createdAt, lastSeenAt }) => ({ id, userAgent, createdAt, lastSeenAt, current: id === currentId }));
+  },
+
+  /** Sign out another device. Returns false when no such session exists. */
+  revokeSession(id: string): boolean {
+    if (!authRepository.findSession(id)) {
+      return false;
+    }
+
+    authRepository.deleteSession(id);
     return true;
   },
 

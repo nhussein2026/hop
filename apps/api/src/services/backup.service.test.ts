@@ -15,7 +15,9 @@ test('backupService.export creates a snapshot with all persisted tables', () => 
   assert.ok(result.filePath.startsWith(backupDir));
 
   const snapshot = JSON.parse(readFileSync(result.filePath, 'utf8'));
-  assert.equal(snapshot.version, 1);
+  assert.equal(snapshot.version, 2);
+  assert.ok(Array.isArray(snapshot.goalCriteria));
+  assert.ok(Array.isArray(snapshot.reflections));
   assert.ok(Array.isArray(snapshot.goals));
   assert.ok(Array.isArray(snapshot.tasks));
   assert.ok(Array.isArray(snapshot.habits));

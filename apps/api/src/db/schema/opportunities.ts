@@ -4,6 +4,7 @@ import {
   OPPORTUNITY_PRIORITIES,
   OPPORTUNITY_STAGES,
   OPPORTUNITY_TYPES,
+  WORK_MODES,
 } from '@hop/domain';
 
 export const opportunities = sqliteTable('opportunities', {
@@ -16,6 +17,7 @@ export const opportunities = sqliteTable('opportunities', {
   priority: text('priority', { enum: OPPORTUNITY_PRIORITIES }).notNull().default('medium'),
   location: text('location'),
   remote: integer('remote', { mode: 'boolean' }).notNull().default(false),
+  workMode: text('work_mode', { enum: WORK_MODES }),
   source: text('source'),
   openDate: text('open_date'),
   deadline: text('deadline'),
@@ -23,8 +25,11 @@ export const opportunities = sqliteTable('opportunities', {
   decisionDate: text('decision_date'),
   nextEventDate: text('next_event_date'),
   nextEventLabel: text('next_event_label'),
+  nextEventTime: text('next_event_time'),
+  reachedStage: text('reached_stage', { enum: OPPORTUNITY_STAGES }),
   compensation: text('compensation'),
   technologyTags: blob('technology_tags', { mode: 'json' }).$type<string[]>().notNull().default([]),
+  contactIds: text('contact_ids', { mode: 'json' }).$type<string[]>().notNull().default([]),
   resumeId: text('resume_id'),
   coverLetterId: text('cover_letter_id'),
   notes: text('notes'),

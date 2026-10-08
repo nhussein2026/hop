@@ -28,20 +28,31 @@ test('migrateDatabase creates every table in a new database and is idempotent', 
 
   assert.deepEqual(tableNames(sqlite), [
     '__drizzle_migrations',
+    'contacts',
     'credentials',
     'events',
     'evidence',
+    'goal_criteria',
+    'goal_progress',
     'goals',
     'habit_completions',
     'habits',
+    'interactions',
+    'milestones',
     'opportunities',
+    'opportunity_activities',
+    'opportunity_prep',
     'projects',
+    'reflections',
+    'resume_files',
+    'resumes',
     'sessions',
+    'settings',
     'skills',
     'tasks',
     'weekly_reviews',
   ]);
-  assert.equal(appliedMigrations(sqlite).length, 2);
+  assert.equal(appliedMigrations(sqlite).length, 4);
 });
 
 test('migrateDatabase baselines a pre-migration database without touching its data', () => {
@@ -52,7 +63,7 @@ test('migrateDatabase baselines a pre-migration database without touching its da
   migrateDatabase(sqlite, migrationsFolder);
 
   // The initial migration is recorded without running; later migrations still apply.
-  assert.deepEqual(appliedMigrations(sqlite).map((name) => String(name).slice(15)), ['initial', 'auth']);
+  assert.deepEqual(appliedMigrations(sqlite).map((name) => String(name).slice(15)), ['initial', 'auth', 'features', 'resume_files_goal_criteria']);
   assert.deepEqual(sqlite.prepare('SELECT name FROM goals').all().map((row) => row.name), ['Kept goal']);
 });
 

@@ -9,5 +9,6 @@ const newPassword = z
 const existingPassword = z.string().min(1, 'Password is required').max(256, 'Password cannot exceed 256 characters');
 
 export const setupPasswordSchema = z.object({ password: newPassword }).strict();
-export const loginSchema = z.object({ password: existingPassword }).strict();
+// remember: false keeps the session only until the browser closes.
+export const loginSchema = z.object({ password: existingPassword, remember: z.boolean().optional() }).strict();
 export const changePasswordSchema = z.object({ currentPassword: existingPassword, newPassword }).strict();

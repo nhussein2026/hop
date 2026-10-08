@@ -1,12 +1,13 @@
 import { sqliteTable, text, integer } from 'drizzle-orm/sqlite-core';
 
-import { GOAL_PRIORITIES, GOAL_STATUSES } from '@hop/domain';
+import { GOAL_AREAS, GOAL_PRIORITIES, GOAL_STATUSES } from '@hop/domain';
 
 export const goals = sqliteTable('goals', {
   id: text('id').primaryKey(),
   name: text('name').notNull(),
   why: text('why'),
   areaId: text('area_id'),
+  area: text('area', { enum: GOAL_AREAS }),
   status: text('status', { enum: GOAL_STATUSES }).notNull().default('active'),
   priority: text('priority', { enum: GOAL_PRIORITIES }).notNull().default('medium'),
   startDate: text('start_date'),

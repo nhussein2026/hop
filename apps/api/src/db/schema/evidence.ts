@@ -5,6 +5,7 @@ export const evidence = sqliteTable('evidence', {
   title: text('title').notNull(),
   description: text('description'),
   skillId: text('skill_id'),
+  skillIds: text('skill_ids', { mode: 'json' }).$type<string[]>().notNull().default([]),
   projectId: text('project_id'),
   opportunityId: text('opportunity_id'),
   goalId: text('goal_id'),
