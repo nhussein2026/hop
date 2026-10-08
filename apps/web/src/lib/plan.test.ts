@@ -184,3 +184,8 @@ test('isTaskOverdue and isTaskDueBy derive Today membership from dates', () => {
   assert.equal(isTaskDueBy({ scheduledDate: '2026-10-08', dueDate: '2026-10-07' }, today), true);
   assert.equal(isTaskDueBy({ scheduledDate: '2026-10-08', dueDate: null }, today), false);
 });
+
+test('buildMomentumIndicator uses the right plural for small scores', () => {
+  assert.match(buildMomentumIndicator([], 1, 0).detail, /^1 meaningful action in/);
+  assert.match(buildMomentumIndicator([], 2, 0).detail, /^2 meaningful actions in/);
+});

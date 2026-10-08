@@ -265,9 +265,23 @@ Invalid request bodies, malformed JSON, and impossible dates (such as `2026-02-3
 
 Downloads a full JSON snapshot of every table (`hop-export-YYYY-MM-DD.json`).
 
+### `GET /api/backups/:fileName`
+
+Downloads one server-side backup.
+
+### `POST /api/restore/preview` and `POST /api/restore`
+
+`/api/restore/preview` takes a backup snapshot as the request body. It checks the snapshot and returns per-table record counts, now and after the restore. Nothing changes.
+
+`/api/restore` takes `{ "snapshot": <backup>, "confirmed": true }`. It writes a safety backup of the current data, then replaces all data tables in one transaction, so either everything is restored or nothing changes. It returns the preview counts and the safety backup's `fileName`. Your password and sessions are not affected.
+
+Only version 1 snapshots are accepted. Backups from earlier versions of Hop restore as long as they match the current snapshot format. Files over 50 MB are rejected.
+
 ### `GET /api/backups` and `POST /api/backups`
 
 Lists server-side backups, or creates one immediately. The API also creates one backup per day on startup and hourly checks, keeping the 7 most recent days plus the newest backup from each of the last 4 weeks. Backups are written to `BACKUP_DIR` (default `storage/backups`). The Review screen shows the latest backup and offers **Back up now** and **Download export**.
+
+To restore, open **Review → Your data**. Choose one of the recent server backups, or a file you downloaded. Hop shows what will change and waits for you to confirm **Replace my data**. A backup of your current data is saved first, so you can undo a restore by restoring that backup.
 
 ## Data And Privacy
 
@@ -276,7 +290,7 @@ Hop is designed for private, self-hosted use. Local data stays in the server's S
 - Do not commit `.env` or database files.
 - Do not expose `storage/` as public static files.
 - Back up `storage/hop.db` before migrations or experiments.
-- Attachments, restore/import, and offline editing are planned, not complete features yet.
+- Attachments, merge-style import, and offline editing are planned, not complete features yet.
 
 ## Product Roadmap
 

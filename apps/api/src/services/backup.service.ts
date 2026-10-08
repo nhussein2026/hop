@@ -1,17 +1,13 @@
 import { mkdirSync, readdirSync, renameSync, statSync, unlinkSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
+import { BACKUP_SNAPSHOT_VERSION } from '@hop/validation';
+import type { BackupSnapshot } from '@hop/validation';
+
 import { resolveBackupDirectory } from '../config.js';
 import { backupRepository } from '../repositories/backup.repository.js';
 
-export const BACKUP_SNAPSHOT_VERSION = 1;
-
 const backupFilePattern = /^hop-backup-(\d{4}-\d{2}-\d{2})T[\d-]+Z\.json$/;
-
-export type BackupSnapshot = ReturnType<typeof backupRepository.readAllTables> & {
-  version: number;
-  exportedAt: string;
-};
 
 export type BackupFile = {
   fileName: string;
@@ -65,6 +61,11 @@ export const backupService = {
       date: snapshot.exportedAt.slice(0, 10),
       sizeBytes: statSync(filePath).size,
     };
+  },
+
+  /** Path of a backup in the backup directory, or undefined if the name is not a backup file. */
+  findBackup(fileName: string, { backupDir = resolveBackupDirectory() }: BackupOptions = {}): BackupFile | undefined {
+    return this.listBackups({ backupDir }).find((backup) => backup.fileName === fileName);
   },
 
   listBackups({ backupDir = resolveBackupDirectory() }: BackupOptions = {}): BackupFile[] {

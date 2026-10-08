@@ -1,4 +1,5 @@
 import 'dotenv/config';
+import { createReadStream } from 'node:fs';
 import { createServer } from 'node:http';
 
 import {
@@ -7,6 +8,7 @@ import {
   createHabitSchema,
   habitCompletionRangeSchema,
   loginSchema,
+  restoreRequestSchema,
   setupPasswordSchema,
   habitCompletionSchema,
   createEvidenceSchema,
@@ -53,6 +55,7 @@ import { evidenceService } from './services/evidence.service.js';
 import { eventService } from './services/event.service.js';
 import { opportunityService } from './services/opportunity.service.js';
 import { projectService } from './services/project.service.js';
+import { restoreService } from './services/restore.service.js';
 import { skillService } from './services/skill.service.js';
 import { taskService } from './services/task.service.js';
 import { weeklyReviewService } from './services/weekly-review.service.js';
@@ -60,13 +63,15 @@ import { weeklyReviewService } from './services/weekly-review.service.js';
 import { resolveHost, resolvePort, resolveWebDistDirectory } from './config.js';
 import { clearedSessionCookie, isSameOriginRequest, readSessionToken, sessionCookie } from './auth/http.js';
 import { createRateLimiter } from './auth/rate-limit.js';
-import { ConflictError, RequestError } from './errors.js';
+import { ConflictError, InvalidInputError, RequestError } from './errors.js';
 import { serveWebApp } from './static.js';
 
 const port = resolvePort();
 const host = resolveHost();
 const webDistDir = resolveWebDistDirectory();
 const maxBodyBytes = 1024 * 1024;
+// Backups hold every record, so restore requests may be much larger than ordinary ones.
+const maxRestoreBodyBytes = 50 * 1024 * 1024;
 const backupCheckIntervalMs = 60 * 60 * 1000;
 const passwordAttempts = createRateLimiter({ maxFailures: 5, windowMs: 15 * 60 * 1000 });
 
@@ -95,14 +100,14 @@ function sendJson(response: import('node:http').ServerResponse, status: number, 
   response.end(JSON.stringify(body));
 }
 
-async function readBody(request: import('node:http').IncomingMessage) {
+async function readBody(request: import('node:http').IncomingMessage, maxBytes = maxBodyBytes) {
   const chunks: Buffer[] = [];
   let size = 0;
 
   for await (const chunk of request as AsyncIterable<Buffer>) {
     size += chunk.length;
 
-    if (size > maxBodyBytes) {
+    if (size > maxBytes) {
       throw new RequestError(413, 'Request body is too large');
     }
 
@@ -240,6 +245,43 @@ const server = createServer(async (request, response) => {
 
     if (request.method === 'GET' && url.pathname === '/api/backups') {
       sendJson(response, 200, backupService.listBackups().map(({ fileName, date, sizeBytes }) => ({ fileName, date, sizeBytes })));
+      return;
+    }
+
+    const backupFileName = url.pathname.match(/^\/api\/backups\/([^/]+)$/)?.[1];
+
+    if (request.method === 'GET' && backupFileName) {
+      // Only names that appear in the backup directory listing are served, so no path can escape it.
+      const backup = backupService.findBackup(decodeURIComponent(backupFileName));
+
+      if (!backup) {
+        sendJson(response, 404, { error: 'Backup not found' });
+        return;
+      }
+
+      response.writeHead(200, {
+        'Content-Disposition': `attachment; filename="${backup.fileName}"`,
+        'Content-Length': String(backup.sizeBytes),
+        'Content-Type': 'application/json; charset=utf-8',
+      });
+      createReadStream(backup.filePath).pipe(response);
+      return;
+    }
+
+    if (request.method === 'POST' && url.pathname === '/api/restore/preview') {
+      sendJson(response, 200, restoreService.preview(await readBody(request, maxRestoreBodyBytes)));
+      return;
+    }
+
+    if (request.method === 'POST' && url.pathname === '/api/restore') {
+      const result = restoreRequestSchema.safeParse(await readBody(request, maxRestoreBodyBytes));
+
+      if (!result.success) {
+        sendJson(response, 400, { error: result.error.issues[0]?.message ?? 'Invalid restore request' });
+        return;
+      }
+
+      sendJson(response, 200, restoreService.restore(result.data.snapshot));
       return;
     }
 
@@ -623,6 +665,11 @@ const server = createServer(async (request, response) => {
   } catch (error) {
     if (error instanceof RequestError) {
       sendJson(response, error.status, { error: error.message });
+      return;
+    }
+
+    if (error instanceof InvalidInputError) {
+      sendJson(response, 400, { error: error.message });
       return;
     }
 

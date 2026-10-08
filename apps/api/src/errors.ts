@@ -7,3 +7,6 @@ export class RequestError extends Error {
     super(message);
   }
 }
+
+/** Input that is well-formed JSON but cannot be used, such as an invalid backup file (HTTP 400). */
+export class InvalidInputError extends Error {}

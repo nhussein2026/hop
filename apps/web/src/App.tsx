@@ -9,6 +9,7 @@ import { useProjects } from './hooks/useProjects.js'
 import { useSkills } from './hooks/useSkills.js'
 import { useTasks } from './hooks/useTasks.js'
 import { useWeeklyReviews } from './hooks/useWeeklyReviews.js'
+import { NavIcon } from './components/NavIcon.js'
 import { OfflineBanner } from './components/OfflineBanner.js'
 import { toLocalDate } from './lib/date.js'
 import { CareerView } from './views/CareerView.js'
@@ -21,10 +22,25 @@ import { TodayView } from './views/TodayView.js'
 const navigation = ['Today', 'Plan', 'Goals', 'Career', 'Growth', 'Review'] as const
 type ViewName = typeof navigation[number]
 
+const headlines: Record<ViewName, string> = {
+  Today: 'Make today count.',
+  Plan: 'Shape the next few days.',
+  Goals: 'Keep the long view alive.',
+  Career: 'Move opportunities forward.',
+  Growth: 'Make progress visible.',
+  Review: 'Notice what changed.',
+}
+
 type AppProps = { onSignOut: () => Promise<void> }
 
 function App({ onSignOut }: AppProps) {
   const [activeView, setActiveView] = useState<ViewName>('Today')
+
+  function openView(view: ViewName) {
+    setActiveView(view)
+    // The bottom navigation is reachable from anywhere on the page, so start each view at the top.
+    window.scrollTo(0, 0)
+  }
   const today = toLocalDate()
   const tasks = useTasks()
   const goals = useGoals()
@@ -53,12 +69,12 @@ function App({ onSignOut }: AppProps) {
         <div className="brand-mark"><span>H</span> Hop</div>
         <p className="brand-tagline">Small actions. Real progress.</p>
         <nav aria-label="Primary navigation">
-          {navigation.map((item) => <button className={activeView === item ? 'nav-item active' : 'nav-item'} key={item} onClick={() => setActiveView(item)} type="button"><span className="nav-dot" aria-hidden="true" />{item}</button>)}
+          {navigation.map((item) => <button aria-current={activeView === item ? 'page' : undefined} className={activeView === item ? 'nav-item active' : 'nav-item'} key={item} onClick={() => openView(item)} type="button"><NavIcon name={item} /><span className="nav-label">{item}</span></button>)}
         </nav>
         <div className="sidebar-footer"><span className="status-dot" aria-hidden="true" /> Private workspace</div>
       </aside>
       <main className="main-content">
-        <header className="topbar"><div><p className="eyebrow">{activeView}</p><h1>{activeView === 'Today' ? 'Make today count.' : activeView === 'Growth' ? 'Make progress visible.' : `${activeView} is coming next.`}</h1></div><div className="topbar-actions"><button className="icon-button" aria-label="Notifications" type="button">○</button><button className="text-button sign-out" onClick={() => void onSignOut()} type="button">Sign out</button></div></header>
+        <header className="topbar"><div><p className="eyebrow">{activeView}</p><h1>{headlines[activeView]}</h1></div><div className="topbar-actions"><button className="text-button sign-out" onClick={() => void onSignOut()} type="button">Sign out</button></div></header>
         <OfflineBanner />
         {renderView()}
       </main>

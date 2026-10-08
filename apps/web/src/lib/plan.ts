@@ -138,7 +138,7 @@ export function buildMomentumIndicator(
   if (score >= 1) {
     return {
       label: 'Starting to move',
-      detail: `${score} meaningful action in the last 7 days. Pick the next small win and keep going.`,
+      detail: `${score} meaningful ${score === 1 ? 'action' : 'actions'} in the last 7 days. Pick the next small win and keep going.`,
       score,
     };
   }

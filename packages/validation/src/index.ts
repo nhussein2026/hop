@@ -1,5 +1,6 @@
 export * from './common.js';
 export * from './auth.js';
+export * from './backup.js';
 export {};
 export * from './goal.js';
 export * from './habit.js';
