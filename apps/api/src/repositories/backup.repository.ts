@@ -18,6 +18,7 @@ import {
   habits,
   interactions,
   milestones,
+  monthlyReviews,
   opportunities,
   opportunityActivities,
   opportunityPrep,
@@ -52,6 +53,7 @@ const tables = {
   resumes,
   resumeFiles,
   reflections,
+  monthlyReviews,
   settings,
 } satisfies Record<BackupTable, unknown>;
 

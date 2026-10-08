@@ -6,7 +6,7 @@ import { STAGE_LABEL, isOverdue } from '../lib/rules.ts'
 import type {
   Contact, Event, Evidence, Goal, GoalArea, GoalCriterion, GoalStatus, Habit, HabitCompletion, HopData, Interaction, Milestone,
   Opportunity, OpportunityActivity, OpportunityActivityType, OpportunityStage, Project, ProjectStatus, Reflection, Resume, Settings,
-  Skill, SkillLevel, Task, TaskPriority, WeekFacts, WeeklyReview,
+  MonthFacts, MonthlyReview, Skill, SkillLevel, Task, TaskPriority, WeekFacts, WeeklyReview,
 } from '../lib/types.ts'
 import { api, upsert, useHop, without } from './store.ts'
 
@@ -270,6 +270,15 @@ export function useActions() {
       },
       reopenWeekly(existing: WeeklyReview) {
         return commit('Review reopened for editing', () => api.patch<WeeklyReview>(`/api/reviews/weekly/${existing.id}`, { status: 'draft' }), applyItem('weeklyReviews'), { quiet: true })
+      },
+      saveMonthly(existing: MonthlyReview | undefined, monthStart: string, values: { highlights: string; keep: string; stop: string; change: string; focus: string[] }, complete: boolean, facts: MonthFacts) {
+        const body = { ...values, status: complete ? 'completed' : 'draft', facts }
+        return commit(complete ? 'Monthly review complete. Next month has a focus.' : 'Draft saved', () => existing
+          ? api.patch<MonthlyReview>(`/api/reviews/monthly/${existing.id}`, body)
+          : api.post<MonthlyReview>('/api/reviews/monthly', { monthStart, ...body }), applyItem('monthlyReviews'))
+      },
+      reopenMonthly(existing: MonthlyReview) {
+        return commit('Review reopened for editing', () => api.patch<MonthlyReview>(`/api/reviews/monthly/${existing.id}`, { status: 'draft' }), applyItem('monthlyReviews'), { quiet: true })
       },
     }
 

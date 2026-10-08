@@ -7,6 +7,7 @@ import type {
   HabitCompletion,
   Interaction,
   Milestone,
+  MonthlyReview,
   OpportunityWithDetails,
   Project,
   Reflection,
@@ -32,6 +33,8 @@ export type {
   Interaction,
   InteractionType,
   Milestone,
+  MonthFacts,
+  MonthlyReview,
   OpportunityActivity,
   OpportunityActivityType,
   OpportunityStage,
@@ -64,6 +67,7 @@ export type HopData = {
   skills: Skill[]
   evidence: Evidence[]
   weeklyReviews: WeeklyReview[]
+  monthlyReviews: MonthlyReview[]
   milestones: Milestone[]
   contacts: Contact[]
   interactions: Interaction[]

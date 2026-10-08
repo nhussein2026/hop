@@ -8,6 +8,7 @@ import {
   GOAL_STATUSES,
   HABIT_FREQUENCIES,
   INTERACTION_TYPES,
+  MONTHLY_REVIEW_STATUSES,
   OPPORTUNITY_ACTIVITY_TYPES,
   OPPORTUNITY_PRIORITIES,
   OPPORTUNITY_STAGES,
@@ -116,6 +117,10 @@ const resumeFileRow = z.object({ resumeId: id, name: text, type: text, size: z.n
 const reflectionRow = z.object({
   id, date: text, accomplished: text, learned: text, badly: text, tomorrow: text, energy: optionalInteger, focus: optionalInteger, ...timestamps,
 }).strict();
+const monthlyReviewRow = z.object({
+  id, monthStart: text, highlights: text, keep: text, stop: text, change: text, focus: z.array(text),
+  status: z.enum(MONTHLY_REVIEW_STATUSES), facts: z.record(z.string(), z.unknown()).nullable(), completedAt: optionalText, ...timestamps,
+}).strict();
 const settingsRow = z.object({ id: z.number().int(), data: z.record(z.string(), z.unknown()), updatedAt: text }).strict();
 
 function uniqueBy<T>(rows: T[], key: (row: T) => string) {
@@ -154,6 +159,7 @@ export const backupSnapshotSchema = z.object({
   resumes: rows(resumeRow).default([]),
   resumeFiles: z.array(resumeFileRow).refine((items) => uniqueBy(items, (item) => item.resumeId), 'Contains more than one file for the same resume').default([]),
   reflections: rows(reflectionRow).refine((items) => uniqueBy(items, (item) => item.date), 'Contains more than one reflection for the same date').default([]),
+  monthlyReviews: rows(monthlyReviewRow).refine((items) => uniqueBy(items, (item) => item.monthStart), 'Contains more than one review for the same month').default([]),
   settings: rows(settingsRow).default([]),
 }).strict();
 
@@ -161,7 +167,7 @@ export type BackupSnapshot = z.infer<typeof backupSnapshotSchema>;
 export const BACKUP_TABLES = [
   'goals', 'tasks', 'habits', 'habitCompletions', 'events', 'opportunities', 'projects', 'skills', 'evidence', 'weeklyReviews',
   'goalCriteria', 'goalProgress', 'milestones', 'opportunityPrep', 'opportunityActivities', 'contacts', 'interactions', 'resumes',
-  'resumeFiles', 'reflections', 'settings',
+  'resumeFiles', 'reflections', 'monthlyReviews', 'settings',
 ] as const;
 export type BackupTable = (typeof BACKUP_TABLES)[number];
 

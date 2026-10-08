@@ -7,6 +7,7 @@ export * from './goals.js';
 export * from './habit-completions.js';
 export * from './habits.js';
 export * from './milestones.js';
+export * from './monthly-reviews.js';
 export * from './opportunities.js';
 export * from './opportunity-details.js';
 export * from './projects.js';

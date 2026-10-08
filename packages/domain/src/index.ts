@@ -6,6 +6,7 @@ export * from './event.js';
 export * from './goal.js';
 export * from './habit.js';
 export * from './milestone.js';
+export * from './monthly-review.js';
 export * from './opportunity.js';
 export * from './project.js';
 export * from './reflection.js';

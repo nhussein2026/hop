@@ -1,6 +1,6 @@
 // Notifications: only things that lead to an action, filtered by the categories the user enabled.
 import * as D from './dates.ts'
-import { attention } from './rules.ts'
+import { attention, monthEnd, reviewMonth } from './rules.ts'
 import type { AttentionItem } from './rules.ts'
 import type { HopData } from './types.ts'
 
@@ -16,6 +16,13 @@ export function notificationsFor(data: HopData): AttentionItem[] {
   const reviewed = data.weeklyReviews.some((review) => review.weekStart === start && review.status === 'completed')
   if (!reviewed && D.diffDays(end, today) <= 1 && notify.important) {
     items.push({ level: 'important', icon: 'review', title: `Weekly review is due ${end === today ? 'today' : 'tomorrow'}`, detail: 'About 10 minutes. Facts are filled in for you.', href: '#/review' })
+  }
+  const month = reviewMonth(data.monthlyReviews, today)
+  const monthReviewed = data.monthlyReviews.some((review) => review.monthStart === month && review.status === 'completed')
+  const lastDay = monthEnd(month)
+  if (!monthReviewed && D.diffDays(lastDay, today) <= 1 && notify.important) {
+    const when = lastDay < today ? `${D.monthLong(month)} ended` : `the month ends ${lastDay === today ? 'today' : 'tomorrow'}`
+    items.push({ level: 'important', icon: 'review', title: `Monthly review for ${D.monthLong(month)} is due`, detail: `About 20 minutes; ${when}.`, href: '#/review/month' })
   }
   return items
 }

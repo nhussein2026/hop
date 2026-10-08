@@ -106,7 +106,7 @@ function NotificationSettings() {
     <Card desc="Hop only notifies you when there’s something to act on. It never sends streak or guilt reminders." title="Notifications">
       <div className="switch-list">
         {row('critical', 'Urgent', 'Interview within 24 hours, deadline today, offer awaiting a response')}
-        {row('important', 'Important', 'Deadline in 2 days, overdue follow-up, weekly review due')}
+        {row('important', 'Important', 'Deadline in 2 days, overdue follow-up, weekly or monthly review due')}
         {row('optional', 'Gentle nudges', 'A goal with no next action or no activity for 2 weeks')}
       </div>
     </Card>
@@ -149,7 +149,7 @@ const TABLE_LABELS: Record<string, string> = {
   goals: 'Goals', tasks: 'Tasks', habits: 'Habits', habitCompletions: 'Habit check-ins', events: 'Events', opportunities: 'Opportunities',
   projects: 'Projects', skills: 'Skills', evidence: 'Evidence', weeklyReviews: 'Weekly reviews', goalCriteria: 'Success criteria',
   goalProgress: 'Progress history', resumeFiles: 'Resume files', milestones: 'Milestones', opportunityPrep: 'Preparation items', opportunityActivities: 'Timeline entries',
-  contacts: 'People', interactions: 'Interactions', resumes: 'Resume versions', reflections: 'Reflections', settings: 'Settings',
+  contacts: 'People', interactions: 'Interactions', resumes: 'Resume versions', reflections: 'Reflections', monthlyReviews: 'Monthly reviews', settings: 'Settings',
 }
 
 /** hop-backup-2026-10-07T07-47-09-728Z.json → the moment it was taken, as an ISO timestamp. */

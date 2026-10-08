@@ -209,7 +209,7 @@ export function ReflectionEditor({ date, close }: { date: string; close: () => v
 
 /* ---- Phone "More" sheet ------------------------------------------------------------------------- */
 export function MoreSheet({ close }: { close: () => void }) {
-  const items: [string, string, string][] = [['calendar', 'Calendar', 'Events, tasks and deadlines by day'], ['goals', 'Goals', 'Where you’re going'], ['growth', 'Growth', 'Skills, projects and evidence'], ['review', 'Review', 'Weekly review and reflections'], ['settings', 'Settings', 'Profile, backups, security']]
+  const items: [string, string, string][] = [['calendar', 'Calendar', 'Events, tasks and deadlines by day'], ['goals', 'Goals', 'Where you’re going'], ['growth', 'Growth', 'Skills, projects and evidence'], ['review', 'Review', 'Weekly and monthly reviews, reflections'], ['settings', 'Settings', 'Profile, backups, security']]
   return (
     <Dialog foot={false} onClose={close} title="More">
       <nav aria-label="More sections" className="rows">

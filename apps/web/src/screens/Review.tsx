@@ -1,10 +1,10 @@
-// Review: weekly review and daily reflections. Hop fills in the facts; you write the judgement.
-// The output is next week's top 3, which become real tasks.
+// Review: weekly and monthly reviews and daily reflections. Hop fills in the facts; you write the judgement.
+// The weekly output is next week's top 3, which become real tasks. The monthly output is next month's focus.
 import { useState } from 'react'
 import * as D from '../lib/dates.ts'
-import { plural, weekFacts } from '../lib/rules.ts'
+import { monthEnd, monthFacts, plural, reviewMonth, weekFacts } from '../lib/rules.ts'
 import type { Route } from '../lib/router.ts'
-import type { WeekFacts, WeeklyReview } from '../lib/types.ts'
+import type { MonthFacts, MonthlyReview, WeekFacts, WeeklyReview } from '../lib/types.ts'
 import { useActions } from '../store/actions.ts'
 import { useEditors } from '../editors/editors.tsx'
 import { Icon } from '../components/Icon.tsx'
@@ -16,14 +16,15 @@ export function Review({ route }: { route: Route }) {
   const { data } = useHop()
   const editors = useEditors()
   const tab = route.params[0] || 'week'
+  const pastCount = data.weeklyReviews.filter((w) => w.status === 'completed').length + data.monthlyReviews.filter((m) => m.status === 'completed').length
   return (
     <div className="page">
       <header className="page-head">
         <div className="page-head-text"><h1 tabIndex={-1}>Review</h1><p>What worked, what didn’t, and what changes next.</p></div>
         <div className="page-head-actions"><button className="btn" onClick={() => editors.reflection()} type="button"><Icon className="icon-sm" name="edit" />Today’s reflection</button></div>
       </header>
-      <Tabs active={tab} items={[['week', 'This week', '#/review'], ['reflections', 'Reflections', '#/review/reflections', data.reflections.length], ['history', 'Past reviews', '#/review/history', data.weeklyReviews.filter((w) => w.status === 'completed').length]]} label="Review sections" />
-      {tab === 'reflections' ? <Reflections /> : tab === 'history' ? <History /> : <ThisWeek />}
+      <Tabs active={tab} items={[['week', 'This week', '#/review'], ['month', 'This month', '#/review/month'], ['reflections', 'Reflections', '#/review/reflections', data.reflections.length], ['history', 'Past reviews', '#/review/history', pastCount]]} label="Review sections" />
+      {tab === 'reflections' ? <Reflections /> : tab === 'history' ? <History /> : tab === 'month' ? <ThisMonth /> : <ThisWeek />}
     </div>
   )
 }
@@ -166,11 +167,169 @@ function ReviewCard({ review }: { review: WeeklyReview }) {
   )
 }
 
+/* ---- Monthly review ------------------------------------------------------------------ */
+const FOCUS_PLACEHOLDERS = ['e.g. System design, three sessions a week', 'e.g. Five targeted applications', 'e.g. Ship the NLP project demo']
+
+const signed = (n: number) => (n > 0 ? `+${n}` : String(n))
+
+function ThisMonth() {
+  const { data } = useHop()
+  const actions = useActions()
+  const [error, setError] = useState('')
+  const [busy, setBusy] = useState<string>()
+  const today = D.today()
+  const monthStart = reviewMonth(data.monthlyReviews, today)
+  const end = monthEnd(monthStart)
+  const nextMonth = D.addMonths(monthStart, 1)
+  const facts = monthFacts(data, monthStart, today)
+  const existing = data.monthlyReviews.find((m) => m.monthStart === monthStart)
+  const previous = data.monthlyReviews.filter((m) => m.monthStart < monthStart && m.status === 'completed').sort((a, b) => b.monthStart.localeCompare(a.monthStart))[0]
+  const ended = end < today
+  const daysLeft = D.diffDays(end, today)
+  const daysSoFar = ended ? D.dayOfMonth(end) : D.dayOfMonth(today)
+
+  if (existing?.status === 'completed') {
+    return (
+      <>
+        <Banner action={<button className="btn btn-sm" onClick={() => void actions.review.reopenMonthly(existing)} type="button">Edit review</button>} icon="check" title={`Review complete for ${D.monthLong(monthStart)}.`} tone="success">Your focus for {D.monthLong(nextMonth)} is set.</Banner>
+        <MonthCard review={existing} />
+      </>
+    )
+  }
+
+  async function submit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const form = event.currentTarget
+    const submitter = (event.nativeEvent as SubmitEvent).submitter as HTMLButtonElement | null
+    const complete = submitter?.value === 'complete'
+    const fd = new FormData(form)
+    const focus = fd.getAll('focus').map((value) => String(value).trim())
+    if (complete && !focus.some(Boolean)) {
+      setError('Choose at least one focus for next month. That’s what the review is for.')
+      form.querySelector<HTMLInputElement>('#focus-0')?.focus()
+      return
+    }
+    setError('')
+    setBusy(complete ? 'complete' : 'draft')
+    const text = (name: string) => String(fd.get(name) ?? '').trim()
+    const saved = await actions.review.saveMonthly(existing, monthStart, { highlights: text('highlights'), keep: text('keep'), stop: text('stop'), change: text('change'), focus }, complete, facts)
+    setBusy(undefined)
+    if (saved && complete) celebrate()
+  }
+
+  const values = existing ?? { highlights: '', keep: '', stop: '', change: '', focus: ['', '', ''], updatedAt: '' }
+
+  return (
+    <>
+      <div className="review-intro">
+        <h2>{D.monthLong(monthStart)}</h2>
+        <p className="small muted">{ended ? `${D.monthLong(monthStart)} has ended. Review it this week, while it’s fresh.` : daysLeft > 2 ? `${plural(daysLeft, 'day')} left this month. Reviews work best in the last days of the month, but you can start any time.` : 'The month is almost over. Good time to review.'} About 20 minutes.</p>
+      </div>
+
+      <section aria-labelledby="mfacts-h" className="section">
+        <div className="section-head"><h2 id="mfacts-h">{ended ? 'The month' : 'This month'} in Hop</h2><span className="section-meta">Filled in for you</span></div>
+        <div className="metric-row metric-row-4">
+          <FactTile label="Meaningful days" value={`${facts.meaningfulDays} of ${daysSoFar}`} />
+          <FactTile label="Tasks done" value={facts.tasks} />
+          <FactTile label="Habit consistency" value={`${facts.habitsPct}%`} />
+          <FactTile label="Learning" value={D.minutes(facts.learningMin) || '0 min'} />
+          <FactTile label="Applications" value={facts.applications} />
+          <FactTile label="Replies" value={facts.responses} />
+          <FactTile label="Interviews" value={facts.interviews} />
+          <FactTile label="Offers" value={facts.offers} />
+        </div>
+        <MonthLists facts={facts} />
+        {facts.neglectedAreas.length > 0 && (
+          <Banner icon="alert" title={`Nothing happened in ${listOf(facts.neglectedAreas)} this month.`} tone="info">You have an active goal there. Pause it, or plan one step for next month.</Banner>
+        )}
+      </section>
+
+      {previous && previous.focus.filter(Boolean).length > 0 && (
+        <section aria-labelledby="mprev-h" className="section">
+          <div className="section-head"><h2 id="mprev-h">For {D.monthLong(D.addMonths(previous.monthStart, 1))} you chose to focus on</h2></div>
+          <ol className="plan-list">{previous.focus.filter(Boolean).map((item, index) => <li key={index}><span className="num">{index + 1}</span>{item}</li>)}</ol>
+          <p className="small muted">Did the month go that way? Use that in your answers below.</p>
+        </section>
+      )}
+
+      <form aria-labelledby="mrefl-h2" className="section review-form" key={existing?.id ?? `new-${monthStart}`} noValidate onSubmit={(event) => void submit(event)}>
+        <div className="section-head"><h2 id="mrefl-h2">Your review</h2>{existing && <span className="section-meta">Draft saved {D.timeAgo(existing.updatedAt)}</span>}</div>
+        <div className="panel panel-pad form-grid">
+          <Field defaultValue={values.highlights} label="What were the highlights?" name="highlights" placeholder="What you’re glad happened" type="textarea" />
+          <Field defaultValue={values.keep} label="What should you continue?" name="keep" placeholder="What worked and is worth repeating" type="textarea" />
+          <Field defaultValue={values.stop} label="What should you stop?" name="stop" placeholder="What cost time or energy without paying back" type="textarea" />
+          <Field defaultValue={values.change} label="What will you change?" name="change" placeholder="One adjustment for next month" rows={2} type="textarea" />
+          <fieldset className="field">
+            <legend className="field-label">Focus for {D.monthLong(nextMonth)}</legend>
+            <div className="top3">
+              {[0, 1, 2].map((index) => (
+                <div className="top3-row" key={index}>
+                  <span aria-hidden="true" className="num">{index + 1}</span>
+                  <label className="visually-hidden" htmlFor={`focus-${index}`}>Focus {index + 1}</label>
+                  <input aria-invalid={index === 0 && error ? true : undefined} className="input" defaultValue={values.focus[index] ?? ''} id={`focus-${index}`} maxLength={200} name="focus" placeholder={FOCUS_PLACEHOLDERS[index]} />
+                </div>
+              ))}
+            </div>
+            <FieldError error={error} id="focus-err" />
+          </fieldset>
+        </div>
+        <div className="form-actions">
+          <button aria-busy={busy === 'draft' || undefined} className="btn" name="intent" type="submit" value="draft">Save draft</button>
+          <button aria-busy={busy === 'complete' || undefined} className="btn btn-primary" name="intent" type="submit" value="complete">Complete review</button>
+        </div>
+      </form>
+    </>
+  )
+}
+
+const listOf = (items: string[]) => items.length < 2 ? items.join('') : `${items.slice(0, -1).join(', ')} and ${items.at(-1)}`
+
+function MonthLists({ facts }: { facts: MonthFacts }) {
+  const lists: [string, string[]][] = [['Projects completed', facts.projectsCompleted], ['Milestones reached', facts.milestones], ['Evidence added', facts.evidence]]
+  const shown = lists.filter(([, items]) => items.length)
+  if (!facts.goals.length && !shown.length) return null
+  return (
+    <div className="panel panel-pad review-shipped">
+      {facts.goals.length > 0 && (
+        <div>
+          <h3 className="small">Goal movement</h3>
+          <ul className="dot-list small">{facts.goals.map((g, index) => <li key={index}>{g.name}: {g.from}% → {g.to}%{g.to !== g.from ? ` (${signed(g.to - g.from)})` : ', unchanged'}</li>)}</ul>
+        </div>
+      )}
+      {shown.map(([title, items]) => <div key={title}><h3 className="small">{title}</h3><ul className="dot-list small">{items.map((item, index) => <li key={index}>{item}</li>)}</ul></div>)}
+    </div>
+  )
+}
+
+function monthFactsLine(facts: MonthFacts | null) {
+  if (!facts) return ''
+  return `${plural(facts.meaningfulDays, 'meaningful day')}, ${facts.tasks} tasks, ${D.minutes(facts.learningMin) || '0 min'} learning, ${plural(facts.applications, 'application')}`
+}
+
+function MonthCard({ review }: { review: MonthlyReview }) {
+  const focus = review.focus.filter(Boolean)
+  return (
+    <article className="panel panel-pad review-card">
+      <header className="review-card-head"><h3>{D.monthLong(review.monthStart)}</h3><span className="xs muted">{monthFactsLine(review.facts)}</span></header>
+      <dl className="review-dl">
+        {review.highlights && <div><dt>Highlights</dt><dd>{review.highlights}</dd></div>}
+        <div><dt>Continue</dt><dd>{review.keep || <span className="muted">—</span>}</dd></div>
+        <div><dt>Stop</dt><dd>{review.stop || <span className="muted">—</span>}</dd></div>
+        {review.change && <div><dt>Changing</dt><dd>{review.change}</dd></div>}
+        {focus.length > 0 && <div><dt>Focus next</dt><dd><ol className="plan-list plan-list-sm">{focus.map((item, index) => <li key={index}><span className="num">{index + 1}</span>{item}</li>)}</ol></dd></div>}
+      </dl>
+    </article>
+  )
+}
+
 function History() {
   const { data } = useHop()
-  const list = data.weeklyReviews.filter((w) => w.status === 'completed').sort((a, b) => b.weekStart.localeCompare(a.weekStart))
-  if (!list.length) return <Empty body="Completed weekly reviews collect here, so you can see patterns over months." icon="review" pad={false} title="No past reviews yet" />
-  return <div className="stack stack-sm">{list.map((review) => <ReviewCard key={review.id} review={review} />)}</div>
+  const list = [
+    ...data.weeklyReviews.filter((w) => w.status === 'completed').map((review) => ({ end: D.addDays(review.weekStart, 6), card: <ReviewCard key={review.id} review={review} /> })),
+    ...data.monthlyReviews.filter((m) => m.status === 'completed').map((review) => ({ end: monthEnd(review.monthStart), card: <MonthCard key={review.id} review={review} /> })),
+  ].sort((a, b) => b.end.localeCompare(a.end))
+  if (!list.length) return <Empty body="Completed weekly and monthly reviews collect here, so you can see patterns over months." icon="review" pad={false} title="No past reviews yet" />
+  return <div className="stack stack-sm">{list.map((item) => item.card)}</div>
 }
 
 function Reflections() {

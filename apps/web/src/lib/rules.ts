@@ -1,7 +1,8 @@
 // Hop's rules as pure functions: (data, today, settings) → what to show.
 // Raw facts are stored; health, follow-ups, overdue and progress are derived here.
 import * as D from './dates.ts'
-import type { Goal, Habit, HabitCompletion, HopData, Opportunity, OpportunityStage, Task, WeekFacts } from './types.ts'
+import { GOAL_AREAS } from '@hop/domain'
+import type { Goal, Habit, HabitCompletion, HopData, MonthFacts, MonthlyReview, Opportunity, OpportunityStage, Task, WeekFacts } from './types.ts'
 
 /* ---- Opportunities ------------------------------------------------------- */
 export const STAGES: OpportunityStage[] = ['saved', 'interested', 'preparing', 'applied', 'screening', 'interview', 'assessment', 'final', 'offer']
@@ -295,19 +296,18 @@ export function agenda(s: HopData, from: string, span: number): AgendaGroup[] {
   return groups
 }
 
-/* ---- Weekly review facts ---------------------------------------------------------- */
+/* ---- Review facts ---------------------------------------------------------------- */
 const RESPONSE_TYPES = ['email_received', 'call', 'interview_scheduled', 'assessment_received']
 
-export function weekFacts(s: HopData, weekStart: string, today = D.today()): WeekFacts {
-  const weekEnd = D.addDays(weekStart, 6)
-  const inWeek = (ymd: string | null | undefined) => Boolean(ymd) && ymd! >= weekStart && ymd! <= weekEnd
-  const done = s.tasks.filter((t) => t.completedAt && inWeek(D.ymdOf(t.completedAt)))
+/** What Hop recorded between two dates (inclusive). Habits only count days up to today. */
+function periodFacts(s: HopData, from: string, to: string, today: string): WeekFacts {
+  const within = (ymd: string | null | undefined) => Boolean(ymd) && ymd! >= from && ymd! <= to
+  const done = s.tasks.filter((t) => t.completedAt && within(D.ymdOf(t.completedAt)))
   let due = 0
   let hit = 0
   for (const h of s.habits) {
-    for (let i = 0; i < 7; i++) {
-      const ymd = D.addDays(weekStart, i)
-      if (ymd > today || !habitDue(h, ymd)) continue
+    for (let ymd = from; ymd <= to && ymd <= today; ymd = D.addDays(ymd, 1)) {
+      if (!habitDue(h, ymd)) continue
       due++
       if (habitDone(h, s.completions, ymd)) hit++
     }
@@ -315,7 +315,7 @@ export function weekFacts(s: HopData, weekStart: string, today = D.today()): Wee
   const learningGoals = new Set(s.goals.filter((g) => g.area === 'Learning').map((g) => g.id))
   const learningMin =
     done.filter((t) => t.goalId && learningGoals.has(t.goalId)).reduce((total, t) => total + (t.estimatedMinutes || 0), 0) +
-    s.completions.filter((c) => inWeek(c.date)).reduce((total, c) => {
+    s.completions.filter((c) => within(c.date)).reduce((total, c) => {
       const h = s.habits.find((x) => x.id === c.habitId)
       return total + (h && h.goalId && learningGoals.has(h.goalId) ? h.minutes : 0)
     }, 0)
@@ -324,11 +324,78 @@ export function weekFacts(s: HopData, weekStart: string, today = D.today()): Wee
     tasks: done.length,
     habitsPct: due ? Math.round((hit / due) * 100) : 0,
     learningMin,
-    applications: s.opportunities.filter((o) => inWeek(o.appliedDate)).length,
-    responses: timeline.filter((e) => RESPONSE_TYPES.includes(e.type) && inWeek(D.ymdOf(e.at))).length,
-    interviews: s.events.filter((e) => e.type === 'interview' && inWeek(e.date)).length + timeline.filter((e) => e.type === 'interview' && inWeek(D.ymdOf(e.at))).length,
+    applications: s.opportunities.filter((o) => within(o.appliedDate)).length,
+    responses: timeline.filter((e) => RESPONSE_TYPES.includes(e.type) && within(D.ymdOf(e.at))).length,
+    interviews: s.events.filter((e) => e.type === 'interview' && within(e.date)).length + timeline.filter((e) => e.type === 'interview' && within(D.ymdOf(e.at))).length,
     shipped: done.filter((t) => t.projectId).map((t) => t.title),
-    evidence: s.evidence.filter((e) => inWeek(e.date)).map((e) => e.title),
+    evidence: s.evidence.filter((e) => within(e.date)).map((e) => e.title),
+  }
+}
+
+export function weekFacts(s: HopData, weekStart: string, today = D.today()): WeekFacts {
+  return periodFacts(s, weekStart, D.addDays(weekStart, 6), today)
+}
+
+export const monthEnd = (monthStart: string) => D.addDays(D.addMonths(monthStart, 1), -1)
+
+/**
+ * The month to review: last month during the first week of a new month, until its review is
+ * complete, otherwise the current month.
+ */
+export function reviewMonth(reviews: Pick<MonthlyReview, 'monthStart' | 'status'>[], today = D.today()) {
+  const current = D.startOfMonth(today)
+  const previous = D.addMonths(current, -1)
+  const previousDone = reviews.some((r) => r.monthStart === previous && r.status === 'completed')
+  return D.dayOfMonth(today) <= 7 && !previousDone ? previous : current
+}
+
+export function monthFacts(s: HopData, monthStart: string, today = D.today()): MonthFacts {
+  const end = monthEnd(monthStart)
+  const within = (ymd: string | null | undefined) => Boolean(ymd) && ymd! >= monthStart && ymd! <= end
+  const base = periodFacts(s, monthStart, end, today)
+  const doneTasks = s.tasks.filter((t) => t.completedAt && within(D.ymdOf(t.completedAt)))
+  const checkIns = s.completions.filter((c) => within(c.date))
+  const evidence = s.evidence.filter((e) => within(e.date))
+  const reached = s.milestones.filter((m) => m.done && within(m.date))
+  const meaningful = new Set([...doneTasks.map((t) => D.ymdOf(t.completedAt!)), ...checkIns.map((c) => c.date), ...evidence.map((e) => e.date!), ...reached.map((m) => m.date)])
+
+  const goals = s.goals
+    .filter((g) => g.status !== 'archived' && g.status !== 'abandoned' && D.ymdOf(g.createdAt) <= end)
+    .map((g) => {
+      const to = g.history.filter((point) => point.date <= end).at(-1)?.progress ?? g.progress
+      const from = g.history.filter((point) => point.date < monthStart).at(-1)?.progress ?? (D.ymdOf(g.createdAt) >= monthStart ? 0 : to)
+      return { name: g.name, from, to, active: g.status === 'active' }
+    })
+    .filter((g) => g.active || g.from !== g.to)
+    .map(({ name, from, to }) => ({ name, from, to }))
+
+  // An area is neglected when it has an active goal but nothing linked to its goals happened this month.
+  const goalArea = new Map(s.goals.map((g) => [g.id, g.area]))
+  const habitGoal = new Map(s.habits.map((h) => [h.id, h.goalId]))
+  const touched = new Set([
+    ...doneTasks.map((t) => t.goalId),
+    ...checkIns.map((c) => habitGoal.get(c.habitId)),
+    ...evidence.map((e) => e.goalId),
+    ...reached.map((m) => m.goalId),
+  ].map((id) => id && goalArea.get(id)).filter(Boolean))
+  const activeAreas = new Set(s.goals.filter((g) => g.status === 'active' && g.area).map((g) => g.area!))
+  const neglectedAreas = GOAL_AREAS.filter((area) => activeAreas.has(area) && !touched.has(area))
+
+  const timeline = s.opportunities.flatMap((o) => o.activities)
+  return {
+    tasks: base.tasks,
+    meaningfulDays: meaningful.size,
+    habitsPct: base.habitsPct,
+    learningMin: base.learningMin,
+    applications: base.applications,
+    responses: base.responses,
+    interviews: base.interviews,
+    offers: timeline.filter((e) => e.type === 'offer_received' && within(D.ymdOf(e.at))).length,
+    goals,
+    projectsCompleted: s.projects.filter((p) => p.status === 'deployed' && within(p.endDate)).map((p) => p.name),
+    milestones: reached.map((m) => m.title),
+    evidence: base.evidence,
+    neglectedAreas,
   }
 }
 

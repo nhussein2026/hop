@@ -10,6 +10,7 @@ import {
   createGoalCriterionSchema,
   createInteractionSchema,
   createMilestoneSchema,
+  createMonthlyReviewSchema,
   createOpportunityActivitySchema,
   createOpportunityPrepSchema,
   createResumeSchema,
@@ -18,6 +19,7 @@ import {
   updateGoalCriterionSchema,
   updateHabitSchema,
   updateMilestoneSchema,
+  updateMonthlyReviewSchema,
   updateOpportunityPrepSchema,
   updateResumeSchema,
   updateSettingsSchema,
@@ -50,12 +52,14 @@ import type {
   CreateContactInput,
   CreateInteractionInput,
   CreateMilestoneInput,
+  CreateMonthlyReviewInput,
   CreateOpportunityActivityInput,
   CreateResumeInput,
   SaveReflectionInput,
   UpdateContactInput,
   UpdateHabitInput,
   UpdateMilestoneInput,
+  UpdateMonthlyReviewInput,
   UpdateResumeInput,
   UpdateSettingsInput,
   CreateGoalInput,
@@ -82,6 +86,7 @@ import { authService } from './services/auth.service.js';
 import { backupService } from './services/backup.service.js';
 import { contactService } from './services/contact.service.js';
 import { milestoneService } from './services/milestone.service.js';
+import { monthlyReviewService } from './services/monthly-review.service.js';
 import { reflectionService } from './services/reflection.service.js';
 import { resumeService } from './services/resume.service.js';
 import { settingsService } from './services/settings.service.js';
@@ -914,6 +919,25 @@ const server = createServer(async (request, response) => {
       }
 
       sendJson(response, 200, review);
+      return;
+    }
+
+    if (request.method === 'GET' && url.pathname === '/api/reviews/monthly') {
+      sendJson(response, 200, monthlyReviewService.getAll());
+      return;
+    }
+
+    if (request.method === 'POST' && url.pathname === '/api/reviews/monthly') {
+      const input = await readValid<CreateMonthlyReviewInput>(request, response, createMonthlyReviewSchema);
+      if (input) sendJson(response, 201, monthlyReviewService.create(input));
+      return;
+    }
+
+    const monthlyReviewId = url.pathname.match(/^\/api\/reviews\/monthly\/([^/]+)$/)?.[1];
+
+    if (request.method === 'PATCH' && monthlyReviewId) {
+      const input = await readValid<UpdateMonthlyReviewInput>(request, response, updateMonthlyReviewSchema);
+      if (input) sendFound(response, monthlyReviewService.update(monthlyReviewId, input), 'Monthly review not found');
       return;
     }
 

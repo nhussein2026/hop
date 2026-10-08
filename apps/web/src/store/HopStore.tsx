@@ -22,6 +22,7 @@ const endpoints: Record<Collection, string> = {
   skills: '/api/skills',
   evidence: '/api/evidence',
   weeklyReviews: '/api/reviews/weekly',
+  monthlyReviews: '/api/reviews/monthly',
   milestones: '/api/milestones',
   contacts: '/api/contacts',
   interactions: '/api/interactions',
@@ -29,7 +30,7 @@ const endpoints: Record<Collection, string> = {
   reflections: '/api/reflections',
 }
 
-/** Habit consistency looks back four weeks, and the weekly review needs the current week. */
+/** Habit consistency looks back four weeks, and the monthly review may cover last month until the 7th. */
 const completionDays = 42
 
 async function loadAll(): Promise<HopData> {
