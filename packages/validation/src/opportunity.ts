@@ -18,9 +18,9 @@ const timeSchema = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'Time must use 
 const contactIdsSchema = z.array(entityIdSchema).max(50, 'Too many linked people');
 const workModeSchema = z.enum(WORK_MODES);
 
-export const opportunityTypeSchema = z.enum(OPPORTUNITY_TYPES);
-export const opportunityStageSchema = z.enum(OPPORTUNITY_STAGES);
-export const opportunityPrioritySchema = z.enum(OPPORTUNITY_PRIORITIES);
+const opportunityTypeSchema = z.enum(OPPORTUNITY_TYPES);
+const opportunityStageSchema = z.enum(OPPORTUNITY_STAGES);
+const opportunityPrioritySchema = z.enum(OPPORTUNITY_PRIORITIES);
 
 export const createOpportunitySchema = z.object({
   title: titleSchema,
@@ -91,6 +91,3 @@ export const closeOpportunitySchema = z.object({
   outcome: z.enum(OPPORTUNITY_CLOSED_STAGES),
   note: z.string().trim().max(1000, 'Note cannot exceed 1000 characters').optional(),
 }).strict();
-
-export type CreateOpportunityRequest = z.infer<typeof createOpportunitySchema>;
-export type UpdateOpportunityRequest = z.infer<typeof updateOpportunitySchema>;

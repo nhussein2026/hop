@@ -410,7 +410,6 @@ p > .icon { display: inline-block; vertical-align: -3px; margin-right: 2px; }
 .badge-warning { background: var(--warning-soft); color: var(--warning); }
 .badge-danger  { background: var(--danger-soft); color: var(--danger); }
 .badge-info    { background: var(--info-soft); color: var(--info); }
-.badge-outline { background: transparent; box-shadow: inset 0 0 0 1px var(--border-strong); }
 
 .count {
   display: inline-grid;
@@ -437,7 +436,6 @@ p > .icon { display: inline-block; vertical-align: -3px; margin-right: 2px; }
   color: var(--text-muted);
 }
 .prio-must { color: var(--danger); }
-.prio-should { color: var(--text-muted); }
 
 kbd {
   display: inline-grid;
@@ -528,7 +526,6 @@ kbd {
   font-size: var(--fs-sm);
   color: var(--text-muted);
 }
-.row-meta .sep { color: var(--border-strong); }
 .row-meta .icon { width: 14px; height: 14px; }
 .row-meta > span { display: inline-flex; align-items: center; gap: 4px; }
 .row-actions {
@@ -541,12 +538,6 @@ kbd {
   color: var(--text-muted);
   text-decoration: line-through;
   text-decoration-color: var(--border-strong);
-}
-.row.is-leaving {
-  animation: leave 320ms var(--ease) forwards;
-}
-@keyframes leave {
-  to { opacity: 0; transform: translateX(8px); }
 }
 
 /* Clickable row (opens detail). The title button covers the row. */

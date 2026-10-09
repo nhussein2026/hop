@@ -10,7 +10,7 @@ The first working slice is the **Today** workflow:
 - Complete a task and record its completion timestamp.
 - Navigate through the planned product areas: Today, Plan, Goals, Career, Growth, and Review.
 
-The product direction is documented in [HOP_PRODUCT_SPEC.md](HOP_PRODUCT_SPEC.md). The technical architecture is described in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+The product direction is documented in [docs/HOP_PRODUCT_SPEC.md](docs/HOP_PRODUCT_SPEC.md). The technical architecture is described in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ## Requirements
 
@@ -168,7 +168,6 @@ yarn test                             # Run all workspaces with a test script (A
 yarn workspace web build              # Build the frontend
 yarn workspace web lint               # Lint the frontend
 yarn workspace @hop/api typecheck     # Typecheck the API
-yarn workspace @hop/api test:task      # Exercise task persistence directly (writes to the configured database)
 ```
 
 The API also exposes these database commands:
@@ -194,20 +193,28 @@ Back up `storage/hop.db` before applying migrations to real data. The API also c
 ```text
 apps/
   api/                 Node.js + TypeScript API
+    src/auth/           Password hashing and session cookies
     src/db/             SQLite and Drizzle schema
     src/repositories/   Persistence-only operations
     src/services/       Application and business logic
+    src/scripts/        Maintenance scripts (auth:reset)
     src/static.ts       Serves the built web app in production
     src/server.ts       HTTP API
   web/                 React + TypeScript + Vite frontend
-    src/App.tsx         Today experience and task workflow
-    src/App.css         Product UI styles
+    public/             PWA manifest, service worker, and icons
+    src/App.tsx         App shell and navigation
+    src/screens/        One component per screen
+    src/editors/        Create and edit dialogs
+    src/components/     Shared UI pieces
+    src/store/          Data store and API actions
+    src/lib/            Dates, routing, and product rules
+    src/styles/         Product UI styles
 packages/
   domain/              Shared domain types
   validation/          Shared Zod request schemas
 docs/                  Architecture and repository notes
 db/migrations/         Drizzle SQL migrations, applied on API startup
-storage/               Local database, backups, and attachments
+storage/               Local database and backups
 ```
 
 The backend boundary is:
@@ -336,7 +343,7 @@ Change `PORT` in `.env`. Update the target in `apps/web/vite.config.ts` if the A
 
 ## Documentation
 
-- [Product specification](HOP_PRODUCT_SPEC.md)
+- [Product specification](docs/HOP_PRODUCT_SPEC.md)
 - [Architecture](docs/ARCHITECTURE.md)
 - [Repository structure](docs/hop-structure.md)
 - [Web app README](apps/web/README.md)

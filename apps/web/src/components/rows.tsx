@@ -114,7 +114,7 @@ export function HabitRow({ habit, hideGoal, manage }: { habit: Habit; hideGoal?:
   )
 }
 
-export function StageTrack({ opportunity }: { opportunity: Opportunity }) {
+function StageTrack({ opportunity }: { opportunity: Opportunity }) {
   const closed = isClosed(opportunity)
   const current = rank(closed ? opportunity.reachedStage ?? 'applied' : opportunity.stage)
   return (

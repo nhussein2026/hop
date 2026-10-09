@@ -10,7 +10,7 @@ const titles = z.array(z.string().max(200)).max(200);
 
 const monthStart = dateSchema.refine((value) => value.endsWith('-01'), 'A monthly review starts on the first day of a month');
 
-export const monthFactsSchema = z.object({
+const monthFactsSchema = z.object({
   tasks: count,
   meaningfulDays: z.number().int().min(0).max(31),
   habitsPct: percent,

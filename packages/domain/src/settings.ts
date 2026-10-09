@@ -5,7 +5,7 @@ export const THEMES = ['system', 'light', 'dark'] as const;
 export type Theme = (typeof THEMES)[number];
 
 /** Weekdays a week may start on: Sunday, Monday or Saturday. */
-export const WEEK_STARTS = [0, 1, 6] as const;
+const WEEK_STARTS = [0, 1, 6] as const;
 
 export type WeekStart = (typeof WEEK_STARTS)[number];
 

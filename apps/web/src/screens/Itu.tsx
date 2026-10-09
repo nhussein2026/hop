@@ -147,7 +147,7 @@ function CourseCard({ course: c }: { course: Course }) {
   )
 }
 
-export function KeyDateItem({ item: k, action }: { item: KeyDate; action?: ReactNode }) {
+function KeyDateItem({ item: k, action }: { item: KeyDate; action?: ReactNode }) {
   const today = D.today()
   const n = D.diffDays(k.date, today)
   const icon = KEY_DATE_KINDS.find(([kind]) => kind === k.kind)?.[2] ?? 'calendar'

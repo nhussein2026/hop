@@ -3,8 +3,8 @@ import { eq, lt } from 'drizzle-orm';
 import { db } from '../db/client.js';
 import { credentials, sessions } from '../db/schema/index.js';
 
-export type CredentialsRow = typeof credentials.$inferSelect;
-export type SessionRow = typeof sessions.$inferSelect;
+type CredentialsRow = typeof credentials.$inferSelect;
+type SessionRow = typeof sessions.$inferSelect;
 
 const credentialsId = 1;
 

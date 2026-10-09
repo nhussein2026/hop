@@ -19,9 +19,9 @@ const goalTextSchema = z
   .trim()
   .max(5000, 'Goal text cannot exceed 5000 characters');
 
-export const goalStatusSchema = z.enum(GOAL_STATUSES);
-export const goalPrioritySchema = z.enum(GOAL_PRIORITIES);
-export const goalAreaSchema = z.enum(GOAL_AREAS);
+const goalStatusSchema = z.enum(GOAL_STATUSES);
+const goalPrioritySchema = z.enum(GOAL_PRIORITIES);
+const goalAreaSchema = z.enum(GOAL_AREAS);
 
 const criterionTextSchema = z
   .string()
@@ -66,6 +66,3 @@ export const updateGoalCriterionSchema = z.object({
   note: goalTextSchema.nullable().optional(),
   done: z.boolean().optional(),
 }).strict();
-
-export type CreateGoalRequest = z.infer<typeof createGoalSchema>;
-export type UpdateGoalRequest = z.infer<typeof updateGoalSchema>;

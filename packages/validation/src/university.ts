@@ -23,7 +23,7 @@ export const updateTermSchema = z.object(termFields).partial().strict().superRef
 
 /* ---- Courses --------------------------------------------------------------------------- */
 /** SIS course codes: a 2–4 letter subject, an optional space, three digits and an optional letter. */
-export const courseCodeSchema = z.string().trim().toUpperCase().transform((value) => value.replace(/\s+/g, ' '))
+const courseCodeSchema = z.string().trim().toUpperCase().transform((value) => value.replace(/\s+/g, ' '))
   .refine((value) => /^[A-ZÇĞİÖŞÜ]{2,4} ?\d{3}[A-Z]?$/.test(value), 'Use the SIS format, like “BLG 527E”');
 
 const classSlot = z.object({

@@ -31,7 +31,7 @@ export type CourseFields = {
   vf: Course['vf']
 }
 
-export type ResourceFields = { kind: ResourceKind; title: string; url?: string | null; courseId?: string | null; topics?: string[]; body?: string; source?: string | null }
+type ResourceFields = { kind: ResourceKind; title: string; url?: string | null; courseId?: string | null; topics?: string[]; body?: string; source?: string | null }
 
 export function useUniActions() {
   const { commit, data } = useHop()

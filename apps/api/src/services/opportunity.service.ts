@@ -14,7 +14,7 @@ import type {
 import { opportunityRepository } from '../repositories/opportunity.repository.js';
 import { settingsService } from './settings.service.js';
 
-export const STAGE_LABELS: Record<OpportunityStage, string> = {
+const STAGE_LABELS: Record<OpportunityStage, string> = {
   saved: 'Saved',
   interested: 'Interested',
   preparing: 'Preparing',

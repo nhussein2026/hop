@@ -7,13 +7,13 @@ import { InvalidInputError } from '../errors.js';
 import { backupRepository } from '../repositories/backup.repository.js';
 import { backupService } from './backup.service.js';
 
-export type RestorePreview = {
+type RestorePreview = {
   version: number;
   exportedAt: string;
   tables: { table: BackupTable; current: number; incoming: number }[];
 };
 
-export type RestoreResult = RestorePreview & {
+type RestoreResult = RestorePreview & {
   /** Backup of the data as it was just before the restore, for undoing it. */
   safetyBackup: string;
 };
@@ -41,7 +41,7 @@ function describe(snapshot: BackupSnapshot): RestorePreview {
   };
 }
 
-export type RestoreTestResult = {
+type RestoreTestResult = {
   fileName: string;
   exportedAt: string;
   records: number;

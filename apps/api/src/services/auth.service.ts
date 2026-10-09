@@ -4,13 +4,13 @@ import { hashPassword, verifyPassword } from '../auth/password.js';
 import { ConflictError } from '../errors.js';
 import { authRepository } from '../repositories/auth.repository.js';
 
-export const SESSION_DURATION_MS = 30 * 24 * 60 * 60 * 1000;
+const SESSION_DURATION_MS = 30 * 24 * 60 * 60 * 1000;
 const touchIntervalMs = 5 * 60 * 1000;
 
-export type NewSession = { token: string; expiresAt: string };
+type NewSession = { token: string; expiresAt: string };
 
 /** A signed-in device, as shown in Settings. The id is a hash of the token, so it cannot be used to sign in. */
-export type DeviceSession = { id: string; userAgent: string | null; createdAt: string; lastSeenAt: string; current: boolean };
+type DeviceSession = { id: string; userAgent: string | null; createdAt: string; lastSeenAt: string; current: boolean };
 
 function hashToken(token: string) {
   return createHash('sha256').update(token).digest('hex');

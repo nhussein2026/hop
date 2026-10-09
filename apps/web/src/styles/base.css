@@ -83,8 +83,7 @@ ol {
 
 /* Numbers that line up: counts, dates, durations. */
 .num,
-time,
-.tabular {
+time {
   font-variant-numeric: tabular-nums;
 }
 

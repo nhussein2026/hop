@@ -173,7 +173,6 @@ a.code:hover { background: color-mix(in srgb, var(--primary) 22%, transparent); 
   min-width: 0;
 }
 .find.is-stale { border-style: dashed; }
-.find.is-leaving { animation: leave 260ms var(--ease) forwards; }
 .find .type-tile { width: 40px; height: 40px; border-radius: 10px; }
 .find .type-tile .icon { width: 19px; height: 19px; }
 .find-body { display: grid; gap: 6px; flex: 1; min-width: 0; }
@@ -190,7 +189,6 @@ a.find-title:hover { text-decoration: underline; }
 .review-check:hover { border-color: var(--border-strong); }
 .review-check > span:last-child { display: grid; gap: 2px; }
 
-.form-row-4 { grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); }
 
 /* ---- Phone ----------------------------------------------------------------------- */
 @media (max-width: 699px) {

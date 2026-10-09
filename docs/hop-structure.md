@@ -1,87 +1,54 @@
+# Repository Structure
+
+```text
 hop/
-│
 ├── apps/
-│   │
-│   ├── web/                         # React + TypeScript + Vite + PWA
-│   │   ├── public/
-│   │   │   ├── icons/
-│   │   │   ├── manifest.webmanifest
-│   │   │   └── ...
-│   │   │
+│   ├── api/                         # Node.js + TypeScript API (@hop/api)
+│   │   ├── drizzle.config.ts
 │   │   └── src/
-│   │       ├── app/
-│   │       │   ├── router/
-│   │       │   ├── providers/
-│   │       │   ├── layouts/
-│   │       │   └── app.tsx
-│   │       │
-│   │       ├── components/
-│   │       │   ├── ui/
-│   │       │   ├── layout/
-│   │       │   ├── feedback/
-│   │       │   └── shared/
-│   │       │
-│   │       ├── features/
-│   │       │   ├── today/
-│   │       │   ├── tasks/
-│   │       │   ├── goals/
-│   │       │   ├── career/
-│   │       │   ├── growth/
-│   │       │   ├── planning/
-│   │       │   └── reviews/
-│   │       │
-│   │       ├── hooks/
-│   │       ├── lib/
-│   │       ├── services/
-│   │       ├── stores/
-│   │       ├── types/
-│   │       └── main.tsx
+│   │       ├── auth/                # Password hashing, session cookies
+│   │       ├── db/
+│   │       │   ├── schema/          # Drizzle table definitions
+│   │       │   ├── fixtures/        # SQL fixtures for migration tests
+│   │       │   ├── client.ts
+│   │       │   └── migrate.ts       # Applies db/migrations on startup
+│   │       ├── repositories/        # Persistence-only operations
+│   │       ├── services/            # Business logic
+│   │       ├── scripts/             # Maintenance scripts (auth:reset)
+│   │       ├── config.ts
+│   │       ├── errors.ts
+│   │       ├── static.ts            # Serves the built web app
+│   │       └── server.ts            # HTTP routes
 │   │
-│   └── api/                         # Node.js + TypeScript API
+│   └── web/                         # React + TypeScript + Vite PWA
+│       ├── public/                  # Manifest, service worker, icons
 │       └── src/
-│           ├── app/
-│           ├── config/
-│           ├── middleware/
-│           ├── routes/
-│           ├── controllers/
-│           ├── services/
-│           ├── repositories/
-│           ├── db/
-│           ├── validation/
-│           ├── auth/
-│           ├── utils/
-│           └── server.ts
+│           ├── components/          # Shared UI pieces
+│           ├── editors/             # Create and edit dialogs
+│           ├── lib/                 # Dates, routing, rules, API fetch
+│           ├── screens/             # One component per screen
+│           ├── store/               # Data store and API actions
+│           ├── styles/              # CSS
+│           ├── App.tsx
+│           └── main.tsx
 │
 ├── packages/
-│   ├── domain/                      # Shared domain types
-│   ├── validation/                  # Shared schemas
-│   └── config/                      # Shared constants/config
+│   ├── domain/                      # Shared domain types (@hop/domain)
+│   └── validation/                  # Shared Zod schemas (@hop/validation)
 │
 ├── db/
-│   ├── migrations/
-│   ├── seeds/
-│   └── schema/
+│   └── migrations/                  # Drizzle SQL migrations
 │
-├── storage/
-│   ├── attachments/
-│   └── backups/
+├── storage/                         # Local database and backups (ignored by Git)
 │
 ├── docs/
-│   ├── HOP_PRODUCT_SPEC.md
+│   ├── ADR/
 │   ├── ARCHITECTURE.md
-│   ├── DOMAIN.md
-│   ├── API.md
-│   ├── DATABASE.md
-│   ├── UX.md
-│   └── ADR/
-│
-├── scripts/
-│
-├── docker/
+│   ├── HOP_PRODUCT_SPEC.md
+│   └── hop-structure.md
 │
 ├── .env.example
-├── .gitignore
 ├── package.json
 ├── README.md
-├── docker-compose.yml
-└── ...
+└── start.sh
+```

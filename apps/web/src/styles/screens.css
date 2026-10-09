@@ -195,7 +195,6 @@ legend { padding: 0; margin-bottom: 6px; }
   pointer-events: none;
 }
 .next-hop > * { position: relative; z-index: 1; }
-.next-hop.is-leaving { animation: leave 260ms var(--ease) forwards; }
 .next-top { display: flex; justify-content: space-between; align-items: center; gap: var(--s-3); flex-wrap: wrap; }
 .next-eyebrow {
   display: flex;

@@ -10,7 +10,7 @@ function subscribe(onChange: () => void) {
   return () => window.removeEventListener('hashchange', onChange)
 }
 
-export function parseHash(hash: string): Route {
+function parseHash(hash: string): Route {
   const raw = (hash || '#/today').replace(/^#\/?/, '')
   const [path = '', queryString] = raw.split('?')
   const parts = path.split('/').filter(Boolean)

@@ -9,7 +9,7 @@ export type UiState = { skipped: string[]; taskFilter: string; agendaFilter: str
 
 export type CommitOptions = { quiet?: boolean; toast?: string; undo?: () => void }
 
-export type Store = {
+type Store = {
   data: HopData
   sync: Sync
   online: boolean
@@ -28,7 +28,7 @@ export function useHop() {
 }
 
 /** A request that throws a readable message when the API refuses it. */
-export async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
+async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
   const response = await apiFetch(path, {
     method,
     headers: body === undefined ? undefined : { 'Content-Type': 'application/json' },

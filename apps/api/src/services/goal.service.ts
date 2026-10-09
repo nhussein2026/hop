@@ -14,7 +14,7 @@ import { goalRepository } from '../repositories/goal.repository.js';
 import { settingsService } from './settings.service.js';
 
 /** Share of success criteria met, as a whole percentage. A goal without criteria is at 0%. */
-export function criteriaProgress(criteria: Pick<GoalCriterion, 'done'>[]): number {
+function criteriaProgress(criteria: Pick<GoalCriterion, 'done'>[]): number {
   return criteria.length ? Math.round((criteria.filter((criterion) => criterion.done).length / criteria.length) * 100) : 0;
 }
 

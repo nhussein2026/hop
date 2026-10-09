@@ -30,9 +30,9 @@ const estimatedMinutesSchema = z
     'Estimated time cannot exceed 24 hours',
   );
 
-export const taskStatusSchema = z.enum(TASK_STATUSES);
+const taskStatusSchema = z.enum(TASK_STATUSES);
 
-export const taskPrioritySchema = z.enum(TASK_PRIORITIES);
+const taskPrioritySchema = z.enum(TASK_PRIORITIES);
 
 /**
  * Validate relationships between scheduling fields.
@@ -105,11 +105,3 @@ export const updateTaskSchema = z
   })
   .strict()
   .superRefine(validateTaskDates);
-
-export type CreateTaskRequest = z.infer<
-  typeof createTaskSchema
->;
-
-export type UpdateTaskRequest = z.infer<
-  typeof updateTaskSchema
->;

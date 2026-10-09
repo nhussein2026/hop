@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { setTimezone } from './dates.ts'
-import { monthEnd, monthFacts, reviewMonth } from './rules.ts'
+import { habitWeek, monthEnd, monthFacts, reviewMonth } from './rules.ts'
 import type { Goal, Habit, HopData, Task } from './types.ts'
 
 setTimezone('UTC')
@@ -70,4 +70,26 @@ test('monthFacts reports goal movement and areas with no activity', () => {
   const facts = monthFacts(data, '2026-09-01', '2026-10-03')
   assert.deepEqual(facts.goals, [{ name: 'Get a role', from: 25, to: 50 }, { name: 'Run 10k', from: 0, to: 0 }])
   assert.deepEqual(facts.neglectedAreas, ['Health'])
+})
+
+test('habitWeek ignores days before the habit existed and counts today once it is done', () => {
+  const habit = { id: 'h', name: 'Study', frequency: 'daily', targetPerWeek: 7, goalId: null, days: [0, 1, 2, 3, 4, 5, 6], minutes: 30, active: true, createdAt: '2026-10-09T09:00:00.000Z', updatedAt: stamp } as Habit
+
+  const fresh = habitWeek(habit, [], '2026-10-09')
+  assert.equal(fresh.scheduled, 0)
+  assert.equal(fresh.days.filter((d) => d.due).length, 1)
+
+  const doneToday = habitWeek(habit, [{ id: 'c1', habitId: 'h', date: '2026-10-09', completedAt: stamp }], '2026-10-09')
+  assert.equal(doneToday.rate, 100)
+
+  const twoDaysIn = habitWeek(habit, [{ id: 'c1', habitId: 'h', date: '2026-10-09', completedAt: stamp }], '2026-10-11')
+  assert.equal(twoDaysIn.scheduled, 2)
+  assert.equal(twoDaysIn.rate, 50)
+})
+
+test('habitWeek still counts completions recorded before the habit’s creation date', () => {
+  const habit = { id: 'h', name: 'Study', frequency: 'daily', targetPerWeek: 7, goalId: null, days: [0, 1, 2, 3, 4, 5, 6], minutes: 30, active: true, createdAt: '2026-10-09T09:00:00.000Z', updatedAt: stamp } as Habit
+  const week = habitWeek(habit, [{ id: 'c1', habitId: 'h', date: '2026-10-05', completedAt: stamp }], '2026-10-10')
+  assert.equal(week.scheduled, 2)
+  assert.equal(week.done, 1)
 })

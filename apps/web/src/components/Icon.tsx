@@ -77,8 +77,6 @@ const paths: Record<string, string> = {
   flask: '<path d="M9 3h6M10 3v6l-5 9a2 2 0 0 0 1.7 3h10.6a2 2 0 0 0 1.7-3l-5-9V3"/><path d="M7.5 15h9"/>',
 }
 
-export type IconName = keyof typeof paths
-
 export function Icon({ name, className }: { name: string; className?: string }) {
   return <svg aria-hidden="true" className={`icon${className ? ` ${className}` : ''}`} dangerouslySetInnerHTML={{ __html: paths[name] ?? paths.info! }} focusable="false" viewBox="0 0 24 24" />
 }

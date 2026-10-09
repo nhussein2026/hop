@@ -8,7 +8,7 @@ import { AGENDA_META, FIND_KINDS, IDEA_STAGE_LABEL, RESOURCE_KINDS } from './lab
 
 /* ---- Opportunities ------------------------------------------------------- */
 export const STAGES: OpportunityStage[] = ['saved', 'interested', 'preparing', 'applied', 'screening', 'interview', 'assessment', 'final', 'offer']
-export const TERMINAL: OpportunityStage[] = ['accepted', 'declined', 'rejected', 'withdrawn', 'expired']
+const TERMINAL: OpportunityStage[] = ['accepted', 'declined', 'rejected', 'withdrawn', 'expired']
 export const STAGE_LABEL: Record<OpportunityStage, string> = {
   saved: 'Saved', interested: 'Interested', preparing: 'Preparing', applied: 'Applied', screening: 'Screening',
   interview: 'Interview', assessment: 'Assessment', final: 'Final round', offer: 'Offer',
@@ -20,7 +20,7 @@ export const rank = (stage: OpportunityStage) => STAGES.indexOf(stage)
 export const isClosed = (o: Pick<Opportunity, 'stage'>) => TERMINAL.includes(o.stage)
 export const orgOf = (o: Pick<Opportunity, 'organization' | 'title'>) => o.organization || o.title
 
-export type NextEvent = { date: string; time: string | null; label: string }
+type NextEvent = { date: string; time: string | null; label: string }
 
 export function nextEvent(o: Opportunity): NextEvent | null {
   return o.nextEventDate ? { date: o.nextEventDate, time: o.nextEventTime, label: o.nextEventLabel || 'Next step' } : null
@@ -43,8 +43,8 @@ export function followUp(o: Opportunity, today: string, days: number) {
   return { idle, overdueBy: idle - days, dueOn: D.addDays(last, days) }
 }
 
-export type Tone = '' | 'primary' | 'success' | 'warning' | 'danger' | 'info'
-export type OppHealth = { key: 'closed' | 'attention' | 'upcoming' | 'waiting' | 'active'; label: string; tone: Tone }
+type Tone = '' | 'primary' | 'success' | 'warning' | 'danger' | 'info'
+type OppHealth = { key: 'closed' | 'attention' | 'upcoming' | 'waiting' | 'active'; label: string; tone: Tone }
 
 export function oppHealth(o: Opportunity, today: string, days: number): OppHealth {
   if (isClosed(o)) return { key: 'closed', label: 'Closed', tone: '' }
@@ -86,7 +86,7 @@ export function goalBaseline(g: Goal, today: string) {
   return before ?? g.history[0] ?? null
 }
 
-export type GoalHealth = { label: string; tone: Tone; icon: string; detail?: string }
+type GoalHealth = { label: string; tone: Tone; icon: string; detail?: string }
 
 export function goalHealth(g: Goal, tasks: Task[], today: string): GoalHealth {
   if (g.status === 'paused') return { label: 'Paused', tone: '', icon: 'pause' }
@@ -105,17 +105,28 @@ export function goalHealth(g: Goal, tasks: Task[], today: string): GoalHealth {
 export const habitDue = (h: Habit, ymd: string) => h.active && h.days.includes(D.weekday(ymd))
 export const habitDone = (h: Pick<Habit, 'id'>, completions: HabitCompletion[], ymd: string) => completions.some((c) => c.habitId === h.id && c.date === ymd)
 
+/**
+ * Whether a day counts toward a habit's consistency. Days before the habit existed don't count,
+ * unless something was completed on them (imported history), and today only counts once it's done.
+ */
+function habitCounts(h: Habit, completions: HabitCompletion[], ymd: string, today: string) {
+  const done = habitDone(h, completions, ymd)
+  const counts = h.days.includes(D.weekday(ymd)) && (done || (ymd >= D.ymdOf(h.createdAt) && ymd < today))
+  return { done, counts }
+}
+
 /** Consistency over the last four weeks of scheduled days: missing a day never resets anything. */
 export function habitWeek(h: Habit, completions: HabitCompletion[], today: string) {
   const days = []
   for (let i = 6; i >= 0; i--) {
     const ymd = D.addDays(today, -i)
-    days.push({ date: ymd, due: h.days.includes(D.weekday(ymd)), done: habitDone(h, completions, ymd), isToday: i === 0 })
+    const due = h.days.includes(D.weekday(ymd)) && ymd >= D.ymdOf(h.createdAt)
+    days.push({ date: ymd, due, done: habitDone(h, completions, ymd), isToday: i === 0 })
   }
   const past: boolean[] = []
-  for (let i = 1; i <= 28; i++) {
-    const ymd = D.addDays(today, -i)
-    if (h.days.includes(D.weekday(ymd))) past.push(habitDone(h, completions, ymd))
+  for (let i = 0; i < 28; i++) {
+    const day = habitCounts(h, completions, D.addDays(today, -i), today)
+    if (day.counts) past.push(day.done)
   }
   const done = past.filter(Boolean).length
   return { days, rate: past.length ? Math.round((done / past.length) * 100) : 0, done, scheduled: past.length }
@@ -360,11 +371,12 @@ function periodFacts(s: HopData, from: string, to: string, today: string): WeekF
   const done = s.tasks.filter((t) => t.completedAt && within(D.ymdOf(t.completedAt)))
   let due = 0
   let hit = 0
-  for (const h of s.habits) {
+  for (const h of s.habits.filter((x) => x.active)) {
     for (let ymd = from; ymd <= to && ymd <= today; ymd = D.addDays(ymd, 1)) {
-      if (!habitDue(h, ymd)) continue
+      const day = habitCounts(h, s.completions, ymd, today)
+      if (!day.counts) continue
       due++
-      if (habitDone(h, s.completions, ymd)) hit++
+      if (day.done) hit++
     }
   }
   const learningGoals = new Set(s.goals.filter((g) => g.area === 'Learning').map((g) => g.id))
@@ -472,7 +484,7 @@ export function funnel(opps: Opportunity[]) {
   }
 }
 
-export type GroupRate = { key: string; applied: number; responses: number; interviews: number; offers: number }
+type GroupRate = { key: string; applied: number; responses: number; interviews: number; offers: number }
 
 export function groupRates(opps: Opportunity[], keyOf: (o: Opportunity) => string | null | undefined): GroupRate[] {
   const map = new Map<string, GroupRate>()

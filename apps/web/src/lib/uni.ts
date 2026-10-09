@@ -12,7 +12,7 @@ export const termWeek = (term: Term, today: string, weeks: number) => Math.min(w
 
 export const taking = (courses: Course[]) => courses.filter((c) => c.status === 'taking')
 
-export type ClassMeeting = { course: Course; slot: ClassSlot }
+type ClassMeeting = { course: Course; slot: ClassSlot }
 
 export function classesOn(courses: Course[], ymd: string): ClassMeeting[] {
   const day = D.weekday(ymd)
@@ -31,7 +31,7 @@ export function nextClass(courses: Course[], today: string): (ClassMeeting & { d
   return null
 }
 
-export const slotLabel = (slot: ClassSlot) => `${D.DAYS[slot.day]} ${slot.start}–${slot.end}${slot.room ? `, ${slot.room}` : ''}`
+const slotLabel = (slot: ClassSlot) => `${D.DAYS[slot.day]} ${slot.start}–${slot.end}${slot.room ? `, ${slot.room}` : ''}`
 export const scheduleLabel = (course: Course) => course.schedule.map(slotLabel).join('; ')
 
 /* ---- Graded items ------------------------------------------------------------------ */
@@ -53,7 +53,7 @@ export function whenWord(ymd: string, today: string) {
 /** A due time worth showing: midnight hand-ins are the default, so 23:59 is left out. */
 export const dueTime = (a: Pick<Assessment, 'time'>) => (a.time && a.time !== '23:59' ? a.time : null)
 
-export type Deadline = { course: Course; item: Assessment; days: number }
+type Deadline = { course: Course; item: Assessment; days: number }
 
 /** Pending graded items in courses you're taking, due from today through the next `days` days. */
 export function upcoming(courses: Course[], today: string, days: number): Deadline[] {
@@ -99,7 +99,7 @@ export function standing(course: Pick<Course, 'grading' | 'target'>): Standing {
   return { totalWeight, gradedWeight, points: Math.round(points * 10) / 10, average, remainingWeight, need }
 }
 
-export type Eligibility = {
+type Eligibility = {
   /** Weighted average of in-term scores (everything but the final). */
   average: number | null
   /** Absences left before VF, or null without a limit. */
@@ -123,7 +123,7 @@ export function eligibility(course: Pick<Course, 'vf' | 'grading' | 'absences'>)
 }
 
 /** Guess an item's type from its name in a syllabus: "Midterm", "Ara sınav", "Quiz 2", "Proje". */
-export function guessType(title: string): AssessmentType {
+function guessType(title: string): AssessmentType {
   const t = title.toLowerCase()
   if (/final/.test(t)) return 'final'
   if (/mid|ara/.test(t)) return 'midterm'
@@ -134,7 +134,7 @@ export function guessType(title: string): AssessmentType {
   return 'homework'
 }
 
-export type GradingLine = { title: string; type: AssessmentType; weight: number }
+type GradingLine = { title: string; type: AssessmentType; weight: number }
 
 /** Read grading pasted from a syllabus, one item per line: "Homework 20", "Midterm: 30%". */
 export function parseGrading(text: string): { items: GradingLine[] } | { error: string } {

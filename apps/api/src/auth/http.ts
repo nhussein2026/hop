@@ -1,6 +1,6 @@
 import type { IncomingMessage } from 'node:http';
 
-export const SESSION_COOKIE = 'hop_session';
+const SESSION_COOKIE = 'hop_session';
 
 function parseCookies(header: string | undefined) {
   const cookies = new Map<string, string>();

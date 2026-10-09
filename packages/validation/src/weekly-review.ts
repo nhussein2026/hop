@@ -8,7 +8,7 @@ const rating = z.number().int().min(1).max(5).nullable().optional();
 const count = z.number().int().min(0);
 const titles = z.array(z.string().max(200)).max(200);
 
-export const weekFactsSchema = z.object({
+const weekFactsSchema = z.object({
   tasks: count,
   habitsPct: z.number().int().min(0).max(100),
   learningMin: count,

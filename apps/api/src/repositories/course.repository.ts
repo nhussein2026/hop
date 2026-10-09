@@ -52,10 +52,6 @@ export const courseRepository = {
     return db.select().from(assessments).where(eq(assessments.courseId, courseId)).orderBy(asc(assessments.position)).all();
   },
 
-  findAssessment(id: string): Assessment | undefined {
-    return db.select().from(assessments).where(eq(assessments.id, id)).get();
-  },
-
   nextPosition(courseId: string): number {
     return (db.select({ last: max(assessments.position) }).from(assessments).where(eq(assessments.courseId, courseId)).get()?.last ?? -1) + 1;
   },

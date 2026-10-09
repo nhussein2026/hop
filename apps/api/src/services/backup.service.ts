@@ -9,7 +9,7 @@ import { backupRepository } from '../repositories/backup.repository.js';
 
 const backupFilePattern = /^hop-backup-(\d{4}-\d{2}-\d{2})T[\d-]+Z\.json$/;
 
-export type BackupFile = {
+type BackupFile = {
   fileName: string;
   filePath: string;
   date: string;
