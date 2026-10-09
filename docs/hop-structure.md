@@ -42,9 +42,14 @@ hop/
 ├── storage/                         # Local database and backups (ignored by Git)
 │
 ├── docs/
-│   ├── ADR/
+│   ├── ADR/                         # Architecture decision records
+│   ├── API.md
 │   ├── ARCHITECTURE.md
+│   ├── DATABASE.md
+│   ├── DEPLOYMENT.md
+│   ├── DEVELOPMENT.md
 │   ├── HOP_PRODUCT_SPEC.md
+│   ├── SECURITY.md
 │   └── hop-structure.md
 │
 ├── .env.example

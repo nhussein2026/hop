@@ -2,7 +2,16 @@
 
 ## Status
 
-Accepted
+Accepted, with amendments (2026-10-09)
+
+## Amendments
+
+The decision still holds. Where the implementation differs from the original wording:
+
+- **Frontend organization:** the web app is organized by role (`screens/`, `editors/`, `components/`, `store/`, `lib/`) rather than feature folders. With one developer and a shared data store, this kept cross-feature screens like Today simple.
+- **Docker:** not adopted yet. Hop runs as one Node process (`yarn start`) behind `tailscale serve`; see [Deployment](../DEPLOYMENT.md).
+- **SQLite access:** Node's built-in `node:sqlite` with Drizzle ORM and generated SQL migrations, applied on startup.
+- **Scope:** university (İTÜ) and Radar areas were added on the same architecture.
 
 ## Context
 
