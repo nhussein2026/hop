@@ -5,6 +5,7 @@ export const SETTINGS_SECTIONS: [string, string, string][] = [
   ['appearance', 'Appearance', 'sun'],
   ['notifications', 'Notifications', 'bell'],
   ['career', 'Career rules', 'career'],
+  ['university', 'University', 'school'],
   ['data', 'Backup and export', 'database'],
   ['security', 'Privacy and security', 'shield'],
 ]

@@ -13,7 +13,7 @@ import { useHop } from '../store/store.ts'
 import { closeDialog, focusFirstInvalid, formText } from '../components/ui-context.ts'
 
 /* ---- Quick add ---------------------------------------------------------------------------- */
-export type AddKind = 'opportunity' | 'event' | 'evidence' | 'goal' | 'note' | 'project' | 'milestone'
+export type AddKind = 'opportunity' | 'event' | 'evidence' | 'goal' | 'note' | 'project' | 'milestone' | 'deadline' | 'resource' | 'find' | 'idea'
 
 function whenOptions(): [string, string][] {
   const today = D.today()
@@ -40,7 +40,7 @@ export function QuickAdd({ close, onSwitch }: { close: () => void; onSwitch: (ki
     if (saved) closeDialog(form)
   }
 
-  const more: [AddKind, string, string][] = [['opportunity', 'career', 'Opportunity'], ['event', 'calendar', 'Event'], ['evidence', 'award', 'Evidence'], ['goal', 'goals', 'Goal'], ['note', 'edit', 'Reflection'], ['project', 'code', 'Project'], ['milestone', 'flag', 'Milestone']]
+  const more: [AddKind, string, string][] = [['deadline', 'school', 'Course deadline'], ['resource', 'library', 'To library'], ['find', 'radar', 'Radar find'], ['idea', 'bulb', 'Idea'], ['opportunity', 'career', 'Opportunity'], ['event', 'calendar', 'Event'], ['evidence', 'award', 'Evidence'], ['goal', 'goals', 'Goal'], ['note', 'edit', 'Reflection'], ['project', 'code', 'Project'], ['milestone', 'flag', 'Milestone']]
 
   return (
     <Dialog foot={<><span className="xs muted hide-phone qa-hint"><kbd>Enter</kbd> to add</span><span className="spacer" /><button className="btn" data-close type="button">Cancel</button><SubmitButton>Add task</SubmitButton></>} onClose={close} onSubmit={submit} title="Add">
@@ -67,7 +67,7 @@ export function QuickAdd({ close, onSwitch }: { close: () => void; onSwitch: (ki
 }
 
 /* ---- Search ---------------------------------------------------------------------------------- */
-const JUMP: [string, string, string][] = [['today', 'Today', '#/today'], ['plan', 'Plan', '#/plan'], ['goals', 'Goals', '#/goals'], ['career', 'Career', '#/career'], ['growth', 'Growth', '#/growth'], ['review', 'Review', '#/review'], ['settings', 'Settings', '#/settings']]
+const JUMP: [string, string, string][] = [['today', 'Today', '#/today'], ['plan', 'Plan', '#/plan'], ['school', 'İTÜ', '#/itu'], ['library', 'Library', '#/itu/library'], ['radar', 'Radar', '#/growth/radar'], ['goals', 'Goals', '#/goals'], ['career', 'Career', '#/career'], ['growth', 'Growth', '#/growth'], ['review', 'Review', '#/review'], ['settings', 'Settings', '#/settings']]
 
 export function Search({ close }: { close: () => void }) {
   const { data } = useHop()
@@ -108,7 +108,7 @@ export function Search({ close }: { close: () => void }) {
               go(results[current], event.currentTarget.form)
             }
           }}
-          placeholder="Goals, tasks, companies, people, skills…"
+          placeholder="Courses, tasks, papers, companies, people…"
           role="combobox"
           type="search"
           value={query}
@@ -208,12 +208,18 @@ export function ReflectionEditor({ date, close }: { date: string; close: () => v
 }
 
 /* ---- Phone "More" sheet ------------------------------------------------------------------------- */
-export function MoreSheet({ close }: { close: () => void }) {
-  const items: [string, string, string][] = [['calendar', 'Calendar', 'Events, tasks and deadlines by day'], ['goals', 'Goals', 'Where you’re going'], ['growth', 'Growth', 'Skills, projects and evidence'], ['review', 'Review', 'Weekly and monthly reviews, reflections'], ['settings', 'Settings', 'Profile, backups, security']]
+export function MoreSheet({ close, counts }: { close: () => void; counts: Record<string, number> }) {
+  const items: [string, string, string][] = [['career', 'Career', 'Opportunities, people, resumes'], ['calendar', 'Calendar', 'Events, tasks and deadlines by day'], ['goals', 'Goals', 'Where you’re going'], ['growth', 'Growth', 'Skills, projects, evidence and Radar'], ['review', 'Review', 'Weekly and monthly reviews, reflections'], ['settings', 'Settings', 'Profile, backups, security']]
   return (
     <Dialog foot={false} onClose={close} title="More">
       <nav aria-label="More sections" className="rows">
-        {items.map(([key, label, sub]) => <a className="row settings-link" data-close href={`#/${key}`} key={key}><Icon name={key} /><span className="row-main"><span className="row-title">{label}</span><span className="row-meta">{sub}</span></span><Icon className="icon-sm" name="chevron" /></a>)}
+        {items.map(([key, label, sub]) => (
+          <a className="row settings-link" data-close href={`#/${key}`} key={key}>
+            <Icon name={key} /><span className="row-main"><span className="row-title">{label}</span><span className="row-meta">{sub}</span></span>
+            {counts[key] ? <span className={`count${key === 'career' ? ' count-attention' : ''}`}>{counts[key]}</span> : null}
+            <Icon className="icon-sm" name="chevron" />
+          </a>
+        ))}
       </nav>
     </Dialog>
   )

@@ -3,6 +3,7 @@ import { useEffect, useRef } from 'react'
 import type { ReactNode } from 'react'
 import * as D from './lib/dates.ts'
 import { isOverdue, oppHealth, orgOf } from './lib/rules.ts'
+import { unsubmitted, upcoming } from './lib/uni.ts'
 import { navigate, useRoute } from './lib/router.ts'
 import type { Route } from './lib/router.ts'
 import { useEditors } from './editors/editors.tsx'
@@ -12,6 +13,7 @@ import { Calendar } from './screens/Calendar.tsx'
 import { Career } from './screens/Career.tsx'
 import { Goals } from './screens/Goals.tsx'
 import { Growth } from './screens/Growth.tsx'
+import { Itu } from './screens/Itu.tsx'
 import { Onboarding } from './screens/Onboarding.tsx'
 import { Plan } from './screens/Plan.tsx'
 import { Review } from './screens/Review.tsx'
@@ -22,7 +24,7 @@ import type { Sync } from './store/store.ts'
 import { unreadCount } from './lib/notifications.ts'
 import { settingsTitle, useIsPhone } from './lib/layout.ts'
 
-const NAV: [string, string][] = [['today', 'Today'], ['plan', 'Plan'], ['calendar', 'Calendar'], ['goals', 'Goals'], ['career', 'Career'], ['growth', 'Growth'], ['review', 'Review']]
+const NAV: [string, string][] = [['today', 'Today'], ['plan', 'Plan'], ['calendar', 'Calendar'], ['itu', 'İTÜ'], ['goals', 'Goals'], ['career', 'Career'], ['growth', 'Growth'], ['review', 'Review']]
 const SCREENS = new Set([...NAV.map(([key]) => key), 'settings'])
 const SYNC_TEXT: Record<Sync | 'offline', string> = { saved: 'All changes saved', saving: 'Saving…', offline: 'Offline: read only', error: 'Last change not saved' }
 
@@ -37,6 +39,10 @@ function useHeading(route: Route, phone: boolean): { title: string; crumbs: Crum
     const named: Record<string, string> = { people: 'People', resumes: 'Resumes', analytics: 'Analytics' }
     const o = data.opportunities.find((x) => x.id === first)
     return { title: named[first] ?? (o ? `${orgOf(o)}: ${o.title}` : 'Not found'), crumbs: [{ label: 'Career', href: '#/career' }] }
+  }
+  if (route.screen === 'itu' && first === 'courses' && route.params[1]) {
+    const c = data.courses.find((x) => x.id === route.params[1])
+    return { title: c ? `${c.code} ${c.name}` : 'Not found', crumbs: [{ label: 'İTÜ', href: '#/itu/courses' }] }
   }
   if (route.screen === 'settings') {
     return phone && !first ? { title: 'Settings', crumbs: [] } : { title: settingsTitle(first, phone), crumbs: [{ label: 'Settings', href: '#/settings' }] }
@@ -58,6 +64,9 @@ export default function App({ onSignOut }: { onSignOut: () => Promise<void> }) {
   const counts: Record<string, number> = {
     plan: data.tasks.filter((t) => isOverdue(t, today)).length,
     career: data.opportunities.filter((o) => oppHealth(o, today, data.settings.followUpDays).key === 'attention').length,
+    itu: upcoming(data.courses, today, 2).length + unsubmitted(data.courses, today).length,
+    // An inbox count, not an alert.
+    growth: data.finds.filter((f) => f.status === 'inbox').length,
   }
   const unread = unreadCount(data)
   const status = online ? sync : 'offline'
@@ -84,11 +93,12 @@ export default function App({ onSignOut }: { onSignOut: () => Promise<void> }) {
   else if (screen === 'goals') body = <Goals id={route.params[0]} />
   else if (screen === 'career') body = <Career route={route} />
   else if (screen === 'growth') body = <Growth route={route} />
+  else if (screen === 'itu') body = <Itu route={route} />
   else if (screen === 'review') body = <Review route={route} />
   else if (screen === 'settings') body = <Settings onSignOut={onSignOut} section={route.params[0]} />
   else body = <Today />
 
-  const phoneMore = ['calendar', 'goals', 'growth', 'review', 'settings'].includes(screen)
+  const phoneMore = ['calendar', 'goals', 'career', 'growth', 'review', 'settings'].includes(screen)
   const tab = (key: string, label: string) => (
     <a aria-current={screen === key ? 'page' : undefined} className="tab-link" href={`#/${key}`}><Icon name={key} /><span>{label}</span>{counts[key] ? <span className="count count-attention">{counts[key]}</span> : null}</a>
   )
@@ -104,7 +114,7 @@ export default function App({ onSignOut }: { onSignOut: () => Promise<void> }) {
             {NAV.map(([key, label]) => (
               <a aria-current={screen === key ? 'page' : undefined} className="nav-item" data-tip={label} href={`#/${key}`} key={key}>
                 <Icon name={key} /><span className="nav-label">{label}</span>
-                {counts[key] ? <span aria-label={`${counts[key]} need attention`} className="count count-attention">{counts[key]}</span> : null}
+                {counts[key] ? <span aria-label={key === 'growth' ? `${counts[key]} finds to triage` : `${counts[key]} need attention`} className={`count${key === 'growth' ? '' : ' count-attention'}`}>{counts[key]}</span> : null}
               </a>
             ))}
           </nav>
@@ -145,14 +155,14 @@ export default function App({ onSignOut }: { onSignOut: () => Promise<void> }) {
         {tab('today', 'Today')}
         {tab('plan', 'Plan')}
         <button aria-label="Add" className="tab-add" onClick={() => editors.add()} type="button"><Icon name="plus" /></button>
-        {tab('career', 'Career')}
-        <button aria-current={phoneMore ? 'page' : undefined} className="tab-link" onClick={() => editors.more()} type="button"><Icon name="menu" /><span>More</span></button>
+        {tab('itu', 'İTÜ')}
+        <button aria-current={phoneMore ? 'page' : undefined} aria-label={`More${counts.career ? `, ${counts.career} career items need attention` : ''}`} className="tab-link" onClick={() => editors.more(counts)} type="button"><Icon name="menu" /><span>More</span>{counts.career ? <span className="count count-attention">{counts.career}</span> : null}</button>
       </nav>
     </>
   )
 }
 
-/** N add · / or Ctrl/⌘ K search · G then T/P/L/G/C/R/W/S to jump (L for calendar). */
+/** N add · / or Ctrl/⌘ K search · G then T/P/L/U/G/C/R/W/S to jump (L for calendar, U for İTÜ). */
 function useShortcuts(editors: ReturnType<typeof useEditors>, enabled: boolean) {
   useEffect(() => {
     if (!enabled) return
@@ -170,7 +180,7 @@ function useShortcuts(editors: ReturnType<typeof useEditors>, enabled: boolean) 
       if (typing || event.metaKey || event.ctrlKey || event.altKey || dialogOpen) return
       if (pending) {
         pending = false
-        const map: Record<string, string> = { t: 'today', p: 'plan', l: 'calendar', g: 'goals', c: 'career', r: 'review', w: 'growth', s: 'settings' }
+        const map: Record<string, string> = { t: 'today', p: 'plan', l: 'calendar', u: 'itu', g: 'goals', c: 'career', r: 'review', w: 'growth', s: 'settings' }
         if (map[event.key]) navigate(`#/${map[event.key]}`)
         return
       }

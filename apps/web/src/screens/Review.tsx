@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import * as D from '../lib/dates.ts'
 import { monthEnd, monthFacts, plural, reviewMonth, weekFacts } from '../lib/rules.ts'
+import { staleFinds, upcoming } from '../lib/uni.ts'
 import type { Route } from '../lib/router.ts'
 import type { MonthFacts, MonthlyReview, WeekFacts, WeeklyReview } from '../lib/types.ts'
 import { useActions } from '../store/actions.ts'
@@ -109,6 +110,8 @@ function ThisWeek() {
         )}
       </section>
 
+      <BeforeYouWrite />
+
       {previous && (
         <section aria-labelledby="prev-h" className="section">
           <div className="section-head"><h2 id="prev-h">Last week you planned</h2></div>
@@ -144,6 +147,34 @@ function ThisWeek() {
         </div>
       </form>
     </>
+  )
+}
+
+/**
+ * Radar triage and the coming course deadlines belong in the weekly review: a find nobody decides
+ * on is just a bookmark. Five minutes a week keeps the inbox meaningful.
+ */
+function BeforeYouWrite() {
+  const { data } = useHop()
+  const today = D.today()
+  const inbox = data.finds.filter((f) => f.status === 'inbox')
+  const stale = staleFinds(data.finds, today).length
+  const deadlines = upcoming(data.courses, today, 10)
+  if (!data.finds.length && !data.courses.length) return null
+  return (
+    <section aria-labelledby="rad-h" className="section">
+      <div className="section-head"><h2 id="rad-h">Before you write</h2><span className="section-meta">About 5 minutes</span></div>
+      <div className="review-checks">
+        <a className="panel panel-pad review-check" href="#/growth/radar">
+          <span aria-hidden="true" className="type-tile"><Icon name="radar" /></span>
+          <span><strong>{inbox.length ? `Triage ${plural(inbox.length, 'Radar find')}` : 'Radar inbox is empty'}</strong><span className="xs muted">{inbox.length ? (stale ? `${stale} older than 30 days.` : 'Decide what each one becomes.') : 'Nothing waiting.'}</span></span>
+        </a>
+        <a className="panel panel-pad review-check" href="#/itu">
+          <span aria-hidden="true" className="type-tile"><Icon name="school" /></span>
+          <span><strong>{deadlines.length ? `${plural(deadlines.length, 'course deadline')} in the next 10 days` : 'No course deadlines in the next 10 days'}</strong><span className="xs muted">{deadlines.length ? deadlines.slice(0, 3).map(({ course, item }) => `${course.code} ${item.title}`).join(', ') : 'Check the İTÜ handbook for calendar dates.'}</span></span>
+        </a>
+      </div>
+    </section>
   )
 }
 

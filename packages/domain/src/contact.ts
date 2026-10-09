@@ -8,6 +8,7 @@ export const CONTACT_KINDS = [
   'colleague',
   'interviewer',
   'community',
+  'instructor',
   'other',
 ] as const;
 
@@ -16,7 +17,16 @@ export const INTERACTION_TYPES = ['email', 'message', 'call', 'meeting', 'interv
 export type ContactKind = (typeof CONTACT_KINDS)[number];
 export type InteractionType = (typeof INTERACTION_TYPES)[number];
 
-/** Someone you talk to about your career: a recruiter, a referral, a mentor. */
+/** What you've learned about working with an instructor: from experience and from seniors. */
+export interface Playbook {
+  exams: string;
+  values: string;
+  office: string;
+  email: string;
+  tips: string[];
+}
+
+/** Someone you talk to about your career or studies: a recruiter, a referral, a mentor, an instructor. */
 export interface Contact {
   id: EntityId;
   name: string;
@@ -26,6 +36,9 @@ export interface Contact {
   email: string | null;
   linkedin: string | null;
   notes: string | null;
+  /** Research interests. Used to suggest possible thesis advisors. */
+  interests: string[];
+  playbook: Playbook | null;
   createdAt: ISODateTime;
   updatedAt: ISODateTime;
 }

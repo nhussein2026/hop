@@ -1,3 +1,5 @@
+import type { Program } from './university.js';
+
 export const THEMES = ['system', 'light', 'dark'] as const;
 
 export type Theme = (typeof THEMES)[number];
@@ -30,6 +32,7 @@ export interface Settings {
   onboarded: boolean;
   /** Notifications already seen, by key. */
   readNotifications: string[];
+  program: Program;
 }
 
-export type UpdateSettingsInput = Partial<Omit<Settings, 'notify'>> & { notify?: Partial<NotificationPreferences> };
+export type UpdateSettingsInput = Partial<Omit<Settings, 'notify' | 'program'>> & { notify?: Partial<NotificationPreferences>; program?: Partial<Program> };

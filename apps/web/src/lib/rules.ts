@@ -2,7 +2,9 @@
 // Raw facts are stored; health, follow-ups, overdue and progress are derived here.
 import * as D from './dates.ts'
 import { GOAL_AREAS } from '@hop/domain'
-import type { Goal, Habit, HabitCompletion, HopData, MonthFacts, MonthlyReview, Opportunity, OpportunityStage, Task, WeekFacts } from './types.ts'
+import type { Course, Goal, Habit, HabitCompletion, HopData, KeyDate, MonthFacts, MonthlyReview, Opportunity, OpportunityStage, Task, WeekFacts } from './types.ts'
+import { dueTime, eligibility, isPending, isExam, satInClass, taking, unsubmitted, upcoming, whenWord } from './uni.ts'
+import { AGENDA_META, FIND_KINDS, IDEA_STAGE_LABEL, RESOURCE_KINDS } from './labels.ts'
 
 /* ---- Opportunities ------------------------------------------------------- */
 export const STAGES: OpportunityStage[] = ['saved', 'interested', 'preparing', 'applied', 'screening', 'interview', 'assessment', 'final', 'offer']
@@ -226,6 +228,8 @@ export function attention(s: HopData, today: string): AttentionItem[] {
     })
   }
 
+  items.push(...courseAttention(s, today))
+
   for (const g of s.goals) {
     if (g.status !== 'active') continue
     const h = goalHealth(g, s.tasks, today)
@@ -236,6 +240,41 @@ export function attention(s: HopData, today: string): AttentionItem[] {
   return items.sort((a, b) => order[a.level] - order[b.level])
 }
 
+/** Course deadlines, final eligibility and academic-calendar deadlines that need a decision soon. */
+function courseAttention(s: HopData, today: string): AttentionItem[] {
+  const items: AttentionItem[] = []
+  for (const { course: c, item: a, days } of upcoming(s.courses, today, 3)) {
+    const exam = satInClass(a)
+    // Exams get three days' notice; hand-ins two.
+    if (!exam && days > 2) continue
+    const prep = s.tasks.some((t) => t.assessmentId === a.id && isOpen(t))
+    const time = dueTime(a)
+    items.push({
+      level: days <= 1 ? 'critical' : 'important',
+      icon: exam ? 'file' : 'flag',
+      title: `${c.code} ${a.title}${exam ? '' : ' due'} ${whenWord(a.due!, today)}${time ? ` at ${time}` : ''}`,
+      detail: `${a.weight}% of the grade. ${prep ? 'Prep task planned.' : exam ? 'No prep planned yet.' : `${c.name}.`}`,
+      href: `#/itu/courses/${c.id}`,
+    })
+  }
+  for (const { course: c, item: a } of unsubmitted(s.courses, today)) {
+    items.push({ level: 'important', icon: 'flag', title: `Did you submit ${c.code} ${a.title}?`, detail: `It was due ${D.relative(a.due!, today).toLowerCase()}. Mark it submitted or add the score.`, href: `#/itu/courses/${c.id}` })
+  }
+  for (const c of taking(s.courses)) {
+    const v = eligibility(c)
+    if (!v) continue
+    if (v.left !== null && v.left <= 1) {
+      items.push({ level: 'important', icon: 'alert', title: v.left <= 0 ? `${c.code}: no absences left` : `${c.code}: 1 absence left before VF`, detail: `${c.name} allows ${c.vf!.maxAbsences}. You’ve used ${c.absences}.`, href: `#/itu/courses/${c.id}` })
+    }
+    if (!v.gradeOk) items.push({ level: 'critical', icon: 'alert', title: `${c.code}: in-term average below the VF limit`, detail: `${v.average} now, ${c.vf!.minInTerm} needed to take the final.`, href: `#/itu/courses/${c.id}` })
+  }
+  for (const k of s.keyDates) {
+    const n = D.diffDays(k.date, today)
+    if (k.kind === 'deadline' && n >= 0 && n <= 3) items.push({ level: n <= 1 ? 'critical' : 'important', icon: 'school', title: `${k.title} ${whenWord(k.date, today)}`, detail: 'İTÜ academic calendar', href: '#/itu/handbook' })
+  }
+  return items
+}
+
 /* ---- Agenda --------------------------------------------------------------------- */
 export type AgendaItem =
   | { kind: 'event'; type: string; date: string; time: string | null; title: string; ref: HopData['events'][number] }
@@ -243,6 +282,8 @@ export type AgendaItem =
   | { kind: 'deadline'; type: 'deadline'; date: string; time: null; title: string; ref: Opportunity }
   | { kind: 'oppEvent'; type: 'assessment'; date: string; time: string | null; title: string; ref: Opportunity }
   | { kind: 'milestone'; type: 'milestone'; date: string; time: null; title: string; ref: Goal }
+  | { kind: 'assessment'; type: 'exam' | 'coursework'; date: string; time: string | null; title: string; ref: Course; weight: number }
+  | { kind: 'keyDate'; type: 'uni'; date: string; time: null; title: string; ref: KeyDate }
 
 export type AgendaGroup = { date: string; items: AgendaItem[] }
 
@@ -274,7 +315,13 @@ export function agendaItems(s: HopData, from: string, to: string, { includeDone 
     const g = m.goalId ? activeGoals.get(m.goalId) : undefined
     if (g && !m.done && inRange(m.date)) items.push({ kind: 'milestone', type: 'milestone', date: m.date, time: null, title: m.title, ref: g })
   }
-  const kindOrder = { event: 0, oppEvent: 1, deadline: 2, milestone: 3, task: 4 }
+  for (const c of taking(s.courses)) {
+    for (const a of c.grading) {
+      if (isPending(a) && inRange(a.due)) items.push({ kind: 'assessment', type: isExam(a) ? 'exam' : 'coursework', date: a.due, time: dueTime(a), title: `${c.code}: ${a.title}`, ref: c, weight: a.weight })
+    }
+  }
+  for (const k of s.keyDates) if (inRange(k.date)) items.push({ kind: 'keyDate', type: 'uni', date: k.date, time: null, title: k.title, ref: k })
+  const kindOrder = { event: 0, assessment: 1, oppEvent: 2, deadline: 3, keyDate: 4, milestone: 5, task: 6 }
   return items.sort((a, b) => a.date.localeCompare(b.date) || (a.time || '99').localeCompare(b.time || '99') || kindOrder[a.kind] - kindOrder[b.kind])
 }
 
@@ -282,7 +329,15 @@ export function agendaItems(s: HopData, from: string, to: string, { includeDone 
 export function agendaHref(item: AgendaItem) {
   if (item.kind === 'event') return item.ref.opportunityId ? `#/career/${item.ref.opportunityId}` : item.type === 'review' ? '#/review' : ''
   if (item.kind === 'milestone') return `#/goals/${item.ref.id}`
+  if (item.kind === 'assessment') return `#/itu/courses/${item.ref.id}`
+  if (item.kind === 'keyDate') return '#/itu/handbook'
   return item.kind === 'task' ? '' : `#/career/${item.ref.id}`
+}
+
+/** "Interview", "Exam, 25%", "İTÜ calendar". */
+export function agendaLabel(item: AgendaItem) {
+  const label = (AGENDA_META[item.type] ?? AGENDA_META.event!)[1]
+  return item.kind === 'assessment' ? `${label}, ${item.weight}%` : label
 }
 
 /** Open items from `from` through the next `span` days, grouped by day. */
@@ -449,7 +504,12 @@ export function search(s: HopData, query: string): SearchResult[] {
   for (const k of s.skills) if (has(k.name, k.category)) out.push({ group: 'Skills', icon: 'growth', title: k.name, meta: k.level, href: `#/growth/skills?skill=${k.id}` })
   for (const p of s.projects) if (has(p.name, p.blurb, p.stack.join(' '))) out.push({ group: 'Projects', icon: 'code', title: p.name, meta: p.status, href: `#/growth/projects?project=${p.id}` })
   for (const e of s.evidence) if (has(e.title)) out.push({ group: 'Evidence', icon: 'award', title: e.title, meta: e.date ? D.short(e.date) : '', href: '#/growth/evidence' })
-  return out.slice(0, 40)
+  const courseCode = (id: string | null) => s.courses.find((c) => c.id === id)?.code
+  for (const c of s.courses) if (has(c.code, c.name)) out.unshift({ group: 'Courses', icon: 'school', title: `${c.code} ${c.name}`, meta: c.status === 'taking' ? 'This term' : capitalize(c.status), href: `#/itu/courses/${c.id}` })
+  for (const r of s.resources) if (has(r.title, r.body, r.source, r.topics.join(' '))) out.push({ group: 'Library', icon: RESOURCE_KINDS[r.kind][0], title: r.title, meta: courseCode(r.courseId) ?? 'General', href: `#/itu/library?item=${r.id}` })
+  for (const i of s.ideas) if (has(i.title, i.question)) out.push({ group: 'Ideas', icon: 'bulb', title: i.title, meta: IDEA_STAGE_LABEL[i.stage], href: `#/itu/research?idea=${i.id}` })
+  for (const f of s.finds) if (has(f.title, f.why, f.topics.join(' '))) out.push({ group: 'Radar', icon: FIND_KINDS[f.kind][0], title: f.title, meta: f.status === 'inbox' ? 'In the inbox' : capitalize(f.status), href: `#/growth/radar?status=${f.status}` })
+  return out.slice(0, 50)
 }
 
 const workModeLabel = { remote: 'remote', hybrid: 'hybrid', 'on-site': 'on-site' }

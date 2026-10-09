@@ -5,6 +5,9 @@ import { readFileSync } from 'node:fs';
 import { InvalidInputError } from '../errors.js';
 import { backupRepository } from '../repositories/backup.repository.js';
 import { backupService } from './backup.service.js';
+import { courseService } from './course.service.js';
+import { libraryService } from './library.service.js';
+import { findService, ideaService } from './research.service.js';
 import { goalService } from './goal.service.js';
 import { habitService } from './habit.service.js';
 import { opportunityService } from './opportunity.service.js';
@@ -110,4 +113,22 @@ test('testLatestBackup restores the newest backup into a scratch database withou
   assert.equal(result.fileName, backup.fileName);
   assert.equal(result.records, Object.values(before).reduce((total, count) => total + count, 0));
   assert.deepEqual(backupRepository.countRows(), before);
+});
+
+test('İTÜ and Radar data, including library files, survive a backup and restore', () => {
+  const course = courseService.create({ code: 'BLG 527E', name: 'Machine Learning', schedule: [{ day: 1, start: '09:30', end: '12:30', room: 'EEB 5302' }], grading: [{ title: 'Final', type: 'final', weight: 100 }] });
+  const exam = libraryService.create({ kind: 'past-exam', title: 'Midterm 2024', courseId: course.id });
+  const pdf = Buffer.from('%PDF-1.7\nbackup test\n');
+  libraryService.attachFile(exam.id, 'midterm.pdf', pdf);
+  const find = findService.create({ kind: 'repo', title: 'nanoGPT', why: 'Small enough to read', url: 'https://github.com/karpathy/nanoGPT' });
+  ideaService.create({ title: 'Course planner', courseIds: [course.id], findIds: [find.id] });
+  const snapshot = exportSnapshot();
+
+  libraryService.delete(exam.id);
+  courseService.delete(course.id);
+  restoreService.restore(snapshot);
+
+  assert.deepEqual(courseService.getAll().find((c) => c.id === course.id)?.schedule, course.schedule);
+  assert.equal(libraryService.getFile(exam.id)?.data.toString('latin1'), pdf.toString('latin1'));
+  assert.equal(findService.getAll().find((f) => f.id === find.id)?.status, 'converted');
 });

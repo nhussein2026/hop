@@ -1,14 +1,14 @@
 // Today: "Here is what matters." One next action, then the rest of today's Musts, Shoulds and
 // habits. The side shows what needs a decision soon, then the horizon.
 import * as D from '../lib/dates.ts'
-import { STAGE_LABEL, agenda, attention, goalHealth, goalProgress, habitDone, habitDue, orgOf, plural, todayPlan, weekFacts } from '../lib/rules.ts'
-import type { AgendaItem } from '../lib/rules.ts'
+import { STAGE_LABEL, agenda, agendaLabel, attention, goalHealth, goalProgress, habitDone, habitDue, orgOf, plural, todayPlan, weekFacts } from '../lib/rules.ts'
 import type { Task } from '../lib/types.ts'
 import { useActions } from '../store/actions.ts'
 import { useEditors } from '../editors/editors.tsx'
 import { Icon, Pad } from '../components/Icon.tsx'
 import { AttentionList, HabitRow, InlineAdd, TaskRow } from '../components/rows.tsx'
 import { DateChip, Empty, ProgressBar } from '../components/ui.tsx'
+import { classesOn, currentTerm, nextClass, taking } from '../lib/uni.ts'
 import { useHop } from '../store/store.ts'
 import { useToast } from '../components/ui-context.ts'
 
@@ -20,7 +20,6 @@ function greeting() {
   return 'Good evening'
 }
 
-const typeLabel = (item: AgendaItem) => ({ interview: 'Interview', deadline: 'Deadline', assessment: 'Assessment', review: 'Review', milestone: 'Milestone' } as Record<string, string>)[item.type] ?? 'Event'
 
 export function Today() {
   const { data, ui, setUi } = useHop()
@@ -39,7 +38,8 @@ export function Today() {
   const habitsDone = habitsToday.filter((h) => habitDone(h, data.completions, today)).length
   const attentionItems = attention(data, today)
   const urgent = attentionItems.filter((item) => item.level === 'critical').length
-  const fresh = !data.goals.length && !data.tasks.length
+  // Courses alone are enough to make Today useful: their deadlines and classes show here.
+  const fresh = !data.goals.length && !data.tasks.length && !data.courses.length
   const learningMin = weekFacts(data, today).learningMin
   const name = data.settings.name
   const lastActive = data.tasks.map((t) => t.completedAt).filter(Boolean).sort().at(-1)
@@ -113,6 +113,7 @@ export function Today() {
               <div className="section-head"><h2 id="attn-h">Needs attention {attentionItems.length > 0 && <span className="count count-attention">{attentionItems.length}</span>}</h2></div>
               <AttentionList items={attentionItems} />
             </section>
+            <ClassesToday />
             <ComingUp />
             <GoalsMini />
             <ReflectionCard onOpen={() => editors.reflection(today)} />
@@ -169,6 +170,36 @@ function NextUp({ next, plan, onSkip }: { next: Task | undefined; plan: ReturnTy
   )
 }
 
+/** Classes today, from the İTÜ course schedule. Hidden outside term. */
+function ClassesToday() {
+  const { data } = useHop()
+  const today = D.today()
+  if (!currentTerm(data.terms, today) || !taking(data.courses).some((c) => c.schedule.length)) return null
+  const list = classesOn(data.courses, today)
+  const next = list.length ? null : nextClass(data.courses, today)
+  const now = D.timeOf(new Date().toISOString())
+  return (
+    <section aria-labelledby="cls-h" className="section">
+      <div className="section-head"><h2 id="cls-h">Classes today</h2><a className="small" href="#/itu">İTÜ</a></div>
+      {list.length
+        ? (
+          <ol className="mini-agenda">
+            {list.map(({ course, slot }) => {
+              const state = now >= slot.end ? 'is-past' : now >= slot.start ? 'is-now' : ''
+              return (
+                <li className={state} key={`${course.id}-${slot.start}`}>
+                  <span className="class-time num">{slot.start}<span className="faint">{slot.end}</span></span>
+                  <span className="mini-main"><a className="mini-title" href={`#/itu/courses/${course.id}`}>{course.code} {course.name}</a><span className="xs muted">{slot.room}{state === 'is-now' ? `${slot.room ? ', ' : ''}in class now` : state === 'is-past' ? `${slot.room ? ', ' : ''}finished` : ''}</span></span>
+                </li>
+              )
+            })}
+          </ol>
+        )
+        : <p className="small muted">No classes today.{next ? ` Next: ${next.course.code} ${D.relative(next.date, today).toLowerCase()} at ${next.slot.start}.` : ''}</p>}
+    </section>
+  )
+}
+
 function ComingUp() {
   const { data } = useHop()
   const today = D.today()
@@ -182,7 +213,7 @@ function ComingUp() {
         ? <ol className="mini-agenda">{groups.flatMap((group) => group.items.map((item, index) => (
             <li key={`${group.date}-${index}`}>
               <DateChip date={group.date} />
-              <span className="mini-main"><span className="mini-title">{item.title}</span><span className="xs muted">{typeLabel(item)}{item.time ? `, ${item.time}` : ''}</span></span>
+              <span className="mini-main"><span className="mini-title">{item.title}</span><span className="xs muted">{agendaLabel(item)}{item.time ? `, ${item.time}` : ''}</span></span>
             </li>
           )))}</ol>
         : <p className="small muted">No interviews, deadlines or events in the next 7 days.</p>}

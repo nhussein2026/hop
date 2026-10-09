@@ -1,7 +1,17 @@
 import { z } from 'zod';
 
 import {
+  ASSESSMENT_TYPES,
   CONTACT_KINDS,
+  COURSE_STATUSES,
+  FIND_KINDS,
+  FIND_STATUSES,
+  IDEA_KINDS,
+  IDEA_STAGES,
+  KEY_DATE_KINDS,
+  LETTER_GRADES,
+  PIN_KINDS,
+  RESOURCE_KINDS,
   EVENT_TYPES,
   GOAL_AREAS,
   GOAL_PRIORITIES,
@@ -45,6 +55,7 @@ const goalRow = z.object({
 const taskRow = z.object({
   id, title: text, description: optionalText, status: z.enum(TASK_STATUSES), priority: z.enum(TASK_PRIORITIES),
   areaId: optionalText, goalId: optionalText, projectId: optionalText, opportunityId: optionalText,
+  courseId: optionalText.default(null), assessmentId: optionalText.default(null),
   scheduledDate: optionalText, dueDate: optionalText, estimatedMinutes: optionalInteger, completedAt: optionalText, ...timestamps,
 }).strict();
 
@@ -108,7 +119,8 @@ const milestoneRow = z.object({ id, goalId: optionalText, title: text, date: tex
 const opportunityPrepRow = z.object({ id, opportunityId: id, text, done: flag, position: z.number().int(), ...timestamps }).strict();
 const opportunityActivityRow = z.object({ id, opportunityId: id, type: z.enum(OPPORTUNITY_ACTIVITY_TYPES), text, at: text, createdAt: text }).strict();
 const contactRow = z.object({
-  id, name: text, role: optionalText, organization: optionalText, kind: z.enum(CONTACT_KINDS), email: optionalText, linkedin: optionalText, notes: optionalText, ...timestamps,
+  id, name: text, role: optionalText, organization: optionalText, kind: z.enum(CONTACT_KINDS), email: optionalText, linkedin: optionalText, notes: optionalText,
+  interests: z.array(text).default([]), playbook: z.object({ exams: text, values: text, office: text, email: text, tips: z.array(text) }).strict().nullable().default(null), ...timestamps,
 }).strict();
 const interactionRow = z.object({ id, contactId: id, opportunityId: optionalText, type: z.enum(INTERACTION_TYPES), date: text, summary: text, createdAt: text }).strict();
 const resumeRow = z.object({ id, name: text, version: z.number().int(), focus: optionalText, archived: flag, ...timestamps }).strict();
@@ -120,6 +132,34 @@ const reflectionRow = z.object({
 const monthlyReviewRow = z.object({
   id, monthStart: text, highlights: text, keep: text, stop: text, change: text, focus: z.array(text),
   status: z.enum(MONTHLY_REVIEW_STATUSES), facts: z.record(z.string(), z.unknown()).nullable(), completedAt: optionalText, ...timestamps,
+}).strict();
+const optionalNumber = z.number().nullable();
+const termRow = z.object({ id, name: text, start: text, end: text, ...timestamps }).strict();
+const courseRow = z.object({
+  id, code: text, name: text, termId: optionalText, status: z.enum(COURSE_STATUSES), crn: optionalText, instructorId: optionalText,
+  credits: optionalNumber, ects: optionalNumber, ninovaUrl: optionalText,
+  schedule: z.array(z.object({ day: z.number().int().min(0).max(6), start: text, end: text, room: text }).strict()),
+  vf: z.object({ rule: text, minInTerm: optionalNumber, maxAbsences: optionalInteger }).strict().nullable(),
+  absences: z.number().int(), target: optionalInteger, grade: z.enum(LETTER_GRADES).nullable(), why: optionalText, ...timestamps,
+}).strict();
+const assessmentRow = z.object({
+  id, courseId: id, title: text, type: z.enum(ASSESSMENT_TYPES), weight: z.number().int(), due: optionalText, time: optionalText,
+  score: optionalNumber, submitted: flag, position: z.number().int(), ...timestamps,
+}).strict();
+const keyDateRow = z.object({ id, title: text, date: text, kind: z.enum(KEY_DATE_KINDS), note: optionalText, ...timestamps }).strict();
+const pinRow = z.object({ id, kind: z.enum(PIN_KINDS), title: text, body: text, ...timestamps }).strict();
+const uniLinkRow = z.object({ id, title: text, url: text, ...timestamps }).strict();
+const resourceRow = z.object({
+  id, kind: z.enum(RESOURCE_KINDS), title: text, url: optionalText, courseId: optionalText, topics: z.array(text), body: text, source: optionalText, ...timestamps,
+}).strict();
+const resourceFileRow = z.object({ resourceId: id, name: text, type: text, size: z.number().int(), data: z.string().base64(), createdAt: text }).strict();
+const ideaRow = z.object({
+  id, title: text, kind: z.enum(IDEA_KINDS), stage: z.enum(IDEA_STAGES), question: text, why: text, nextStep: text,
+  resourceIds: ids, advisorIds: ids, courseIds: ids, findIds: ids, projectId: optionalText, ...timestamps,
+}).strict();
+const findRow = z.object({
+  id, kind: z.enum(FIND_KINDS), title: text, url: optionalText, source: text, why: text, topics: z.array(text), status: z.enum(FIND_STATUSES),
+  eventDate: optionalText, taskId: optionalText, resourceId: optionalText, ideaId: optionalText, opportunityId: optionalText, eventId: optionalText, ...timestamps,
 }).strict();
 const settingsRow = z.object({ id: z.number().int(), data: z.record(z.string(), z.unknown()), updatedAt: text }).strict();
 
@@ -159,6 +199,16 @@ export const backupSnapshotSchema = z.object({
   resumes: rows(resumeRow).default([]),
   resumeFiles: z.array(resumeFileRow).refine((items) => uniqueBy(items, (item) => item.resumeId), 'Contains more than one file for the same resume').default([]),
   reflections: rows(reflectionRow).refine((items) => uniqueBy(items, (item) => item.date), 'Contains more than one reflection for the same date').default([]),
+  terms: rows(termRow).default([]),
+  courses: rows(courseRow).default([]),
+  assessments: rows(assessmentRow).default([]),
+  keyDates: rows(keyDateRow).default([]),
+  pins: rows(pinRow).default([]),
+  uniLinks: rows(uniLinkRow).default([]),
+  resources: rows(resourceRow).default([]),
+  resourceFiles: z.array(resourceFileRow).refine((items) => uniqueBy(items, (item) => item.resourceId), 'Contains more than one file for the same library item').default([]),
+  ideas: rows(ideaRow).default([]),
+  finds: rows(findRow).default([]),
   monthlyReviews: rows(monthlyReviewRow).refine((items) => uniqueBy(items, (item) => item.monthStart), 'Contains more than one review for the same month').default([]),
   settings: rows(settingsRow).default([]),
 }).strict();
@@ -167,7 +217,8 @@ export type BackupSnapshot = z.infer<typeof backupSnapshotSchema>;
 export const BACKUP_TABLES = [
   'goals', 'tasks', 'habits', 'habitCompletions', 'events', 'opportunities', 'projects', 'skills', 'evidence', 'weeklyReviews',
   'goalCriteria', 'goalProgress', 'milestones', 'opportunityPrep', 'opportunityActivities', 'contacts', 'interactions', 'resumes',
-  'resumeFiles', 'reflections', 'monthlyReviews', 'settings',
+  'resumeFiles', 'reflections', 'monthlyReviews', 'terms', 'courses', 'assessments', 'keyDates', 'pins', 'uniLinks',
+  'resources', 'resourceFiles', 'ideas', 'finds', 'settings',
 ] as const;
 export type BackupTable = (typeof BACKUP_TABLES)[number];
 

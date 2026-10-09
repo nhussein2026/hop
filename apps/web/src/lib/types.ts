@@ -1,24 +1,54 @@
 import type {
   Contact,
+  CourseWithDetails,
   Event,
   Evidence,
+  Find,
   GoalWithDetails,
   Habit,
   HabitCompletion,
+  Idea,
   Interaction,
+  KeyDate,
   Milestone,
   MonthlyReview,
   OpportunityWithDetails,
+  Pin,
   Project,
   Reflection,
+  Resource,
   Resume,
   Settings,
   Skill,
   Task,
+  Term,
+  UniLink,
   WeeklyReview,
 } from '@hop/domain'
 
 export type {
+  Assessment,
+  AssessmentType,
+  ClassSlot,
+  CourseStatus,
+  CourseWithDetails as Course,
+  Find,
+  FindKind,
+  FindStatus,
+  Idea,
+  IdeaKind,
+  IdeaStage,
+  KeyDate,
+  KeyDateKind,
+  LetterGrade,
+  Pin,
+  PinKind,
+  Playbook,
+  Program,
+  Resource,
+  ResourceKind,
+  Term,
+  UniLink,
   Contact,
   ContactKind,
   Event,
@@ -73,4 +103,12 @@ export type HopData = {
   interactions: Interaction[]
   resumes: Resume[]
   reflections: Reflection[]
+  terms: Term[]
+  courses: CourseWithDetails[]
+  keyDates: KeyDate[]
+  pins: Pin[]
+  uniLinks: UniLink[]
+  resources: Resource[]
+  ideas: Idea[]
+  finds: Find[]
 }

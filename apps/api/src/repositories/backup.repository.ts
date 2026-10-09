@@ -8,7 +8,17 @@ import { resolveMigrationsFolder } from '../config.js';
 import { db } from '../db/client.js';
 import { migrateDatabase } from '../db/migrate.js';
 import {
+  assessments,
   contacts,
+  courses,
+  finds,
+  ideas,
+  keyDates,
+  pins,
+  resourceFiles,
+  resources,
+  terms,
+  uniLinks,
   events,
   evidence,
   goalCriteria,
@@ -54,6 +64,16 @@ const tables = {
   resumeFiles,
   reflections,
   monthlyReviews,
+  terms,
+  courses,
+  assessments,
+  keyDates,
+  pins,
+  uniLinks,
+  resources,
+  resourceFiles,
+  ideas,
+  finds,
   settings,
 } satisfies Record<BackupTable, unknown>;
 
@@ -63,12 +83,14 @@ type Database = typeof db;
 const insertBatchSize = 100;
 
 // Blobs cannot go into JSON as they are, so file contents travel as base64.
+const FILE_TABLES: BackupTable[] = ['resumeFiles', 'resourceFiles'];
+
 function toSnapshotRows(name: BackupTable, rows: Record<string, unknown>[]) {
-  return name === 'resumeFiles' ? rows.map((row) => ({ ...row, data: Buffer.from(row.data as Uint8Array).toString('base64') })) : rows;
+  return FILE_TABLES.includes(name) ? rows.map((row) => ({ ...row, data: Buffer.from(row.data as Uint8Array).toString('base64') })) : rows;
 }
 
 function toTableRows(name: BackupTable, rows: Record<string, unknown>[]) {
-  return name === 'resumeFiles' ? rows.map((row) => ({ ...row, data: Buffer.from(row.data as string, 'base64') })) : rows;
+  return FILE_TABLES.includes(name) ? rows.map((row) => ({ ...row, data: Buffer.from(row.data as string, 'base64') })) : rows;
 }
 
 function readAll(source: Database) {

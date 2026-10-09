@@ -54,6 +54,10 @@ export interface Task {
   projectId: EntityId | null;
   opportunityId: EntityId | null;
 
+  /** A course the task is for, and the graded item it prepares for. */
+  courseId: EntityId | null;
+  assessmentId: EntityId | null;
+
   /**
    * scheduledDate:
    * When you intend to work on the task.
@@ -97,6 +101,8 @@ export interface CreateTaskInput {
   goalId?: EntityId;
   projectId?: EntityId;
   opportunityId?: EntityId;
+  courseId?: EntityId;
+  assessmentId?: EntityId;
 
   scheduledDate?: ISODate;
   dueDate?: ISODate;
@@ -121,6 +127,8 @@ export interface UpdateTaskInput {
   goalId?: EntityId | null;
   projectId?: EntityId | null;
   opportunityId?: EntityId | null;
+  courseId?: EntityId | null;
+  assessmentId?: EntityId | null;
 
   scheduledDate?: ISODate | null;
   dueDate?: ISODate | null;

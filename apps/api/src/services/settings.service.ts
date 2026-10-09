@@ -14,6 +14,7 @@ const defaults: Settings = {
   workHours: '',
   onboarded: false,
   readNotifications: [],
+  program: { degree: '', department: '', weeks: 14, thesisStep: 'topic', advisorId: null },
 };
 
 function stored(): Settings {
@@ -27,7 +28,7 @@ function stored(): Settings {
 
   // calendarToken belonged to the old calendar feed, which the in-app calendar replaced.
   const { calendarToken: _retired, ...saved } = row;
-  return { ...defaults, ...saved, notify: { ...defaults.notify, ...saved.notify } };
+  return { ...defaults, ...saved, notify: { ...defaults.notify, ...saved.notify }, program: { ...defaults.program, ...saved.program } };
 }
 
 function save(next: Settings) {
@@ -41,7 +42,7 @@ export const settingsService = {
 
   update(input: UpdateSettingsInput): Settings {
     const current = stored();
-    save({ ...current, ...input, notify: { ...current.notify, ...input.notify } });
+    save({ ...current, ...input, notify: { ...current.notify, ...input.notify }, program: { ...current.program, ...input.program } });
     return this.get();
   },
 

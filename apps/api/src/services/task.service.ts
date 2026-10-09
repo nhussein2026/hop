@@ -46,6 +46,8 @@ export const taskService = {
       goalId: input.goalId ?? null,
       projectId: input.projectId ?? null,
       opportunityId: input.opportunityId ?? null,
+      courseId: input.courseId ?? null,
+      assessmentId: input.assessmentId ?? null,
 
       scheduledDate: input.scheduledDate ?? null,
       dueDate: input.dueDate ?? null,

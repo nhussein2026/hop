@@ -2,7 +2,7 @@
 import { useState } from 'react'
 import type { ReactNode } from 'react'
 import * as D from '../lib/dates.ts'
-import { STAGE_LABEL, STAGES, agendaHref, daysLabel, habitDone, habitDue, habitWeek, isClosed, nextEvent, oppHealth, orgOf, placeOf, rank } from '../lib/rules.ts'
+import { STAGE_LABEL, STAGES, agendaHref, agendaLabel, daysLabel, habitDone, habitDue, habitWeek, isClosed, nextEvent, oppHealth, orgOf, placeOf, rank } from '../lib/rules.ts'
 import type { AgendaItem, AttentionItem } from '../lib/rules.ts'
 import type { Habit, Opportunity, Task } from '../lib/types.ts'
 import { navigate } from '../lib/router.ts'
@@ -39,6 +39,8 @@ export function TaskRow({ task, showMust, showDate, hideGoal, menu = true }: { t
   if (task.status === 'completed' && task.completedAt) meta.push(<span key="done"><Icon name="check" />Done {D.relative(D.ymdOf(task.completedAt), today).toLowerCase()}</span>)
   if (opportunity) meta.push(<span key="opp"><Icon name="career" />{orgOf(opportunity)}</span>)
   else if (project) meta.push(<span key="project"><Icon name="code" />{project.name}</span>)
+  const course = task.courseId ? data.courses.find((c) => c.id === task.courseId) : undefined
+  if (course) meta.push(<span key="course"><Icon name="school" />{course.code}</span>)
   if (goal && !hideGoal) meta.push(<span key="goal"><Icon name="goals" />{goal.name}</span>)
   if (task.estimatedMinutes && task.status !== 'completed') meta.push(<span key="estimate">{D.minutes(task.estimatedMinutes)}</span>)
 
@@ -216,7 +218,7 @@ export function InlineAdd({ id, label, placeholder, onAdd, maxLength = 200, larg
 
 /* ---- Agenda entries (events, deadlines, milestones) ------------------------------------- */
 export function AgendaRow({ item }: { item: AgendaItem }) {
-  const [icon, label, tone] = AGENDA_META[item.type] ?? AGENDA_META.event!
+  const [icon, , tone] = AGENDA_META[item.type] ?? AGENDA_META.event!
   const href = agendaHref(item)
   return (
     <div className={`row${href ? ' row-link' : ''} agenda-item`}>
@@ -225,7 +227,7 @@ export function AgendaRow({ item }: { item: AgendaItem }) {
         {href ? <button className="row-open" onClick={() => navigate(href)} type="button">{item.title}</button> : <span className="row-title">{item.title}</span>}
         {item.kind === 'event' && item.ref.description && <span className="row-meta">{item.ref.description}</span>}
       </div>
-      <Badge icon={icon} tone={tone}>{label}</Badge>
+      <Badge icon={icon} tone={tone}>{agendaLabel(item)}</Badge>
     </div>
   )
 }

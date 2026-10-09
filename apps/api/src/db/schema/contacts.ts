@@ -1,5 +1,7 @@
 import { sqliteTable, text } from 'drizzle-orm/sqlite-core';
 
+import type { Playbook } from '@hop/domain';
+
 import { CONTACT_KINDS, INTERACTION_TYPES } from '@hop/domain';
 
 export const contacts = sqliteTable('contacts', {
@@ -11,6 +13,8 @@ export const contacts = sqliteTable('contacts', {
   email: text('email'),
   linkedin: text('linkedin'),
   notes: text('notes'),
+  interests: text('interests', { mode: 'json' }).$type<string[]>().notNull().default([]),
+  playbook: text('playbook', { mode: 'json' }).$type<Playbook>(),
   createdAt: text('created_at').notNull(),
   updatedAt: text('updated_at').notNull(),
 });

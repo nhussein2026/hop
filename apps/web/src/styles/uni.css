@@ -1,0 +1,223 @@
+/* ==========================================================================
+   İTÜ and Radar. Built only from existing tokens and components.
+   ========================================================================== */
+
+/* Course code: the one identifier students scan for. Tabular, compact. */
+.code {
+  display: inline-flex;
+  align-items: center;
+  flex: none;
+  min-height: 22px;
+  padding: 0 7px;
+  border-radius: 5px;
+  background: var(--primary-soft);
+  color: var(--primary);
+  font-family: var(--font-display);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.row .code { margin-right: 2px; }
+a.code { text-decoration: none; }
+a.code:hover { background: color-mix(in srgb, var(--primary) 22%, transparent); }
+
+.type-tile {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: var(--surface-2);
+  color: var(--text-muted);
+}
+.type-tile .icon { width: 16px; height: 16px; }
+.type-note, .type-find-article { background: var(--warning-soft); color: var(--warning); }
+.type-past-exam { background: var(--danger-soft); color: var(--danger); }
+.type-paper, .type-book, .type-find-paper { background: var(--info-soft); color: var(--info); }
+.type-repo, .type-find-repo, .type-find-tool { background: var(--surface-3); color: var(--text); }
+.type-find-model, .type-find-dataset { background: var(--primary-soft); color: var(--primary); }
+.type-find-opportunity, .type-find-event { background: var(--success-soft); color: var(--success); }
+
+.weight {
+  font-weight: 700;
+  color: var(--text);
+}
+.why { font-style: italic; }
+.grade {
+  display: grid;
+  place-items: center;
+  flex: none;
+  min-width: 40px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid var(--border-strong);
+  font-family: var(--font-display);
+  font-weight: 700;
+}
+
+/* ---- This term ---------------------------------------------------------- */
+.course-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: var(--s-3);
+}
+.course-card {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--s-2);
+  align-content: start;
+  padding: var(--s-4);
+  border: 1px solid var(--border);
+  border-radius: var(--r-panel);
+  background: var(--surface);
+}
+.course-card:hover { border-color: var(--border-strong); }
+.course-card-head { display: flex; justify-content: space-between; align-items: center; gap: var(--s-2); }
+.course-card-head .badge { position: relative; z-index: 1; }
+.course-card h3 { font-size: var(--fs-md); }
+.course-standing { display: grid; gap: 6px; padding-top: var(--s-2); border-top: 1px solid var(--border); }
+.course-next { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.mini-agenda li.is-today { background: var(--primary-soft); }
+.mini-agenda li.is-past { opacity: 0.6; }
+.mini-agenda li.is-now { background: var(--primary-soft); box-shadow: inset 3px 0 0 var(--primary); }
+.mini-agenda a.mini-title { color: var(--text); text-decoration: none; }
+.mini-agenda a.mini-title:hover { text-decoration: underline; }
+.class-time { display: grid; flex: none; width: 44px; font-size: var(--fs-sm); font-weight: 700; line-height: 1.15; }
+.class-time .faint { font-size: var(--fs-xs); font-weight: 600; }
+
+.key-dates {
+  display: grid;
+  border: 1px solid var(--border);
+  border-radius: var(--r-panel);
+  background: var(--surface);
+}
+.key-dates li { display: flex; align-items: center; gap: var(--s-3); padding: 10px var(--s-4); border-top: 1px solid var(--border); }
+.key-dates li:first-child { border-top: 0; }
+.key-dates li.is-past { opacity: 0.6; }
+.key-dates .mini-title { display: inline-flex; align-items: center; gap: 6px; }
+.key-dates .mini-main { flex: 1; }
+.key-dates-lg li { padding-block: var(--s-3); }
+
+/* ---- Course page --------------------------------------------------------- */
+.grade-table .cell-title { font-weight: 600; }
+.grade-table .cell-sub { display: block; margin-top: 2px; }
+.grade-table td:first-child .badge { margin-left: 4px; }
+.grade-table .cell-actions { width: 44px; text-align: right; }
+.score-input { width: 76px; min-height: 34px; padding: 4px 8px; text-align: right; font-variant-numeric: tabular-nums; }
+.score-input::placeholder { text-align: right; }
+.target-input { display: inline-block; width: 64px; min-height: 30px; padding: 2px 8px; margin: 0 4px; }
+.standing { display: grid; gap: var(--s-3); }
+.standing .progress-figure p + p { margin-top: 6px; line-height: 2; }
+
+.vf-panel { display: grid; gap: var(--s-3); }
+.vf-panel h2 { font-size: var(--fs-md); }
+.vf-panel.is-risk { border-color: color-mix(in srgb, var(--warning) 45%, var(--border)); background: color-mix(in srgb, var(--warning-soft) 45%, var(--surface)); }
+.vf-line { display: flex; align-items: center; gap: var(--s-2); }
+.vf-line > .icon { color: var(--success); }
+.vf-panel.is-risk .vf-line > .icon:only-of-type { color: inherit; }
+.vf-line > .icon:has(+ span) { flex: none; }
+.vf-line span.small { flex: 1; }
+.stepper-btns { display: inline-flex; gap: 2px; margin-left: auto; }
+.stepper-btns .icon-btn { border-color: var(--border-strong); width: 34px; height: 34px; }
+.stepper-btns .icon-btn:disabled { opacity: 0.4; }
+
+.playbook { display: grid; gap: var(--s-4); }
+.playbook h2 { font-size: var(--fs-md); }
+.facts-stack > div { grid-template-columns: 1fr; gap: 2px; }
+.facts-stack dd { line-height: var(--lh-read); }
+
+.mat-group { display: grid; gap: var(--s-2); }
+.mat-group + .mat-group { margin-top: var(--s-2); }
+
+/* ---- Library -------------------------------------------------------------- */
+.res-link { text-decoration: none; color: var(--text); }
+.res-link:hover { text-decoration: underline; }
+.field-inline { flex: 0 1 300px; }
+.field-inline .select { min-height: 36px; }
+.note-body { font-size: var(--fs-base); line-height: var(--lh-read); min-height: 280px; }
+
+/* ---- Research ---------------------------------------------------------------- */
+.thesis-card { display: grid; gap: var(--s-4); }
+.thesis-steps { list-style: none; margin: 0; }
+.thesis-steps .step { cursor: default; }
+.thesis-now { display: grid; gap: var(--s-3); }
+.idea-row .row-main { flex: 1 1 240px; }
+.idea-q { font-family: var(--font-display); font-size: var(--fs-md); line-height: 1.35; }
+.idea-actions { padding-top: var(--s-3); border-top: 1px solid var(--border); }
+.people-mini li > .small { display: block; }
+
+/* ---- Handbook ------------------------------------------------------------------ */
+.pin-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: var(--s-3); }
+.pin { display: grid; gap: var(--s-2); align-content: start; }
+.pin p { line-height: var(--lh-read); color: var(--text-muted); }
+.pin-head { display: flex; align-items: center; gap: var(--s-2); }
+.pin-head h3 { flex: 1; font-size: var(--fs-base); }
+.pin-icon { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 7px; background: var(--surface-2); color: var(--text-muted); }
+
+/* ---- Radar ------------------------------------------------------------------------ */
+.topic-chips { margin-top: calc(var(--s-3) * -1); }
+.chip-sm { min-height: 28px; padding: 0 10px; font-size: var(--fs-xs); }
+.find-list { display: grid; gap: var(--s-3); }
+.find {
+  display: flex;
+  gap: var(--s-4);
+  padding: var(--s-4) var(--s-5);
+  border: 1px solid var(--border);
+  border-radius: var(--r-panel);
+  background: var(--surface);
+  min-width: 0;
+}
+.find.is-stale { border-style: dashed; }
+.find.is-leaving { animation: leave 260ms var(--ease) forwards; }
+.find .type-tile { width: 40px; height: 40px; border-radius: 10px; }
+.find .type-tile .icon { width: 19px; height: 19px; }
+.find-body { display: grid; gap: 6px; flex: 1; min-width: 0; }
+.find-title { font-weight: 700; font-size: var(--fs-md); color: var(--text); text-decoration: none; overflow-wrap: anywhere; }
+a.find-title:hover { text-decoration: underline; }
+.find-why { font-size: var(--fs-base); line-height: var(--lh-read); max-width: 70ch; }
+.find-outcome { font-size: var(--fs-sm); }
+.find-outcome a, .find-outcome span { display: inline-flex; align-items: center; gap: 6px; }
+.find-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-2); margin-top: var(--s-2); }
+.detect:empty { display: none; }
+
+.review-checks { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s-3); }
+.review-check { display: flex; align-items: flex-start; gap: var(--s-3); color: var(--text); text-decoration: none; }
+.review-check:hover { border-color: var(--border-strong); }
+.review-check > span:last-child { display: grid; gap: 2px; }
+
+.form-row-4 { grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); }
+
+/* ---- Phone ----------------------------------------------------------------------- */
+@media (max-width: 699px) {
+  .course-grid { grid-template-columns: 1fr; }
+  .find { padding: var(--s-4); gap: var(--s-3); }
+  .find .type-tile { width: 32px; height: 32px; }
+  .find-actions .btn { flex: 1 1 auto; min-height: 40px; }
+  .find-actions .menu-wrap { flex: none; }
+  .review-checks { grid-template-columns: 1fr; }
+  .field-inline { flex: 1 1 100%; }
+  .grade-table tr { position: relative; }
+  .grade-table .cell-actions { position: absolute; top: var(--s-2); right: var(--s-2); width: auto; }
+  .grade-table td[data-label="Score:"] { display: flex !important; align-items: center; gap: var(--s-2); padding-top: 6px !important; }
+  .assess-row .row-actions .btn { min-height: 36px; }
+  .assess-row { flex-wrap: wrap; }
+  .assess-row .row-main { flex-basis: calc(100% - 48px); }
+  .assess-row .row-actions { margin-left: 36px; }
+}
+
+.link-list .link-btn { display: inline-flex; align-items: flex-start; gap: 6px; text-align: left; text-decoration: none; }
+.link-list .link-btn:hover { text-decoration: underline; }
+.link-list .link-btn .icon { margin-top: 2px; }
+
+/* ---- Editors ----------------------------------------------------------------------- */
+.slot-list { display: grid; gap: var(--s-2); }
+.slot-row { display: grid; grid-template-columns: minmax(90px, 1fr) minmax(90px, 1fr) minmax(90px, 1fr) minmax(110px, 1.4fr) auto; gap: var(--s-2); align-items: end; }
+.slot-row .icon-btn { margin-bottom: 4px; }
+@media (max-width: 699px) {
+  .slot-row { grid-template-columns: 1fr 1fr; }
+}

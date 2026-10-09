@@ -21,6 +21,8 @@ export const contactService = {
       email: input.email ?? null,
       linkedin: input.linkedin ?? null,
       notes: input.notes ?? null,
+      interests: input.interests ?? [],
+      playbook: input.playbook ?? null,
       createdAt: now,
       updatedAt: now,
     });

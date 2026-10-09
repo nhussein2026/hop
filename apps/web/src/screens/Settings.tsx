@@ -4,15 +4,17 @@ import type { ChangeEvent, FormEvent, ReactNode } from 'react'
 import * as D from '../lib/dates.ts'
 import { followUp, orgOf } from '../lib/rules.ts'
 import { postJson, readErrorMessage } from '../lib/api.ts'
-import type { Settings as SettingsType } from '../lib/types.ts'
+import type { Settings as SettingsType, Term } from '../lib/types.ts'
 import { useActions } from '../store/actions.ts'
 import { Icon } from '../components/Icon.tsx'
-import { Badge, Banner, Dialog, Field, Segmented, SubmitButton } from '../components/ui.tsx'
+import { Badge, Banner, Dialog, Field, Menu, Segmented, SubmitButton } from '../components/ui.tsx'
 import { api, useHop } from '../store/store.ts'
 import { focusFirstInvalid, formText, useDialogs, useToast, closeDialog } from '../components/ui-context.ts'
 import { useConfirm } from '../components/confirm.tsx'
 import { SETTINGS_SECTIONS, settingsTitle, timezoneOptions, useIsPhone } from '../lib/layout.ts'
 import { sizeLabel } from '../lib/labels.ts'
+import { useEditors } from '../editors/editors.tsx'
+import { useUniActions } from '../store/uni-actions.ts'
 
 
 export function Settings({ section, onSignOut }: { section?: string; onSignOut: () => Promise<void> }) {
@@ -31,6 +33,7 @@ export function Settings({ section, onSignOut }: { section?: string; onSignOut: 
     appearance: <Appearance />,
     notifications: <NotificationSettings />,
     career: <CareerRules />,
+    university: <University />,
     data: <DataSafety />,
     security: <Security onSignOut={onSignOut} />,
   }
@@ -113,6 +116,65 @@ function NotificationSettings() {
   )
 }
 
+function University() {
+  const { data } = useHop()
+  const editors = useEditors()
+  const uni = useUniActions()
+  const confirm = useConfirm()
+  const [error, setError] = useState('')
+  const program = data.settings.program
+  const today = D.today()
+
+  function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const form = event.currentTarget
+    const weeks = Number(new FormData(form).get('weeks'))
+    const valid = Number.isInteger(weeks) && weeks >= 1 && weeks <= 30
+    setError(valid ? '' : 'Use 1 to 30 weeks.')
+    if (!valid) return focusFirstInvalid(form)
+    void uni.terms.setProgram({ degree: formText(form, 'degree'), department: formText(form, 'department'), weeks }, 'Programme saved')
+  }
+
+  async function removeTerm(term: Term) {
+    const count = data.courses.filter((c) => c.termId === term.id).length
+    const body = count ? `Its ${count === 1 ? 'course stays' : `${count} courses stay`}, without a term.` : 'No courses are in this term.'
+    if (await confirm({ title: `Delete ${term.name}?`, body, confirmLabel: 'Delete term', tone: 'danger' })) void uni.terms.remove(term)
+  }
+
+  return (
+    <>
+      <Card desc="Shown on the İTÜ page. The weeks are for “week 3 of 14”." title="Programme">
+        <form className="form-grid" noValidate onSubmit={submit}>
+          <div className="form-row">
+            <Field defaultValue={program.degree} id="set-degree" label="Degree" name="degree" placeholder="MSc" />
+            <Field defaultValue={program.department} id="set-dept" label="Department" name="department" placeholder="Computer Engineering" />
+          </div>
+          <Field defaultValue={program.weeks} error={error} id="set-weeks" label="Teaching weeks in a term" max={30} min={1} name="weeks" type="number" />
+          <div><button className="btn btn-primary" type="submit">Save programme</button></div>
+        </form>
+      </Card>
+      <Card desc="Classes show on Today only while a term is running. Copy the dates from the SIS academic calendar." title="Terms">
+        {data.terms.length
+          ? (
+            <div className="rows">
+              {[...data.terms].reverse().map((term) => (
+                <div className="row" key={term.id}>
+                  <div className="row-main">
+                    <span className="row-title">{term.name}{term.start <= today && term.end >= today && <> <Badge tone="primary">Now</Badge></>}</span>
+                    <span className="row-meta"><span>{D.short(term.start)} to {D.short(term.end)} {term.end.slice(0, 4)}</span></span>
+                  </div>
+                  <Menu items={[{ label: 'Edit', icon: 'edit', onSelect: () => editors.term(term) }, '-', { label: 'Delete', icon: 'trash', onSelect: () => void removeTerm(term), danger: true }]} label={`Actions for ${term.name}`} />
+                </div>
+              ))}
+            </div>
+          )
+          : <p className="small muted">No terms yet.</p>}
+        <div style={{ marginTop: 'var(--s-3)' }}><button className="btn" onClick={() => editors.term()} type="button"><Icon className="icon-sm" name="plus" />Add term</button></div>
+      </Card>
+    </>
+  )
+}
+
 function CareerRules() {
   const { data } = useHop()
   const actions = useActions()
@@ -149,7 +211,9 @@ const TABLE_LABELS: Record<string, string> = {
   goals: 'Goals', tasks: 'Tasks', habits: 'Habits', habitCompletions: 'Habit check-ins', events: 'Events', opportunities: 'Opportunities',
   projects: 'Projects', skills: 'Skills', evidence: 'Evidence', weeklyReviews: 'Weekly reviews', goalCriteria: 'Success criteria',
   goalProgress: 'Progress history', resumeFiles: 'Resume files', milestones: 'Milestones', opportunityPrep: 'Preparation items', opportunityActivities: 'Timeline entries',
-  contacts: 'People', interactions: 'Interactions', resumes: 'Resume versions', reflections: 'Reflections', monthlyReviews: 'Monthly reviews', settings: 'Settings',
+  contacts: 'People', interactions: 'Interactions', resumes: 'Resume versions', reflections: 'Reflections', monthlyReviews: 'Monthly reviews', terms: 'Terms', courses: 'Courses',
+  assessments: 'Course deadlines and grades', keyDates: 'Key dates', pins: 'Pinned info', uniLinks: 'İTÜ links', resources: 'Library items',
+  resourceFiles: 'Library files', ideas: 'Ideas', finds: 'Radar finds', settings: 'Settings',
 }
 
 /** hop-backup-2026-10-07T07-47-09-728Z.json → the moment it was taken, as an ISO timestamp. */

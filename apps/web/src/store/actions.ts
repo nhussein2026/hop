@@ -18,6 +18,8 @@ export type TaskFields = {
   goalId?: string | null
   opportunityId?: string | null
   projectId?: string | null
+  courseId?: string | null
+  assessmentId?: string | null
   estimatedMinutes?: number | null
   description?: string | null
 }
@@ -60,8 +62,9 @@ export function useActions() {
       remove(task: Task) {
         return commit('Task deleted', () => api.delete(`/api/tasks/${task.id}`), (_, current) => without(current, 'tasks', task.id), {
           undo: () => void commit('Undone', async () => {
-            const restored = await api.post<Task>('/api/tasks', createBody({ ...task, description: task.description }))
-            return task.status === 'completed' ? api.patch<Task>(`/api/tasks/${restored.id}`, { status: 'completed' }) : restored
+            const { title, description, priority, areaId, goalId, projectId, opportunityId, courseId, assessmentId, scheduledDate, dueDate, estimatedMinutes } = task
+            const restored = await api.post<Task>('/api/tasks', createBody({ title, description, priority, areaId, goalId, projectId, opportunityId, courseId, assessmentId, scheduledDate, dueDate, estimatedMinutes }))
+            return task.status !== 'todo' ? api.patch<Task>(`/api/tasks/${restored.id}`, { status: task.status }) : restored
           }, applyItem('tasks')),
         })
       },

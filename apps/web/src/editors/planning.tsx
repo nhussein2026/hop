@@ -22,6 +22,7 @@ export function TaskEditor({ task, defaults, close }: { task?: Task | null; defa
   const goals: [string, string][] = [['', 'No goal'], ...data.goals.filter((g) => g.status === 'active' || g.id === base.goalId).map((g): [string, string] => [g.id, g.name])]
   const opportunities: [string, string][] = [['', 'None'], ...data.opportunities.filter((o) => !isClosed(o) || o.id === base.opportunityId).map((o): [string, string] => [o.id, `${orgOf(o)}: ${o.title}`])]
   const projects: [string, string][] = [['', 'None'], ...data.projects.map((p): [string, string] => [p.id, p.name])]
+  const courses: [string, string][] = [['', 'None'], ...data.courses.filter((c) => c.status === 'taking' || c.id === base.courseId).map((c): [string, string] => [c.id, `${c.code} ${c.name}`])]
 
   async function submit(form: HTMLFormElement) {
     const fd = new FormData(form)
@@ -36,6 +37,7 @@ export function TaskEditor({ task, defaults, close }: { task?: Task | null; defa
     if (estimate !== null && (estimate < 5 || estimate > 600)) next.estimate = 'Use 5 to 600 minutes.'
     setErrors(next)
     if (Object.keys(next).length) return focusFirstInvalid(form)
+    const courseId = String(fd.get('courseId') || '') || null
     const fields: TaskFields = {
       title,
       scheduledDate,
@@ -44,6 +46,9 @@ export function TaskEditor({ task, defaults, close }: { task?: Task | null; defa
       goalId: String(fd.get('goalId') || '') || null,
       opportunityId: String(fd.get('opportunityId') || '') || null,
       projectId: String(fd.get('projectId') || '') || null,
+      courseId,
+      // A prep task stays linked to its graded item only while it stays with that course.
+      assessmentId: courseId && courseId === base.courseId ? base.assessmentId ?? null : null,
       estimatedMinutes: estimate,
       description: formText(form, 'notes') || null,
     }
@@ -71,13 +76,14 @@ export function TaskEditor({ task, defaults, close }: { task?: Task | null; defa
         </div>
         <Segmented defaultValue={base.priority ?? 'medium'} label="Priority" name="priority" options={[['high', 'High'], ['medium', 'Medium'], ['low', 'Low']]} />
         <Field defaultValue={base.goalId ?? ''} label="Moves goal" name="goalId" options={goals} type="select" />
-        <details className="disclosure" open={Boolean(base.opportunityId || base.projectId || base.description) || undefined}>
+        <details className="disclosure" open={Boolean(base.opportunityId || base.projectId || base.courseId || base.description) || undefined}>
           <summary>More details</summary>
           <div className="form-grid" style={{ marginTop: 'var(--s-3)' }}>
             <div className="form-row">
               <Field defaultValue={base.opportunityId ?? ''} label="Opportunity" name="opportunityId" options={opportunities} type="select" />
               <Field defaultValue={base.projectId ?? ''} label="Project" name="projectId" options={projects} type="select" />
             </div>
+            {courses.length > 1 && <Field defaultValue={base.courseId ?? ''} label="Course" name="courseId" options={courses} type="select" />}
             <Field defaultValue={base.estimatedMinutes ?? ''} error={errors.estimate} label="Estimate in minutes" max={600} min={5} name="estimate" optional type="number" />
             <Field defaultValue={base.description} label="Notes" name="notes" optional type="textarea" />
           </div>

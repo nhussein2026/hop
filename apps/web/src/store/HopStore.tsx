@@ -28,6 +28,14 @@ const endpoints: Record<Collection, string> = {
   interactions: '/api/interactions',
   resumes: '/api/resumes',
   reflections: '/api/reflections',
+  terms: '/api/terms',
+  courses: '/api/courses',
+  keyDates: '/api/key-dates',
+  pins: '/api/pins',
+  uniLinks: '/api/uni-links',
+  resources: '/api/resources',
+  ideas: '/api/ideas',
+  finds: '/api/finds',
 }
 
 /** Habit consistency looks back four weeks, and the monthly review may cover last month until the 7th. */

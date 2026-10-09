@@ -46,6 +46,25 @@ import {
   updateSkillSchema,
   updateTaskSchema,
   updateWeeklyReviewSchema,
+  completeCourseSchema,
+  createAssessmentSchema,
+  createCourseSchema,
+  createFindSchema,
+  createIdeaSchema,
+  createKeyDateSchema,
+  createPinSchema,
+  createResourceSchema,
+  createTermSchema,
+  createUniLinkSchema,
+  updateAssessmentSchema,
+  updateCourseSchema,
+  updateFindSchema,
+  updateIdeaSchema,
+  updateKeyDateSchema,
+  updatePinSchema,
+  updateResourceSchema,
+  updateTermSchema,
+  updateUniLinkSchema,
 } from '@hop/validation';
 import type { ZodType } from 'zod';
 import type {
@@ -79,12 +98,21 @@ import type {
   UpdateSkillInput,
   UpdateTaskInput,
   UpdateWeeklyReviewInput,
+  CreateAssessmentInput,
+  CreateCourseInput,
+  LetterGrade,
+  UpdateAssessmentInput,
+  UpdateCourseInput,
 } from '@hop/domain';
-import { RESUME_FILE_MAX_BYTES } from '@hop/domain';
+import { RESOURCE_FILE_MAX_BYTES, RESUME_FILE_MAX_BYTES } from '@hop/domain';
 
 import { authService } from './services/auth.service.js';
 import { backupService } from './services/backup.service.js';
 import { contactService } from './services/contact.service.js';
+import { courseService, termService } from './services/course.service.js';
+import { keyDateService, pinService, uniLinkService } from './services/handbook.service.js';
+import { libraryService } from './services/library.service.js';
+import { findService, ideaService } from './services/research.service.js';
 import { milestoneService } from './services/milestone.service.js';
 import { monthlyReviewService } from './services/monthly-review.service.js';
 import { reflectionService } from './services/reflection.service.js';
@@ -112,7 +140,7 @@ const host = resolveHost();
 const webDistDir = resolveWebDistDirectory();
 const maxBodyBytes = 1024 * 1024;
 // Backups hold every record, so restore requests may be much larger than ordinary ones.
-const maxRestoreBodyBytes = 50 * 1024 * 1024;
+const maxRestoreBodyBytes = 200 * 1024 * 1024;
 const backupCheckIntervalMs = 60 * 60 * 1000;
 const passwordAttempts = createRateLimiter({ maxFailures: 5, windowMs: 15 * 60 * 1000 });
 
@@ -188,6 +216,70 @@ function sendFound(response: ServerResponse, value: unknown, notFound: string, s
   }
 
   sendJson(response, status, value);
+}
+
+type CrudService = {
+  getAll(): unknown;
+  create(input: never): unknown;
+  update(id: string, input: never): unknown;
+  delete(id: string): boolean;
+};
+
+/**
+ * The four routes most collections need: list and create on `/api/<name>`, change and delete on
+ * `/api/<name>/<id>`. Returns false when the request is for something else.
+ */
+async function crudRoutes(request: IncomingMessage, response: ServerResponse, pathname: string, name: string, service: CrudService, schemas: { create: ZodType; update: ZodType }, notFound: string) {
+  if (pathname === `/api/${name}`) {
+    if (request.method === 'GET') {
+      sendJson(response, 200, service.getAll());
+      return true;
+    }
+
+    if (request.method === 'POST') {
+      const input = await readValid<never>(request, response, schemas.create);
+      if (input) sendJson(response, 201, service.create(input));
+      return true;
+    }
+  }
+
+  const id = pathname.match(new RegExp(`^/api/${name}/([^/]+)$`))?.[1];
+
+  if (id && request.method === 'PATCH') {
+    const input = await readValid<never>(request, response, schemas.update);
+    if (input) sendFound(response, service.update(id, input), notFound);
+    return true;
+  }
+
+  if (id && request.method === 'DELETE') {
+    sendFound(response, service.delete(id) ? { ok: true } : undefined, notFound);
+    return true;
+  }
+
+  return false;
+}
+
+/** Send a stored file. PDFs and images open in the browser unless a download is asked for; other files always download. */
+function sendFile(response: ServerResponse, file: { name: string; type: string; size: number; data: Buffer }, download: boolean) {
+  const inline = !download && (file.type === 'application/pdf' || file.type.startsWith('image/'));
+  response.writeHead(200, {
+    'Content-Type': file.type,
+    'Content-Length': String(file.size),
+    'Content-Disposition': `${inline ? 'inline' : 'attachment'}; filename*=UTF-8''${encodeURIComponent(file.name)}`,
+    'Content-Security-Policy': 'sandbox',
+    'X-Content-Type-Options': 'nosniff',
+    'Cache-Control': 'private, no-store',
+  });
+  response.end(file.data);
+}
+
+/** The name of an uploaded file, sent URI-encoded in X-File-Name. */
+function uploadedFileName(request: IncomingMessage, fallback: string) {
+  try {
+    return decodeURIComponent(String(request.headers['x-file-name'] ?? fallback));
+  } catch {
+    return fallback;
+  }
 }
 
 const server = createServer(async (request, response) => {
@@ -920,6 +1012,86 @@ const server = createServer(async (request, response) => {
 
       sendJson(response, 200, review);
       return;
+    }
+
+    /* ---- İTÜ and Radar ---- */
+    if (await crudRoutes(request, response, url.pathname, 'terms', termService, { create: createTermSchema, update: updateTermSchema }, 'Term not found')) return;
+    if (await crudRoutes(request, response, url.pathname, 'key-dates', keyDateService, { create: createKeyDateSchema, update: updateKeyDateSchema }, 'Date not found')) return;
+    if (await crudRoutes(request, response, url.pathname, 'pins', pinService, { create: createPinSchema, update: updatePinSchema }, 'Pinned item not found')) return;
+    if (await crudRoutes(request, response, url.pathname, 'uni-links', uniLinkService, { create: createUniLinkSchema, update: updateUniLinkSchema }, 'Link not found')) return;
+    if (await crudRoutes(request, response, url.pathname, 'ideas', ideaService, { create: createIdeaSchema, update: updateIdeaSchema }, 'Idea not found')) return;
+    if (await crudRoutes(request, response, url.pathname, 'finds', findService, { create: createFindSchema, update: updateFindSchema }, 'Find not found')) return;
+    if (await crudRoutes(request, response, url.pathname, 'resources', libraryService, { create: createResourceSchema, update: updateResourceSchema }, 'Library item not found')) return;
+
+    const resourceFileId = url.pathname.match(/^\/api\/resources\/([^/]+)\/file$/)?.[1];
+
+    if (request.method === 'PUT' && resourceFileId) {
+      const data = await readRawBody(request, RESOURCE_FILE_MAX_BYTES);
+      sendFound(response, libraryService.attachFile(resourceFileId, uploadedFileName(request, 'file'), data), 'Library item not found');
+      return;
+    }
+
+    if (request.method === 'DELETE' && resourceFileId) {
+      sendFound(response, libraryService.removeFile(resourceFileId), 'Library item not found');
+      return;
+    }
+
+    if (request.method === 'GET' && resourceFileId) {
+      const file = libraryService.getFile(resourceFileId);
+      if (file) sendFile(response, file, url.searchParams.get('download') === '1');
+      else sendJson(response, 404, { error: 'This item has no file' });
+      return;
+    }
+
+    if (url.pathname === '/api/courses' && request.method === 'GET') {
+      sendJson(response, 200, courseService.getAll());
+      return;
+    }
+
+    if (url.pathname === '/api/courses' && request.method === 'POST') {
+      const input = await readValid<CreateCourseInput>(request, response, createCourseSchema);
+      if (input) sendJson(response, 201, courseService.create(input));
+      return;
+    }
+
+    const coursePath = url.pathname.match(/^\/api\/courses\/([^/]+)(?:\/(complete|assessments)(?:\/([^/]+))?)?$/);
+
+    if (coursePath) {
+      const [, courseId, action, assessmentId] = coursePath as unknown as [string, string, string | undefined, string | undefined];
+
+      if (!action && request.method === 'PATCH') {
+        const input = await readValid<UpdateCourseInput>(request, response, updateCourseSchema);
+        if (input) sendFound(response, courseService.update(courseId, input), 'Course not found');
+        return;
+      }
+
+      if (!action && request.method === 'DELETE') {
+        sendFound(response, courseService.delete(courseId) ? { ok: true } : undefined, 'Course not found');
+        return;
+      }
+
+      if (action === 'complete' && !assessmentId && request.method === 'POST') {
+        const input = await readValid<{ grade: LetterGrade }>(request, response, completeCourseSchema);
+        if (input) sendFound(response, courseService.complete(courseId, input.grade), 'Course not found');
+        return;
+      }
+
+      if (action === 'assessments' && !assessmentId && request.method === 'POST') {
+        const input = await readValid<CreateAssessmentInput>(request, response, createAssessmentSchema);
+        if (input) sendFound(response, courseService.addAssessment(courseId, input), 'Course not found', 201);
+        return;
+      }
+
+      if (action === 'assessments' && assessmentId && request.method === 'PATCH') {
+        const input = await readValid<UpdateAssessmentInput>(request, response, updateAssessmentSchema);
+        if (input) sendFound(response, courseService.updateAssessment(courseId, assessmentId, input), 'Deadline not found');
+        return;
+      }
+
+      if (action === 'assessments' && assessmentId && request.method === 'DELETE') {
+        sendFound(response, courseService.deleteAssessment(courseId, assessmentId), 'Deadline not found');
+        return;
+      }
     }
 
     if (request.method === 'GET' && url.pathname === '/api/reviews/monthly') {

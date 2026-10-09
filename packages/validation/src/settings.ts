@@ -1,6 +1,8 @@
 import { z } from 'zod';
 import { THEMES } from '@hop/domain';
 
+import { programSchema } from './university.js';
+
 function isTimezone(value: string) {
   try {
     new Intl.DateTimeFormat('en', { timeZone: value });
@@ -20,4 +22,5 @@ export const updateSettingsSchema = z.object({
   workHours: z.string().trim().max(40, 'Work hours cannot exceed 40 characters').optional(),
   onboarded: z.boolean().optional(),
   readNotifications: z.array(z.string().max(300)).max(200).optional(),
+  program: programSchema.optional(),
 }).strict();

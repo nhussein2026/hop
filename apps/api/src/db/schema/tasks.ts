@@ -32,6 +32,8 @@ export const tasks = sqliteTable('tasks', {
   goalId: text('goal_id'),
   projectId: text('project_id'),
   opportunityId: text('opportunity_id'),
+  courseId: text('course_id'),
+  assessmentId: text('assessment_id'),
 
   scheduledDate: text('scheduled_date'),
   dueDate: text('due_date'),

@@ -70,6 +70,8 @@ export const createTaskSchema = z
     goalId: entityIdSchema.optional(),
     projectId: entityIdSchema.optional(),
     opportunityId: entityIdSchema.optional(),
+    courseId: entityIdSchema.optional(),
+    assessmentId: entityIdSchema.optional(),
 
     scheduledDate: dateSchema.optional(),
     dueDate: dateSchema.optional(),
@@ -92,6 +94,8 @@ export const updateTaskSchema = z
     goalId: entityIdSchema.nullable().optional(),
     projectId: entityIdSchema.nullable().optional(),
     opportunityId: entityIdSchema.nullable().optional(),
+    courseId: entityIdSchema.nullable().optional(),
+    assessmentId: entityIdSchema.nullable().optional(),
 
     scheduledDate: dateSchema.nullable().optional(),
     dueDate: dateSchema.nullable().optional(),

@@ -12,6 +12,7 @@ function empty(): HopData {
   return {
     settings: {} as HopData['settings'], goals: [], tasks: [], habits: [], completions: [], events: [], opportunities: [], projects: [], skills: [],
     evidence: [], weeklyReviews: [], monthlyReviews: [], milestones: [], contacts: [], interactions: [], resumes: [], reflections: [],
+    terms: [], courses: [], keyDates: [], pins: [], uniLinks: [], resources: [], ideas: [], finds: [],
   }
 }
 
@@ -22,7 +23,7 @@ const goal = (fields: Partial<Goal>): Goal => ({
 
 const task = (fields: Partial<Task>): Task => ({
   id: 't', title: 'Task', description: null, status: 'completed', priority: 'medium', areaId: null, goalId: null, projectId: null, opportunityId: null,
-  scheduledDate: null, dueDate: null, estimatedMinutes: null, completedAt: null, createdAt: stamp, updatedAt: stamp, ...fields,
+  courseId: null, assessmentId: null, scheduledDate: null, dueDate: null, estimatedMinutes: null, completedAt: null, createdAt: stamp, updatedAt: stamp, ...fields,
 })
 
 test('monthEnd handles short months and leap years', () => {

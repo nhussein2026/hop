@@ -13,6 +13,14 @@ const contactFields = {
   email: z.string().trim().email('That email address looks incomplete').nullable().optional(),
   linkedin: text('LinkedIn', 300).nullable().optional(),
   notes: text('Notes', 5000).nullable().optional(),
+  interests: z.array(text('Each interest', 80).min(1)).max(30, 'Use up to 30 interests').optional(),
+  playbook: z.object({
+    exams: text('Exams', 1000),
+    values: text('What they value', 1000),
+    office: text('Office hours', 200),
+    email: text('Emailing', 300),
+    tips: z.array(text('Each tip', 500).min(1)).max(30, 'Use up to 30 tips'),
+  }).strict().nullable().optional(),
 };
 
 export const createContactSchema = z.object({ ...contactFields, kind: contactFields.kind.optional() }).strict();
