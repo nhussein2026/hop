@@ -4,6 +4,7 @@
 // consequential ones.
 import { useCallback, useContext, useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
 import type { FormEvent, ReactNode } from 'react'
+import { createPortal } from 'react-dom'
 import { Icon, Pad } from './Icon.tsx'
 import { DialogBusyContext, DialogContext, ToastContext } from './ui-context.ts'
 import type { DialogRender, ToastOptions } from './ui-context.ts'
@@ -337,23 +338,52 @@ export function Segmented({ name, label, options, defaultValue, value, onChange,
 export type MenuItem = { label: string; icon: string; onSelect: () => void; danger?: boolean } | '-'
 
 export function Menu({ label, items }: { label: string; items: MenuItem[] }) {
-  const [open, setOpen] = useState(false)
+  // Where the open menu is portalled: the enclosing modal <dialog> (so it stays in the dialog's top
+  // layer) or the body. null means closed.
+  const [host, setHost] = useState<Element | null>(null)
+  const open = host !== null
   const wrap = useRef<HTMLDivElement>(null)
   const toggle = useRef<HTMLButtonElement>(null)
+  const menu = useRef<HTMLDivElement>(null)
 
-  useEffect(() => {
+  // The menu is portalled and fixed-positioned so a list's overflow clipping (.rows) can't cut it
+  // off. It opens below the toggle, flips above when there's no room, and stays inside the viewport.
+  useLayoutEffect(() => {
     if (!open) return
-    wrap.current?.querySelector<HTMLButtonElement>('.menu button')?.focus()
-    const outside = (event: MouseEvent) => { if (!wrap.current?.contains(event.target as Node)) setOpen(false) }
+    const place = () => {
+      const button = toggle.current?.getBoundingClientRect()
+      const el = menu.current
+      if (!button || !el) return
+      const gap = 4
+      const edge = 8
+      const { offsetWidth: width, offsetHeight: height } = el
+      const below = window.innerHeight - button.bottom - gap - edge
+      const top = height <= below || button.top < height + gap + edge ? button.bottom + gap : button.top - gap - height
+      const left = Math.min(Math.max(edge, button.right - width), window.innerWidth - width - edge)
+      el.style.top = `${Math.max(edge, top)}px`
+      el.style.left = `${left}px`
+    }
+    place()
+    menu.current?.querySelector<HTMLButtonElement>('button')?.focus({ preventScroll: true })
+    const outside = (event: MouseEvent) => {
+      const target = event.target as Node
+      if (!wrap.current?.contains(target) && !menu.current?.contains(target)) setHost(null)
+    }
     document.addEventListener('click', outside)
-    return () => document.removeEventListener('click', outside)
+    window.addEventListener('resize', place)
+    window.addEventListener('scroll', place, true)
+    return () => {
+      document.removeEventListener('click', outside)
+      window.removeEventListener('resize', place)
+      window.removeEventListener('scroll', place, true)
+    }
   }, [open])
 
   function onKeyDown(event: React.KeyboardEvent) {
-    if (event.key === 'Escape') { setOpen(false); toggle.current?.focus(); event.stopPropagation() }
+    if (event.key === 'Escape') { setHost(null); toggle.current?.focus(); event.stopPropagation() }
     if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
       event.preventDefault()
-      const buttons = [...(wrap.current?.querySelectorAll<HTMLButtonElement>('.menu button') ?? [])]
+      const buttons = [...(menu.current?.querySelectorAll<HTMLButtonElement>('button') ?? [])]
       const index = buttons.indexOf(document.activeElement as HTMLButtonElement)
       buttons[(index + (event.key === 'ArrowDown' ? 1 : -1) + buttons.length) % buttons.length]?.focus()
     }
@@ -361,13 +391,14 @@ export function Menu({ label, items }: { label: string; items: MenuItem[] }) {
 
   return (
     <div className="menu-wrap" onKeyDown={onKeyDown} ref={wrap}>
-      <button aria-expanded={open} aria-haspopup="true" aria-label={label} className="icon-btn" onClick={(event) => { event.stopPropagation(); setOpen(!open) }} ref={toggle} type="button"><Icon name="more" /></button>
-      {open && (
-        <div className="menu" role="menu">
+      <button aria-expanded={open} aria-haspopup="true" aria-label={label} className="icon-btn" onClick={(event) => { event.stopPropagation(); setHost(open ? null : event.currentTarget.closest('dialog') ?? document.body) }} ref={toggle} type="button"><Icon name="more" /></button>
+      {host && createPortal(
+        <div className="menu" ref={menu} role="menu">
           {items.map((item, index) => item === '-'
             ? <hr key={index} />
-            : <button className={item.danger ? 'danger' : ''} key={item.label} onClick={() => { setOpen(false); item.onSelect() }} role="menuitem" type="button"><Icon className="icon-sm" name={item.icon} />{item.label}</button>)}
-        </div>
+            : <button className={item.danger ? 'danger' : ''} key={item.label} onClick={() => { setHost(null); item.onSelect() }} role="menuitem" type="button"><Icon className="icon-sm" name={item.icon} />{item.label}</button>)}
+        </div>,
+        host,
       )}
     </div>
   )

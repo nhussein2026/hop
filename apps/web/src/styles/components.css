@@ -869,10 +869,10 @@ dialog.drawer .dialog-inner { height: 100%; }
 /* ---- Menu (dropdown) ---------------------------------------------------------- */
 .menu-wrap { position: relative; }
 .menu {
-  position: absolute;
-  right: 0;
-  top: calc(100% + 4px);
+  position: fixed;
   z-index: 40;
+  max-height: calc(100dvh - 16px);
+  overflow-y: auto;
   display: grid;
   min-width: 200px;
   padding: var(--s-1);
