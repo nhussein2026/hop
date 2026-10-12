@@ -1,6 +1,6 @@
 // The store's shape, the hook to read it, and the API helpers every change goes through.
 import { createContext, useContext } from 'react'
-import { apiFetch, readErrorMessage } from '../lib/api.ts'
+import { LONG_REQUEST_TIMEOUT_MS, apiFetch, readErrorMessage } from '../lib/api.ts'
 import type { HopData } from '../lib/types.ts'
 
 export type Sync = 'saved' | 'saving' | 'error'
@@ -13,6 +13,8 @@ type Store = {
   data: HopData
   sync: Sync
   online: boolean
+  /** False while Hop's server isn't answering, even if this device is online. */
+  reachable: boolean
   ui: UiState
   setUi: (patch: Partial<UiState>) => void
   update: (change: (data: HopData) => HopData) => void
@@ -44,6 +46,7 @@ async function upload<T>(path: string, file: File): Promise<T> {
     method: 'PUT',
     headers: { 'Content-Type': file.type || 'application/octet-stream', 'X-File-Name': encodeURIComponent(file.name) },
     body: file,
+    timeoutMs: LONG_REQUEST_TIMEOUT_MS,
   })
   if (!response.ok) throw new Error(response.status === 413 ? 'The file is larger than 10 MB.' : await readErrorMessage(response, ''))
   return await response.json() as T

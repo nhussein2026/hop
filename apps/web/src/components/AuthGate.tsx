@@ -28,6 +28,13 @@ export function AuthGate({ children }: AuthGateProps) {
     return () => { active = false }
   }, [sessionCheck])
 
+  // Without a saved copy of the session, keep checking while the server is down instead of waiting for Try again.
+  useEffect(() => {
+    if (state !== 'unavailable') return
+    const timer = window.setInterval(() => setSessionCheck((count) => count + 1), 15_000)
+    return () => window.clearInterval(timer)
+  }, [state])
+
   useEffect(() => {
     const showLogin = () => { void clearOfflineData(); setMessage('Your session ended. Sign in to continue.'); setState('login') }
     window.addEventListener(UNAUTHORIZED_EVENT, showLogin)

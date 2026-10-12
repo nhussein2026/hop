@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import type { ChangeEvent, FormEvent, ReactNode } from 'react'
 import * as D from '../lib/dates.ts'
 import { followUp, orgOf } from '../lib/rules.ts'
-import { postJson, readErrorMessage } from '../lib/api.ts'
+import { LONG_REQUEST_TIMEOUT_MS, postJson, readErrorMessage } from '../lib/api.ts'
 import type { Settings as SettingsType, Term } from '../lib/types.ts'
 import { useActions } from '../store/actions.ts'
 import { Icon } from '../components/Icon.tsx'
@@ -262,7 +262,7 @@ function DataSafety() {
 
   async function prepareRestore(source: string, snapshot: unknown) {
     try {
-      const response = await postJson('/api/restore/preview', snapshot)
+      const response = await postJson('/api/restore/preview', snapshot, LONG_REQUEST_TIMEOUT_MS)
       if (!response.ok) { toast(await readErrorMessage(response, 'This backup cannot be restored.'), { type: 'error', timeout: 8000 }); return }
       const preview = await response.json() as RestorePreview
       open((close) => <RestoreDialog close={close} preview={preview} snapshot={snapshot} source={source} />)
@@ -345,7 +345,7 @@ function DataSafety() {
 
 function RestoreDialog({ source, snapshot, preview, close }: { source: string; snapshot: unknown; preview: RestorePreview; close: () => void }) {
   async function submit() {
-    const response = await postJson('/api/restore', { snapshot, confirmed: true }).catch(() => undefined)
+    const response = await postJson('/api/restore', { snapshot, confirmed: true }, LONG_REQUEST_TIMEOUT_MS).catch(() => undefined)
     if (!response) return 'The restore could not be completed. Your data was not changed.'
     if (!response.ok) return readErrorMessage(response, 'The backup could not be restored. Your data was not changed.')
     // Every screen reads from the loaded data, so reload to show the restored records everywhere.

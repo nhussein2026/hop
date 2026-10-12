@@ -26,7 +26,7 @@ import { settingsTitle, useIsPhone } from './lib/layout.ts'
 
 const NAV: [string, string][] = [['today', 'Today'], ['plan', 'Plan'], ['calendar', 'Calendar'], ['itu', 'İTÜ'], ['goals', 'Goals'], ['career', 'Career'], ['growth', 'Growth'], ['review', 'Review']]
 const SCREENS = new Set([...NAV.map(([key]) => key), 'settings'])
-const SYNC_TEXT: Record<Sync | 'offline', string> = { saved: 'All changes saved', saving: 'Saving…', offline: 'Offline: read only', error: 'Last change not saved' }
+const SYNC_TEXT: Record<Sync | 'offline' | 'unreachable', string> = { saved: 'All changes saved', saving: 'Saving…', offline: 'Offline: read only', unreachable: 'Server unreachable: read only', error: 'Last change not saved' }
 
 type Crumb = { label: string; href: string }
 
@@ -51,7 +51,7 @@ function useHeading(route: Route, phone: boolean): { title: string; crumbs: Crum
 }
 
 export default function App({ onSignOut }: { onSignOut: () => Promise<void> }) {
-  const { data, sync, online } = useHop()
+  const { data, sync, online, reachable } = useHop()
   const editors = useEditors()
   const route = useRoute()
   const phone = useIsPhone()
@@ -69,7 +69,8 @@ export default function App({ onSignOut }: { onSignOut: () => Promise<void> }) {
     growth: data.finds.filter((f) => f.status === 'inbox').length,
   }
   const unread = unreadCount(data)
-  const status = online ? sync : 'offline'
+  const status = !online ? 'offline' : !reachable ? 'unreachable' : sync
+  const readOnly = status === 'offline' || status === 'unreachable'
   const syncText = SYNC_TEXT[status]
 
   useEffect(() => { document.title = `${title} · Hop` }, [title])
@@ -120,7 +121,7 @@ export default function App({ onSignOut }: { onSignOut: () => Promise<void> }) {
           </nav>
           <div className="sidebar-foot">
             <a aria-current={screen === 'settings' ? 'page' : undefined} className="nav-item" data-tip="Settings" href="#/settings"><Icon name="settings" /><span className="nav-label">Settings</span></a>
-            <div aria-live="polite" className={`sync${status === 'offline' ? ' is-offline' : status === 'saving' ? ' is-saving' : ''}`} role="status" title={syncText}>
+            <div aria-live="polite" className={`sync${readOnly ? ' is-offline' : status === 'saving' ? ' is-saving' : ''}`} role="status" title={syncText}>
               <span aria-hidden="true" className="sync-dot" /><span className="sync-label">{syncText}</span><span className="visually-hidden">{syncText}</span>
             </div>
           </div>
@@ -138,14 +139,15 @@ export default function App({ onSignOut }: { onSignOut: () => Promise<void> }) {
             <button className="search-trigger" onClick={() => editors.search()} type="button"><Icon className="icon-sm" name="search" /><span>Search</span><kbd>/</kbd></button>
             <div className="topbar-actions">
               <button aria-label="Search" className="icon-btn mobile-only" onClick={() => editors.search()} type="button"><Icon name="search" /></button>
-              {status === 'offline' && <span aria-label={syncText} className="sync-mini mobile-only" role="status"><Icon name="wifiOff" /></span>}
+              {readOnly && <span aria-label={syncText} className="sync-mini mobile-only" role="status"><Icon name={status === 'offline' ? 'wifiOff' : 'alertCircle'} /></span>}
               <button aria-label={`Notifications${unread ? `, ${unread} unread` : ''}`} className="icon-btn" data-tip="Notifications" onClick={() => editors.notifications()} type="button"><Icon name="bell" />{unread > 0 && <span className="dot-count">{unread}</span>}</button>
             </div>
           </header>
 
           <div className="global-banners">
             {!online && <Banner icon="wifiOff" title="You’re offline." tone="warning">Everything you’ve loaded stays readable. Changes are paused until Hop can reach your server.</Banner>}
-            {online && sync === 'error' && <Banner icon="alertCircle" title="Your last change wasn’t saved." tone="danger">Your data is unchanged on the server. Use Try again in the message below, or redo the change.</Banner>}
+            {online && !reachable && <Banner icon="alertCircle" title="Can’t reach your Hop server." tone="warning">Showing what this device loaded last. Changes are paused until the server is back; Hop keeps checking.</Banner>}
+            {online && reachable && sync === 'error' && <Banner icon="alertCircle" title="Your last change wasn’t saved." tone="danger">Your data is unchanged on the server. Use Try again in the message below, or redo the change.</Banner>}
           </div>
           <main id="main" key={routeKey} tabIndex={-1}>{body}</main>
         </div>
