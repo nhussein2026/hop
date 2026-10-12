@@ -221,25 +221,30 @@ The real Hop runs as its own `hop` account from `/opt/hop`, on port 4400, with i
 
 Optional: to keep Hop running with the lid closed while the laptop is plugged in, set `HandleLidSwitchExternalPower=ignore` in `/etc/systemd/logind.conf`. It takes effect after a reboot.
 
-To update the laptop's Hop after you push changes:
-
-```bash
-sudo -u hop -H bash -c 'cd /opt/hop && git pull && yarn install && yarn build'
-sudo systemctl restart hop
-```
+To update the laptop's Hop after you push changes, see [Updating](#updating).
 
 ## Updating
 
-Before updating, use **Back up now** in Settings, since the automatic backup only runs once a day.
+Pushing to GitHub doesn't change the running Hop: it runs from its own copy in `/opt/hop`. When you're ready to deploy what's on `master`:
 
 ```bash
-sudo -iu hop
-cd /opt/hop && git pull && yarn install && yarn build
-exit
-systemctl restart hop
+sudo /opt/hop/deploy/update.sh
 ```
 
-Migrations run automatically on startup in one transaction. If a release changes files in `deploy/`, copy them to `/etc/systemd/system/` again and run `systemctl daemon-reload`.
+The script:
+
+1. Stops if `/opt/hop` has local edits, and does nothing if there's nothing new.
+2. Backs up first: the off-site backup when it's set up (which also leaves a local copy in `/var/lib/hop-backup/hop.db`), otherwise just that local copy.
+3. Pulls, installs and builds as the `hop` account. **If the build fails, it goes back to the previous version and rebuilds it without restarting Hop**, so Hop keeps running as before.
+4. Installs service files from `deploy/` that changed (so edit them there, not in `/etc/systemd/system/`), restarts Hop, and checks that it answers.
+
+Migrations run automatically on startup in one transaction. If the script says the settings templates changed, compare `/etc/hop/hop.env` with `deploy/hop.env.example`. After an update, close and reopen Hop on your devices to load the new version.
+
+Copies of the repository cloned before `deploy/update.sh` existed need one last manual update to get it:
+
+```bash
+sudo -u hop -H bash -c 'cd /opt/hop && git checkout -- .yarn/install-state.gz && git pull --ff-only && yarn install && yarn build' && sudo systemctl restart hop
+```
 
 ## Restoring
 

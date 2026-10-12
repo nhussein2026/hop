@@ -41,3 +41,6 @@ Thumbs.db
 coverage/
 # Local curl session cookies
 cookies.txt
+
+# Yarn rewrites this on every install
+.yarn/install-state.gz
