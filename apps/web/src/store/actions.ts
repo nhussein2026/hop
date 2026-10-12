@@ -235,7 +235,7 @@ export function useActions() {
 
     const plan = {
       /** An interview linked to an opportunity also becomes its next step and a timeline entry. */
-      addEvent(fields: { title: string; date: string; startTime: string; type: Event['type']; opportunityId: string | null }) {
+      addEvent(fields: { title: string; date: string; startTime: string; endTime?: string | null; description?: string | null; type: Event['type']; opportunityId: string | null }) {
         return commit('Event added', async () => {
           const event = await api.post<Event>('/api/events', createBody(fields))
           const o = fields.opportunityId ? data.opportunities.find((x) => x.id === fields.opportunityId) : undefined

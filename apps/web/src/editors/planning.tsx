@@ -1,13 +1,15 @@
 // Editors for the things you plan: tasks, habits, goals and events.
 import { useState } from 'react'
 import * as D from '../lib/dates.ts'
+import { readInvite } from '../lib/invite.ts'
+import type { InviteEvent } from '../lib/invite.ts'
 import { criteriaLines, isClosed, orgOf } from '../lib/rules.ts'
 import { navigate } from '../lib/router.ts'
 import type { Event, Goal, GoalArea, Habit, Task, TaskPriority } from '../lib/types.ts'
 import { useActions } from '../store/actions.ts'
 import type { TaskFields } from '../store/actions.ts'
 import { Icon } from '../components/Icon.tsx'
-import { Dialog, Field, FieldError, Segmented, SubmitButton } from '../components/ui.tsx'
+import { Dialog, Field, FieldError, FilePicker, Segmented, SubmitButton } from '../components/ui.tsx'
 import { useHop } from '../store/store.ts'
 import { closeDialog, focusFirstInvalid, formText } from '../components/ui-context.ts'
 
@@ -196,32 +198,91 @@ export function EventEditor({ date: initialDate, close }: { date?: string; close
   const { data } = useHop()
   const actions = useActions()
   const [errors, setErrors] = useState<Errors>({})
+  // Filling from an invitation replaces the draft, and `filled` remounts the fields so they show it.
+  const [draft, setDraft] = useState<InviteEvent>({ title: '', date: initialDate ?? D.today(), startTime: '14:00', endTime: null, description: null })
+  const [filled, setFilled] = useState(0)
+  const [inviteFile, setInviteFile] = useState<File | null>(null)
+  const [invite, setInvite] = useState<{ error?: string; done?: string }>({})
   const opportunities: [string, string][] = [['', 'None'], ...data.opportunities.filter((o) => !isClosed(o)).map((o): [string, string] => [o.id, `${orgOf(o)}: ${o.title}`])]
+
+  function fill(text: string) {
+    const result = readInvite(text, data.settings.timezone)
+    if (!result.ok) { setInvite({ error: result.error }); return }
+    setDraft(result.event)
+    setFilled((count) => count + 1)
+    setErrors({})
+    setInvite({ done: `Filled in for ${D.withDay(result.event.date)}. Check the details, then add the event.` })
+  }
+
+  async function chooseFile(file: File | null, problem?: string) {
+    setInviteFile(file)
+    if (problem) setInvite({ error: problem })
+    else if (file) fill(await file.text())
+  }
 
   async function submit(form: HTMLFormElement) {
     const fd = new FormData(form)
     const title = formText(form, 'title')
     const date = String(fd.get('date') || '')
+    const startTime = String(fd.get('start') || '')
+    const endTime = String(fd.get('end') || '')
     const next: Errors = {}
     if (!title) next.title = 'Name the event.'
     if (!date) next.date = 'Pick a date.'
+    if (endTime && !startTime) next.end = 'Add a start time too, or leave the end empty.'
+    else if (startTime && endTime && endTime < startTime) next.end = 'The end can’t be before the start.'
     setErrors(next)
     if (Object.keys(next).length) return focusFirstInvalid(form)
-    const saved = await actions.plan.addEvent({ title, date, startTime: String(fd.get('start') || ''), type: fd.get('type') as Event['type'], opportunityId: String(fd.get('opportunityId') || '') || null })
+    const saved = await actions.plan.addEvent({
+      title,
+      date,
+      startTime,
+      endTime: endTime || null,
+      description: formText(form, 'notes') || null,
+      type: fd.get('type') as Event['type'],
+      opportunityId: String(fd.get('opportunityId') || '') || null,
+    })
     if (saved) closeDialog(form)
   }
 
   return (
     <Dialog desc="Something that happens at a set time: an interview, a call, a meetup." foot={<><button className="btn" data-close type="button">Cancel</button><SubmitButton>Add event</SubmitButton></>} onClose={close} onSubmit={submit} title="New event">
       <div className="form-grid">
-        <Field error={errors.title} id="ev-title" label="Event" name="title" placeholder="e.g. Getir recruiter call" required />
-        <div className="form-row">
-          <Field defaultValue={initialDate ?? D.today()} error={errors.date} id="ev-date" label="Date" name="date" type="date" />
-          <Field defaultValue="14:00" id="ev-start" label="Start" name="start" type="time" />
-        </div>
-        <div className="form-row">
-          <Field id="ev-type" label="Type" name="type" options={[['interview', 'Interview'], ['other', 'Event'], ['review', 'Review']]} type="select" />
-          <Field id="ev-opp" label="Opportunity" name="opportunityId" options={opportunities} type="select" />
+        <details className="disclosure" open={Boolean(invite.error || invite.done) || undefined}>
+          <summary>Fill from an invitation</summary>
+          <div className="form-grid" style={{ marginTop: 'var(--s-3)' }}>
+            <FilePicker accept={['.ics']} hint="The invite.ics file attached to a calendar invitation email." label="Invitation file" maxBytes={1_000_000} onChange={(file, problem) => void chooseFile(file, problem)} optional value={inviteFile} />
+            <div className="field">
+              <label htmlFor="ev-invite-link">Or paste an “Add to calendar” link (Google, Outlook or Yahoo)</label>
+              <div className="btn-row">
+                <input
+                  aria-describedby={invite.error ? 'ev-invite-err' : undefined}
+                  className="input"
+                  id="ev-invite-link"
+                  onKeyDown={(event) => { if (event.key === 'Enter') { event.preventDefault(); fill(event.currentTarget.value) } }}
+                  placeholder="https://calendar.google.com/…"
+                  style={{ flex: '1 1 220px' }}
+                />
+                <button className="btn" onClick={(event) => fill((event.currentTarget.previousElementSibling as HTMLInputElement).value)} type="button">Fill in</button>
+              </div>
+              <FieldError error={invite.error} id="ev-invite-err" />
+            </div>
+            {invite.done && <p className="xs muted" role="status">{invite.done}</p>}
+          </div>
+        </details>
+        <div className="form-grid" key={filled}>
+          <Field defaultValue={draft.title} error={errors.title} id="ev-title" label="Event" name="title" placeholder="e.g. Getir recruiter call" required />
+          <div className="form-row">
+            <Field defaultValue={draft.date} error={errors.date} id="ev-date" label="Date" name="date" type="date" />
+            <Field defaultValue={draft.startTime ?? ''} id="ev-start" label="Start" name="start" optional type="time" />
+            <Field defaultValue={draft.endTime ?? ''} error={errors.end} id="ev-end" label="End" name="end" optional type="time" />
+          </div>
+          <div className="form-row">
+            {/* Most invitations aren't interviews, so a filled-in event starts as a plain event. */}
+            <Field defaultValue={filled ? 'other' : undefined} id="ev-type" label="Type" name="type" options={[['interview', 'Interview'], ['other', 'Event'], ['review', 'Review']]} type="select" />
+            <Field id="ev-opp" label="Opportunity" name="opportunityId" options={opportunities} type="select" />
+          </div>
+          <Field defaultValue={draft.description ?? ''} id="ev-notes" label="Notes" name="notes" optional type="textarea" />
         </div>
       </div>
     </Dialog>
