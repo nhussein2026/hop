@@ -1,0 +1,35 @@
+# Runs Hop as a background service. Install with:
+#   sudo cp /opt/hop/deploy/hop.service /etc/systemd/system/
+#   sudo systemctl daemon-reload && sudo systemctl enable --now hop
+# Settings come from /etc/hop/hop.env (see deploy/hop.env.example), not from the repository's .env.
+
+[Unit]
+Description=Hop
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+User=hop
+Group=hop
+WorkingDirectory=/opt/hop/apps/api
+EnvironmentFile=/etc/hop/hop.env
+# Node runs the TypeScript directly through the tsx loader, without Yarn in between.
+ExecStart=/usr/bin/node --import tsx src/server.ts
+Restart=always
+RestartSec=5
+
+# Hop only needs to write its database and backups.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/hop/storage
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+
+[Install]
+WantedBy=multi-user.target

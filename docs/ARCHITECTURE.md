@@ -79,6 +79,8 @@ Every change goes through `commit()`:
 
 The server is the only source of truth. There is no offline write queue.
 
+Other devices change the same data, so the store loads everything again when Hop comes back into view (at most every 30 seconds) and as soon as the server answers again after being unreachable. A refresh that overlaps a save is dropped, so it never replaces newer data with older.
+
 ### Derived data
 
 Health signals, follow-up timing, habit consistency, deadlines, grade standing, agenda building, and notifications are **computed in the browser** from the loaded data (`lib/rules.ts`, `lib/uni.ts`, `lib/notifications.ts`) rather than stored. This follows the spec's rule of deriving rather than duplicating data. These modules are pure functions and carry most of the web tests.
@@ -88,6 +90,9 @@ Health signals, follow-up timing, habit consistency, deadlines, grade standing, 
 - `public/sw.js` is registered only in production builds.
 - The app shell and built assets are cached, so Hop opens offline.
 - API reads are network-first, and the last successful response is cached so recently loaded data stays readable offline. Exports, backups, and health checks are never cached.
+- The server can be off while the device is online, for example when Hop runs on a laptop. A request that hasn't answered after 4 seconds, or that `tailscale serve` answers with 502–504, is answered from the cached copy instead, marked with an `X-Hop-Offline` header.
+- A request with a query (habit completions for a date range) is also cached under its bare path, so the first request on a new day, which asks for a new range, still has a copy to fall back to.
+- The web app tracks whether the server answered (`lib/server.ts`). While it doesn't, Hop shows a banner, refuses changes with a clear message, and checks `/api/health` every 15 seconds; when the server answers again, the data is reloaded.
 - Writes are never queued or replayed. Offline changes fail visibly.
 - Cached API data is deleted on sign-out and whenever the API answers `401`.
 
@@ -101,7 +106,7 @@ A single password, hashed with scrypt, and server-side sessions with hashed toke
 
 ## Known Limitations
 
-- **Cross-device freshness:** data loads once per app start, so a device that stays open doesn't see changes made on another device until it reloads.
-- **Offline start on a new day:** the habit completion request includes today's date, so the first offline start on a new day misses the cache.
+- **Read-only without the server:** while the server is off or unreachable, every device can read what it loaded last but can't save changes. There is no offline queue.
+- **Changes from other devices** appear when Hop comes back into view or reconnects, not instantly while it stays on screen.
 - **Bundle size:** the web app ships as one bundle (~550 KB); screens are not lazy-loaded yet.
 - **No calendar sync:** Hop's calendar is internal; there is no ICS feed or external calendar import.

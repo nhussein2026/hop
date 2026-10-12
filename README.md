@@ -60,7 +60,7 @@ See [Deployment](docs/DEPLOYMENT.md) for running Hop on an always-on server.
 
 ### Offline
 
-The app opens without a connection and shows the data you loaded most recently, with an offline banner. Changes made offline are **not** queued: they fail with a visible message, and the server stays the only source of truth. Signing out deletes the offline copy from that device.
+The app opens without a connection, or while your Hop server is switched off, and shows the data you loaded most recently with a banner saying why. Changes made then are **not** queued: they fail with a visible message, and the server stays the only source of truth. When the server answers again, Hop reloads your data by itself; it also reloads when you come back to the app, so changes made on other devices show up. Signing out deletes the offline copy from that device.
 
 ## Configuration
 

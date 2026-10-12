@@ -1,0 +1,15 @@
+# Copies Hop's data off the server with restic. Started by hop-offsite-backup.timer.
+[Unit]
+Description=Hop off-site backup
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=hop
+Group=hop
+EnvironmentFile=/etc/hop/restic.env
+StateDirectory=hop-backup
+CacheDirectory=hop-backup
+Environment=RESTIC_CACHE_DIR=/var/cache/hop-backup
+ExecStart=/opt/hop/deploy/hop-offsite-backup.sh
