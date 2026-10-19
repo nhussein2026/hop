@@ -8,6 +8,7 @@ import { resolveMigrationsFolder } from '../config.js';
 import { db } from '../db/client.js';
 import { migrateDatabase } from '../db/migrate.js';
 import {
+  accounts,
   assessments,
   bookLoans,
   books,
@@ -17,6 +18,9 @@ import {
   ideas,
   keyDates,
   pins,
+  practiceActivities,
+  practiceSessions,
+  practiceTests,
   readingLog,
   resourceFiles,
   resources,
@@ -80,6 +84,10 @@ const tables = {
   books,
   bookLoans,
   readingLog,
+  practiceActivities,
+  practiceSessions,
+  practiceTests,
+  accounts,
   settings,
 } satisfies Record<BackupTable, unknown>;
 

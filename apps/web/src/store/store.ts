@@ -60,7 +60,8 @@ export const api = {
   delete: <T,>(path: string) => request<T>('DELETE', path),
 }
 
-export type Collection = Exclude<keyof HopData, 'settings'>
+/** The lists in HopData, which upsert and without work on. */
+export type Collection = Exclude<keyof HopData, 'settings' | 'practiceTotals'>
 
 /** Replace an item by id, or add it to the start when it is new. */
 export function upsert<K extends Collection>(data: HopData, key: K, item: HopData[K][number]): HopData {

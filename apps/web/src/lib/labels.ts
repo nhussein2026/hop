@@ -1,5 +1,5 @@
 // Display labels and small lookups shared by screens and dialogs.
-import type { AssessmentType, BookFormat, BookStatus, CourseStatus, FindKind, FindStatus, IdeaKind, IdeaStage, KeyDateKind, Language, OpportunityActivityType, OpportunityType, PinKind, ResourceKind, SkillLevel } from './types.ts'
+import type { AccountStatus, AssessmentType, BillingCycle, BookFormat, BookStatus, CefrLevel, CourseStatus, FindKind, FindStatus, IdeaKind, IdeaStage, KeyDateKind, Language, OpportunityActivityType, OpportunityType, PinKind, PracticeArea, PracticeSlot, ResourceKind, SkillLevel } from './types.ts'
 
 export const OPPORTUNITY_TYPES: [OpportunityType, string][] = [
   ['job', 'Job'], ['internship', 'Internship'], ['program', 'Program'], ['scholarship', 'Scholarship'], ['fellowship', 'Fellowship'],
@@ -46,6 +46,7 @@ export const AGENDA_META: Record<string, [string, string, string]> = {
   coursework: ['school', 'Coursework', 'primary'],
   uni: ['school', 'İTÜ calendar', ''],
   loan: ['library', 'Library return', 'warning'],
+  renewal: ['refresh', 'Renewal', ''],
 }
 
 /* ---- İTÜ and Radar ---------------------------------------------------------------------- */
@@ -94,3 +95,70 @@ export const LANGUAGE_OPTIONS = Object.entries(LANGUAGE_LABEL) as [Language, str
 
 export const BOOK_STATUS_LABEL: Record<BookStatus, string> = { want: 'Want to read', reading: 'Reading', finished: 'Finished', dropped: 'Dropped' }
 export const BOOK_FORMAT_LABEL: Record<BookFormat, string> = { paper: 'Paper', ebook: 'E-book', audio: 'Audiobook' }
+
+/* ---- Language track ----------------------------------------------------------------------- */
+/** Icon, label and short label for each practice area. */
+export const PRACTICE_AREA: Record<PracticeArea, [string, string, string]> = {
+  listening: ['headphones', 'Listening', 'Listen'],
+  reading: ['book', 'Reading', 'Read'],
+  writing: ['edit', 'Writing', 'Write'],
+  speaking: ['mic', 'Speaking', 'Speak'],
+  words: ['cards', 'Words and grammar', 'Words'],
+}
+
+export const PRACTICE_SLOT_LABEL: Record<PracticeSlot, string> = { commute: 'On the way', any: 'Any time', home: 'At home' }
+
+/** What to do today when a skill falls behind: one small, concrete catch-up. */
+export const CATCH_UP: Record<PracticeArea, string> = {
+  listening: 'Put a podcast on for the next bus or train ride.',
+  reading: 'Read 10 pages of your Turkish book before bed.',
+  writing: 'Write 100 words about your day and get them corrected.',
+  speaking: 'Do 15 minutes of shadowing, or record a two-minute talk.',
+  words: 'Clear today’s Anki reviews.',
+}
+
+/** What matters most while working through each level, per the plan. */
+export const LEVEL_FOCUS: Record<CefrLevel, { title: string; points: string[] }> = {
+  A1: { title: 'Build the base', points: ['The 1,000 most frequent words and the basic suffixes.', 'Content made for learners, slowly and often.', 'Short sentences about yourself, written and spoken every day.'] },
+  A2: {
+    title: 'Build the base',
+    points: [
+      'Words first: work through the 2,000 most frequent words in Anki.',
+      'Listening and reading made for learners: graded readers, Easy Turkish.',
+      'Write 80 to 100 words a day and say them aloud; shadow every day.',
+      'No practice tests yet. At the end of A2, try one sample B1 paper to see the gap.',
+    ],
+  },
+  B1: {
+    title: 'Move to real Turkish',
+    points: [
+      'Native content with subtitles: news, podcasts, series.',
+      'Read Turkish books from your Reading shelf, computer engineering ones included.',
+      'Write 150 to 200 words with opinions and reasons; converse three times a week.',
+      'A practice test every four weeks, and move time toward the weakest section.',
+    ],
+  },
+  B2: {
+    title: 'Reach exam level',
+    points: [
+      'Longer, harder texts: opinion pieces, academic articles.',
+      'A 250-word essay in 60 minutes every Saturday, as in the exam.',
+      'Speak on abstract topics: causes, solutions, pros and cons.',
+      'A practice test every two weeks.',
+    ],
+  },
+  C1: {
+    title: 'Exam mode',
+    points: [
+      'A full timed practice test every week.',
+      'Most extra time goes to your lowest section; keep the rest ticking over.',
+      'Keep Anki and daily listening going until the exam day.',
+    ],
+  },
+  C2: { title: 'Keep it up', points: ['Read and listen widely; write and speak on demanding topics.'] },
+}
+
+/* ---- Accounts and subscriptions ----------------------------------------------------------- */
+export const ACCOUNT_STATUS: Record<AccountStatus, [string, string]> = { active: ['Active', 'success'], trial: ['Free trial', 'warning'], cancelled: ['Cancelled', ''] }
+export const BILLING_CYCLE_LABEL: Record<BillingCycle, string> = { monthly: 'a month', yearly: 'a year', weekly: 'a week', none: 'free or paid once' }
+export const BILLING_CYCLE_OPTIONS: [BillingCycle, string][] = [['none', 'Free, or paid once'], ['monthly', 'Monthly'], ['yearly', 'Yearly'], ['weekly', 'Weekly']]

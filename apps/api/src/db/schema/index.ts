@@ -1,3 +1,4 @@
+export * from './accounts.js';
 export * from './books.js';
 export * from './contacts.js';
 export * from './credentials.js';
@@ -11,6 +12,7 @@ export * from './milestones.js';
 export * from './monthly-reviews.js';
 export * from './opportunities.js';
 export * from './opportunity-details.js';
+export * from './practice.js';
 export * from './projects.js';
 export * from './radar.js';
 export * from './reflections.js';

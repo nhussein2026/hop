@@ -10,6 +10,8 @@ import { AttentionList, HabitRow, InlineAdd, TaskRow } from '../components/rows.
 import { DateChip, Empty, ProgressBar } from '../components/ui.tsx'
 import { classesOn, currentTerm, nextClass, taking } from '../lib/uni.ts'
 import { loanLabel, loanState, openLoan, progress } from '../lib/books.ts'
+import { dayProgress, doneSession, planFor } from '../lib/practice.ts'
+import { PracticeRow } from './Turkish.tsx'
 import { useHop } from '../store/store.ts'
 import { useToast } from '../components/ui-context.ts'
 
@@ -39,8 +41,8 @@ export function Today() {
   const habitsDone = habitsToday.filter((h) => habitDone(h, data.completions, today)).length
   const attentionItems = attention(data, today)
   const urgent = attentionItems.filter((item) => item.level === 'critical').length
-  // Courses or books in hand are enough to make Today useful: their deadlines, classes and pages show here.
-  const fresh = !data.goals.length && !data.tasks.length && !data.courses.length && !data.books.some((b) => b.status === 'reading' || openLoan(b))
+  // Courses, books in hand or a language track are enough to make Today useful: they all show here.
+  const fresh = !data.goals.length && !data.tasks.length && !data.courses.length && !data.books.some((b) => b.status === 'reading' || openLoan(b)) && !data.settings.languageTrack
   const learningMin = weekFacts(data, today).learningMin
   const name = data.settings.name
   const lastActive = data.tasks.map((t) => t.completedAt).filter(Boolean).sort().at(-1)
@@ -108,6 +110,8 @@ export function Today() {
                 : <Empty body="Habits show up here on the days they’re scheduled." icon="leaf" pad={false} title="No habits scheduled today" />}
             </section>
 
+            <TurkishToday />
+
             <ReadingNow />
           </div>
 
@@ -169,6 +173,29 @@ function NextUp({ next, plan, onSkip }: { next: Task | undefined; plan: ReturnTy
         <button className="btn btn-lg" disabled={!remaining} onClick={() => onSkip(next)} type="button">Not now</button>
         <button className="btn btn-ghost btn-lg" onClick={() => editors.task(next)} type="button">Edit</button>
       </div>
+    </section>
+  )
+}
+
+/** Today's Turkish: how much of the plan is done, and the next few activities to tick off. */
+function TurkishToday() {
+  const { data } = useHop()
+  const today = D.today()
+  if (!data.settings.languageTrack) return null
+  const plan = planFor(data.practiceActivities, today)
+  if (!plan.length) return null
+  const day = dayProgress(data.practiceActivities, data.practiceSessions, today)
+  const next = plan.filter((a) => !doneSession(data.practiceSessions, a, today)).slice(0, 3)
+  return (
+    <section aria-labelledby="tr-today-h" className="section">
+      <div className="section-head"><h2 id="tr-today-h">Türkçe</h2><a className="small" href="#/turkish">Today’s plan</a></div>
+      <div className="practice-mini">
+        <ProgressBar label="Today’s Turkish practice" pct={day.pct} />
+        <span className="small num">{D.minutes(day.done) || '0 min'} of {D.minutes(day.planned)}</span>
+      </div>
+      {next.length
+        ? <div className="rows">{next.map((a) => <PracticeRow activity={a} compact date={today} key={a.id} />)}</div>
+        : <p className="small muted">Today’s plan is done. Anything more is a bonus.</p>}
     </section>
   )
 }
@@ -270,7 +297,7 @@ function GoalsMini() {
       <div className="rows">
         {active.map((g) => {
           const progress = goalProgress(g)
-          const health = goalHealth(g, data.tasks, today)
+          const health = goalHealth(g, data, today)
           return (
             <a className="goal-mini" href={`#/goals/${g.id}`} key={g.id}>
               <span className="goal-mini-top"><span className="goal-mini-name">{g.name}</span><span className="num small">{progress.measured ? `${progress.pct}%` : '–'}</span></span>

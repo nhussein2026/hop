@@ -99,6 +99,28 @@ All routes live in `apps/api/src/server.ts`. Request bodies are validated by the
 | `PATCH` / `DELETE` | `/api/books/:id/loans/:loanId` | Edit a loan (including `returnedOn`) or remove it. |
 | `POST` | `/api/books/:id/loans/:loanId/renew` | Renew (`{ date, dueOn }`). 409 when no renewals are left. |
 
+## Notes and accounts
+
+Notes are library items of kind `note` (see University); `pinned: true` keeps one at the top of Notes.
+
+| Method | Path | Description |
+| --- | --- | --- |
+| `GET` / `POST` / `PATCH` / `DELETE` | `/api/accounts[/:id]` | Accounts and subscriptions: login, purpose, cost and billing cycle, a known renewal day, how it's paid, where its password is kept. There is no password field, and text shaped like a card number is refused with 400. |
+
+## Language track (Türkçe)
+
+The track itself (level, target, exam date, exam sections and pass mark) is `languageTrack` in the settings. Changes to it go through `PATCH /api/settings` and merge into the track.
+
+| Method | Path | Description |
+| --- | --- | --- |
+| `POST` | `/api/practice/setup` | Start the track (`{ level, target, examDate, exam? }`): creates the goal with a checkpoint per level and, if the plan is empty, the starter daily plan. 409 if a track exists. |
+| `GET` / `POST` / `PATCH` / `DELETE` | `/api/practice/activities[/:id]` | The daily plan. Deleting an activity keeps the practice it recorded. |
+| `GET` | `/api/practice/sessions?from=&to=` | Practice logged between two dates. |
+| `POST` | `/api/practice/sessions` | Log practice (`{ date, minutes, activityId? , area?, note? }`). A planned activity is logged once a day; logging it again changes the minutes. |
+| `PATCH` / `DELETE` | `/api/practice/sessions/:id` | Change or remove logged practice. |
+| `GET` | `/api/practice/totals` | Minutes per area and days practised, over everything logged. |
+| `GET` / `POST` / `PATCH` / `DELETE` | `/api/practice/tests[/:id]` | Practice test results. Section maximums default to the track's exam; a score above its section's maximum is refused. |
+
 ## University (İTÜ)
 
 | Method | Path | Description |

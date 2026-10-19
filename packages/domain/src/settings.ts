@@ -1,3 +1,4 @@
+import type { LanguageTrack, UpdateTrackInput } from './language.js';
 import type { Program } from './university.js';
 
 export const THEMES = ['system', 'light', 'dark'] as const;
@@ -33,6 +34,9 @@ export interface Settings {
   /** Notifications already seen, by key. */
   readNotifications: string[];
   program: Program;
+  /** Null until the language track is set up. */
+  languageTrack: LanguageTrack | null;
 }
 
-export type UpdateSettingsInput = Partial<Omit<Settings, 'notify' | 'program'>> & { notify?: Partial<NotificationPreferences>; program?: Partial<Program> };
+/** `languageTrack` changes merge into the track, which only setup creates. */
+export type UpdateSettingsInput = Partial<Omit<Settings, 'notify' | 'program' | 'languageTrack'>> & { notify?: Partial<NotificationPreferences>; program?: Partial<Program>; languageTrack?: UpdateTrackInput };

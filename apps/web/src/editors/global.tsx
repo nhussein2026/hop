@@ -13,7 +13,8 @@ import { useHop } from '../store/store.ts'
 import { closeDialog, focusFirstInvalid, formText } from '../components/ui-context.ts'
 
 /* ---- Quick add ---------------------------------------------------------------------------- */
-export type AddKind = 'opportunity' | 'event' | 'evidence' | 'goal' | 'note' | 'project' | 'milestone' | 'deadline' | 'resource' | 'find' | 'idea' | 'book'
+/** `note` is a reflection; `memo` is a note for Notes. */
+export type AddKind = 'opportunity' | 'event' | 'evidence' | 'goal' | 'note' | 'project' | 'milestone' | 'deadline' | 'resource' | 'find' | 'idea' | 'book' | 'memo' | 'account'
 
 function whenOptions(): [string, string][] {
   const today = D.today()
@@ -40,7 +41,7 @@ export function QuickAdd({ close, onSwitch }: { close: () => void; onSwitch: (ki
     if (saved) closeDialog(form)
   }
 
-  const more: [AddKind, string, string][] = [['deadline', 'school', 'Course deadline'], ['resource', 'library', 'To library'], ['find', 'radar', 'Radar find'], ['book', 'book', 'Book to read'], ['idea', 'bulb', 'Idea'], ['opportunity', 'career', 'Opportunity'], ['event', 'calendar', 'Event'], ['evidence', 'award', 'Evidence'], ['goal', 'goals', 'Goal'], ['note', 'edit', 'Reflection'], ['project', 'code', 'Project'], ['milestone', 'flag', 'Milestone']]
+  const more: [AddKind, string, string][] = [['memo', 'notes', 'Note'], ['deadline', 'school', 'Course deadline'], ['resource', 'library', 'To library'], ['find', 'radar', 'Radar find'], ['book', 'book', 'Book to read'], ['idea', 'bulb', 'Idea'], ['opportunity', 'career', 'Opportunity'], ['event', 'calendar', 'Event'], ['evidence', 'award', 'Evidence'], ['goal', 'goals', 'Goal'], ['note', 'edit', 'Reflection'], ['project', 'code', 'Project'], ['milestone', 'flag', 'Milestone'], ['account', 'key', 'Account or subscription']]
 
   return (
     <Dialog foot={<><span className="xs muted hide-phone qa-hint"><kbd>Enter</kbd> to add</span><span className="spacer" /><button className="btn" data-close type="button">Cancel</button><SubmitButton>Add task</SubmitButton></>} onClose={close} onSubmit={submit} title="Add">
@@ -208,8 +209,10 @@ export function ReflectionEditor({ date, close }: { date: string; close: () => v
 }
 
 /* ---- Phone "More" sheet ------------------------------------------------------------------------- */
-export function MoreSheet({ close, counts }: { close: () => void; counts: Record<string, number> }) {
-  const items: [string, string, string][] = [['career', 'Career', 'Opportunities, people, resumes'], ['calendar', 'Calendar', 'Events, tasks and deadlines by day'], ['goals', 'Goals', 'Where you’re going'], ['growth', 'Growth', 'Skills, projects, evidence and Radar'], ['review', 'Review', 'Weekly and monthly reviews, reflections'], ['settings', 'Settings', 'Profile, backups, security']]
+/** Sections that aren't in the phone tab bar. `extra` is whichever of İTÜ and Türkçe the tab bar left out. */
+export function MoreSheet({ close, counts, extra }: { close: () => void; counts: Record<string, number>; extra?: 'itu' | 'turkish' }) {
+  const extras: Record<'itu' | 'turkish', [string, string, string]> = { itu: ['itu', 'İTÜ', 'Courses, library, research'], turkish: ['turkish', 'Türkçe', 'Your road to the C1 exam'] }
+  const items: [string, string, string][] = [...(extra ? [extras[extra]] : []), ['career', 'Career', 'Opportunities, people, resumes'], ['calendar', 'Calendar', 'Events, tasks and deadlines by day'], ['goals', 'Goals', 'Where you’re going'], ['growth', 'Growth', 'Skills, projects, reading and Radar'], ['notes', 'Notes', 'Notes, accounts and subscriptions'], ['review', 'Review', 'Weekly and monthly reviews, reflections'], ['settings', 'Settings', 'Profile, backups, security']]
   return (
     <Dialog foot={false} onClose={close} title="More">
       <nav aria-label="More sections" className="rows">

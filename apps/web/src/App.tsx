@@ -19,12 +19,14 @@ import { Plan } from './screens/Plan.tsx'
 import { Review } from './screens/Review.tsx'
 import { Settings } from './screens/Settings.tsx'
 import { Today } from './screens/Today.tsx'
+import { Turkish } from './screens/Turkish.tsx'
+import { Notes } from './screens/Notes.tsx'
 import { useHop } from './store/store.ts'
 import type { Sync } from './store/store.ts'
 import { unreadCount } from './lib/notifications.ts'
 import { settingsTitle, useIsPhone } from './lib/layout.ts'
 
-const NAV: [string, string][] = [['today', 'Today'], ['plan', 'Plan'], ['calendar', 'Calendar'], ['itu', 'İTÜ'], ['goals', 'Goals'], ['career', 'Career'], ['growth', 'Growth'], ['review', 'Review']]
+const NAV: [string, string][] = [['today', 'Today'], ['plan', 'Plan'], ['calendar', 'Calendar'], ['turkish', 'Türkçe'], ['itu', 'İTÜ'], ['goals', 'Goals'], ['career', 'Career'], ['growth', 'Growth'], ['notes', 'Notes'], ['review', 'Review']]
 const SCREENS = new Set([...NAV.map(([key]) => key), 'settings'])
 const SYNC_TEXT: Record<Sync | 'offline' | 'unreachable', string> = { saved: 'All changes saved', saving: 'Saving…', offline: 'Offline: read only', unreachable: 'Server unreachable: read only', error: 'Last change not saved' }
 
@@ -95,11 +97,15 @@ export default function App({ onSignOut }: { onSignOut: () => Promise<void> }) {
   else if (screen === 'career') body = <Career route={route} />
   else if (screen === 'growth') body = <Growth route={route} />
   else if (screen === 'itu') body = <Itu route={route} />
+  else if (screen === 'turkish') body = <Turkish route={route} />
+  else if (screen === 'notes') body = <Notes route={route} />
   else if (screen === 'review') body = <Review route={route} />
   else if (screen === 'settings') body = <Settings onSignOut={onSignOut} section={route.params[0]} />
   else body = <Today />
 
-  const phoneMore = ['calendar', 'goals', 'career', 'growth', 'review', 'settings'].includes(screen)
+  // With a language track, Türkçe takes İTÜ's place in the phone tab bar, and İTÜ moves to More.
+  const studying = Boolean(data.settings.languageTrack)
+  const phoneMore = ['calendar', 'goals', 'career', 'growth', 'notes', 'review', 'settings', studying ? 'itu' : 'turkish'].includes(screen)
   const tab = (key: string, label: string) => (
     <a aria-current={screen === key ? 'page' : undefined} className="tab-link" href={`#/${key}`}><Icon name={key} /><span>{label}</span>{counts[key] ? <span className="count count-attention">{counts[key]}</span> : null}</a>
   )
@@ -157,14 +163,14 @@ export default function App({ onSignOut }: { onSignOut: () => Promise<void> }) {
         {tab('today', 'Today')}
         {tab('plan', 'Plan')}
         <button aria-label="Add" className="tab-add" onClick={() => editors.add()} type="button"><Icon name="plus" /></button>
-        {tab('itu', 'İTÜ')}
-        <button aria-current={phoneMore ? 'page' : undefined} aria-label={`More${counts.career ? `, ${counts.career} career items need attention` : ''}`} className="tab-link" onClick={() => editors.more(counts)} type="button"><Icon name="menu" /><span>More</span>{counts.career ? <span className="count count-attention">{counts.career}</span> : null}</button>
+        {studying ? tab('turkish', 'Türkçe') : tab('itu', 'İTÜ')}
+        <button aria-current={phoneMore ? 'page' : undefined} aria-label={`More${counts.career ? `, ${counts.career} career items need attention` : ''}`} className="tab-link" onClick={() => editors.more(counts, studying ? 'itu' : 'turkish')} type="button"><Icon name="menu" /><span>More</span>{counts.career ? <span className="count count-attention">{counts.career}</span> : null}</button>
       </nav>
     </>
   )
 }
 
-/** N add · / or Ctrl/⌘ K search · G then T/P/L/U/G/C/R/W/S to jump (L for calendar, U for İTÜ). */
+/** N add · / or Ctrl/⌘ K search · G then T/P/L/K/U/G/C/W/N/R/S to jump (L for calendar, K for Türkçe, U for İTÜ, N for notes). */
 function useShortcuts(editors: ReturnType<typeof useEditors>, enabled: boolean) {
   useEffect(() => {
     if (!enabled) return
@@ -182,7 +188,7 @@ function useShortcuts(editors: ReturnType<typeof useEditors>, enabled: boolean) 
       if (typing || event.metaKey || event.ctrlKey || event.altKey || dialogOpen) return
       if (pending) {
         pending = false
-        const map: Record<string, string> = { t: 'today', p: 'plan', l: 'calendar', u: 'itu', g: 'goals', c: 'career', r: 'review', w: 'growth', s: 'settings' }
+        const map: Record<string, string> = { t: 'today', p: 'plan', l: 'calendar', k: 'turkish', u: 'itu', g: 'goals', c: 'career', r: 'review', w: 'growth', n: 'notes', s: 'settings' }
         if (map[event.key]) navigate(`#/${map[event.key]}`)
         return
       }

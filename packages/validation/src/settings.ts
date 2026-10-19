@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { THEMES } from '@hop/domain';
 
+import { updateTrackSchema } from './language.js';
 import { programSchema } from './university.js';
 
 function isTimezone(value: string) {
@@ -23,4 +24,5 @@ export const updateSettingsSchema = z.object({
   onboarded: z.boolean().optional(),
   readNotifications: z.array(z.string().max(300)).max(200).optional(),
   program: programSchema.optional(),
+  languageTrack: updateTrackSchema.optional(),
 }).strict();

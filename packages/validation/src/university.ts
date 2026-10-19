@@ -121,6 +121,7 @@ const resourceFields = {
   topics,
   body: text('Note', 100_000),
   source: text('Source', 120).nullable(),
+  pinned: z.boolean(),
 };
 
 export const createResourceSchema = z.object({
@@ -131,6 +132,7 @@ export const createResourceSchema = z.object({
   topics: topics.optional(),
   body: resourceFields.body.optional(),
   source: resourceFields.source.optional(),
+  pinned: resourceFields.pinned.optional(),
 }).strict();
 
 export const updateResourceSchema = z.object(resourceFields).partial().strict();

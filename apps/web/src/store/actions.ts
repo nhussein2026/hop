@@ -9,6 +9,7 @@ import type {
   MonthFacts, MonthlyReview, Skill, SkillLevel, Task, TaskPriority, WeekFacts, WeeklyReview,
 } from '../lib/types.ts'
 import { api, upsert, useHop, without } from './store.ts'
+import type { Collection } from './store.ts'
 
 export type TaskFields = {
   title: string
@@ -29,7 +30,7 @@ function createBody(fields: object) {
   return Object.fromEntries(Object.entries(fields).filter(([, value]) => value !== null && value !== undefined && value !== ''))
 }
 
-const applyItem = <K extends Exclude<keyof HopData, 'settings'>>(key: K) => (item: HopData[K][number], data: HopData) => upsert(data, key, item)
+const applyItem = <K extends Collection>(key: K) => (item: HopData[K][number], data: HopData) => upsert(data, key, item)
 
 export function useActions() {
   const { commit, update, data } = useHop()

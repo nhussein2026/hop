@@ -1,4 +1,5 @@
 import type {
+  Account,
   BookWithDetails,
   Contact,
   CourseWithDetails,
@@ -15,6 +16,10 @@ import type {
   MonthlyReview,
   OpportunityWithDetails,
   Pin,
+  PracticeActivity,
+  PracticeSession,
+  PracticeTest,
+  PracticeTotals,
   Project,
   Reflection,
   Resource,
@@ -28,6 +33,20 @@ import type {
 } from '@hop/domain'
 
 export type {
+  Account,
+  AccountStatus,
+  BillingCycle,
+  Currency,
+  CefrLevel,
+  LanguageExam,
+  LanguageSkill,
+  LanguageTrack,
+  PracticeActivity,
+  PracticeArea,
+  PracticeSession,
+  PracticeSlot,
+  PracticeTest,
+  PracticeTotals,
   BookFormat,
   BookLoan,
   BookStatus,
@@ -117,4 +136,11 @@ export type HopData = {
   ideas: Idea[]
   finds: Find[]
   books: BookWithDetails[]
+  practiceActivities: PracticeActivity[]
+  /** The last PRACTICE_HISTORY_DAYS days. */
+  practiceSessions: PracticeSession[]
+  practiceTests: PracticeTest[]
+  /** Totals over everything ever logged, kept in step as sessions change. */
+  practiceTotals: PracticeTotals
+  accounts: Account[]
 }

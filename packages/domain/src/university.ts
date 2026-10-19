@@ -192,12 +192,14 @@ export interface Resource {
   /** Where it came from: "Ninova", "From a senior", "arXiv". */
   source: string | null;
   file: ResourceFile | null;
+  /** Kept at the top of Notes. */
+  pinned: boolean;
   createdAt: ISODateTime;
   updatedAt: ISODateTime;
 }
 
-export type CreateResourceInput = Pick<Resource, 'kind' | 'title'> & Partial<Pick<Resource, 'url' | 'courseId' | 'topics' | 'body' | 'source'>>;
-export type UpdateResourceInput = Partial<Pick<Resource, 'kind' | 'title' | 'url' | 'courseId' | 'topics' | 'body' | 'source'>>;
+export type CreateResourceInput = Pick<Resource, 'kind' | 'title'> & Partial<Pick<Resource, 'url' | 'courseId' | 'topics' | 'body' | 'source' | 'pinned'>>;
+export type UpdateResourceInput = Partial<Pick<Resource, 'kind' | 'title' | 'url' | 'courseId' | 'topics' | 'body' | 'source' | 'pinned'>>;
 
 /* ---- Research ------------------------------------------------------------------------- */
 

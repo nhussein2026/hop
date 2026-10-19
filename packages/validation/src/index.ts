@@ -1,4 +1,5 @@
 export * from './common.js';
+export * from './account.js';
 export * from './auth.js';
 export * from './backup.js';
 export * from './book.js';
@@ -6,6 +7,7 @@ export {};
 export * from './contact.js';
 export * from './goal.js';
 export * from './habit.js';
+export * from './language.js';
 export * from './evidence.js';
 export * from './event.js';
 export * from './milestone.js';

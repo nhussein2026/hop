@@ -65,7 +65,7 @@ export function Goals({ id }: { id?: string }) {
 function GoalCard({ goal: g, today }: { goal: Goal; today: string }) {
   const { data } = useHop()
   const progress = goalProgress(g)
-  const health = goalHealth(g, data.tasks, today)
+  const health = goalHealth(g, data, today)
   const nextTask = sortTasks(data.tasks.filter((t) => t.goalId === g.id && isOpen(t)))[0]
   const daysLeft = g.targetDate ? D.diffDays(g.targetDate, today) : 0
   return (
@@ -103,7 +103,7 @@ function GoalDetail({ id }: { id: string }) {
   }
   const today = D.today()
   const progress = goalProgress(g)
-  const health = goalHealth(g, data.tasks, today)
+  const health = goalHealth(g, data, today)
   const open = sortTasks(data.tasks.filter((t) => t.goalId === g.id && isOpen(t)))
   const doneCount = data.tasks.filter((t) => t.goalId === g.id && t.status === 'completed').length
   const habits = data.habits.filter((h) => h.goalId === g.id)

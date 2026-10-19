@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { setTimezone } from './dates.ts'
-import { habitWeek, monthEnd, monthFacts, reviewMonth } from './rules.ts'
+import { goalHealth, habitWeek, monthEnd, monthFacts, reviewMonth } from './rules.ts'
 import type { Goal, Habit, HopData, Task } from './types.ts'
 
 setTimezone('UTC')
@@ -13,6 +13,7 @@ function empty(): HopData {
     settings: {} as HopData['settings'], goals: [], tasks: [], habits: [], completions: [], events: [], opportunities: [], projects: [], skills: [],
     evidence: [], weeklyReviews: [], monthlyReviews: [], milestones: [], contacts: [], interactions: [], resumes: [], reflections: [],
     terms: [], courses: [], keyDates: [], pins: [], uniLinks: [], resources: [], ideas: [], finds: [], books: [],
+    practiceActivities: [], practiceSessions: [], practiceTests: [], practiceTotals: { minutes: { listening: 0, reading: 0, writing: 0, speaking: 0, words: 0 }, days: 0 }, accounts: [],
   }
 }
 
@@ -92,4 +93,18 @@ test('habitWeek still counts completions recorded before the habit’s creation 
   const week = habitWeek(habit, [{ id: 'c1', habitId: 'h', date: '2026-10-05', completedAt: stamp }], '2026-10-10')
   assert.equal(week.scheduled, 2)
   assert.equal(week.done, 1)
+})
+
+test('the language track’s goal is moved by its daily plan, not only by tasks', () => {
+  const g = goal({ id: 'tr', criteria: [{ id: 'c', goalId: 'tr', text: 'Finish A2', note: null, done: false, position: 0, createdAt: stamp, updatedAt: stamp }], updatedAt: '2026-09-01T00:00:00.000Z' })
+  const data = empty()
+  assert.equal(goalHealth(g, data, '2026-10-19').label, 'No next action')
+
+  data.settings = { languageTrack: { goalId: 'tr' } } as HopData['settings']
+  data.practiceActivities = [{ id: 'a', area: 'listening', title: 'Podcast', detail: '', minutes: 25, slot: 'commute', days: [1], position: 0, active: true, createdAt: stamp, updatedAt: stamp }]
+  // Untouched since September and no practice logged: quiet.
+  assert.equal(goalHealth(g, data, '2026-10-19').label, 'Quiet for 48 days')
+
+  data.practiceSessions = [{ id: 's', date: '2026-10-18', area: 'listening', minutes: 25, activityId: 'a', note: '', createdAt: stamp }]
+  assert.equal(goalHealth(g, data, '2026-10-19').label, 'On track')
 })

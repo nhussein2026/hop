@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
+import { createAccountSchema } from './account.js';
 import { setupPasswordSchema } from './auth.js';
 import { createBookSchema, logReadingSchema, updateLoanSchema } from './book.js';
 import { dateSchema } from './common.js';
@@ -56,4 +57,13 @@ test('reading log and loan schemas accept only real values', () => {
   assert.equal(logReadingSchema.safeParse({ date: '2026-10-18', page: 4.5 }).success, false);
   assert.equal(updateLoanSchema.safeParse({ returnedOn: null }).success, true);
   assert.equal(updateLoanSchema.safeParse({ library: '' }).success, false);
+});
+
+test('accounts refuse anything that looks like a card number', () => {
+  assert.equal(createAccountSchema.safeParse({ name: 'Spotify', payment: 'Ziraat card', cost: 59.99, cycle: 'monthly' }).success, true);
+  assert.equal(createAccountSchema.safeParse({ name: 'Spotify', payment: '4111 1111 1111 1111' }).success, false);
+  assert.equal(createAccountSchema.safeParse({ name: 'Spotify', notes: 'card 4111-1111-1111-1111 exp 12/29' }).success, false);
+  // A phone number is not a card number.
+  assert.equal(createAccountSchema.safeParse({ name: 'Turkcell', notes: 'Support: +90 532 123 45 67' }).success, true);
+  assert.equal(createAccountSchema.safeParse({ name: 'Spotify', password: 'hunter2' }).success, false);
 });

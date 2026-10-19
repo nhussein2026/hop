@@ -71,9 +71,22 @@ import {
   renewLoanSchema,
   updateBookSchema,
   updateLoanSchema,
+  createPracticeActivitySchema,
+  createPracticeSessionSchema,
+  createPracticeTestSchema,
+  practiceRangeSchema,
+  setupTrackSchema,
+  updatePracticeActivitySchema,
+  updatePracticeSessionSchema,
+  updatePracticeTestSchema,
+  createAccountSchema,
+  updateAccountSchema,
 } from '@hop/validation';
 import type { ZodType } from 'zod';
 import type {
+  CreatePracticeSessionInput,
+  SetupTrackInput,
+  UpdatePracticeSessionInput,
   CreateLoanInput,
   LogReadingInput,
   RenewLoanInput,
@@ -118,7 +131,9 @@ import { RESOURCE_FILE_MAX_BYTES, RESUME_FILE_MAX_BYTES } from '@hop/domain';
 
 import { authService } from './services/auth.service.js';
 import { backupService } from './services/backup.service.js';
+import { accountService } from './services/account.service.js';
 import { bookService } from './services/book.service.js';
+import { practiceService } from './services/practice.service.js';
 import { contactService } from './services/contact.service.js';
 import { courseService, termService } from './services/course.service.js';
 import { keyDateService, pinService, uniLinkService } from './services/handbook.service.js';
@@ -1033,6 +1048,50 @@ const server = createServer(async (request, response) => {
     if (await crudRoutes(request, response, url.pathname, 'ideas', ideaService, { create: createIdeaSchema, update: updateIdeaSchema }, 'Idea not found')) return;
     if (await crudRoutes(request, response, url.pathname, 'finds', findService, { create: createFindSchema, update: updateFindSchema }, 'Find not found')) return;
     if (await crudRoutes(request, response, url.pathname, 'resources', libraryService, { create: createResourceSchema, update: updateResourceSchema }, 'Library item not found')) return;
+    if (request.method === 'POST' && url.pathname === '/api/practice/setup') {
+      const input = await readValid<SetupTrackInput>(request, response, setupTrackSchema);
+      if (input) sendJson(response, 201, practiceService.setup(input));
+      return;
+    }
+
+    if (request.method === 'GET' && url.pathname === '/api/practice/totals') {
+      sendJson(response, 200, practiceService.totals());
+      return;
+    }
+
+    const activityService = { getAll: () => practiceService.getActivities(), create: practiceService.createActivity, update: practiceService.updateActivity, delete: practiceService.deleteActivity };
+    if (await crudRoutes(request, response, url.pathname, 'practice/activities', activityService, { create: createPracticeActivitySchema, update: updatePracticeActivitySchema }, 'Activity not found')) return;
+
+    const testService = { getAll: () => practiceService.getTests(), create: practiceService.createTest, update: practiceService.updateTest, delete: practiceService.deleteTest };
+    if (await crudRoutes(request, response, url.pathname, 'practice/tests', testService, { create: createPracticeTestSchema, update: updatePracticeTestSchema }, 'Practice test not found')) return;
+
+    if (url.pathname === '/api/practice/sessions' && request.method === 'GET') {
+      const range = practiceRangeSchema.safeParse({ from: url.searchParams.get('from'), to: url.searchParams.get('to') });
+      if (!range.success) sendJson(response, 400, { error: range.error.flatten() });
+      else sendJson(response, 200, practiceService.getSessions(range.data.from, range.data.to));
+      return;
+    }
+
+    if (url.pathname === '/api/practice/sessions' && request.method === 'POST') {
+      const input = await readValid<CreatePracticeSessionInput>(request, response, createPracticeSessionSchema);
+      if (input) sendJson(response, 201, practiceService.logSession(input));
+      return;
+    }
+
+    const sessionId = url.pathname.match(/^\/api\/practice\/sessions\/([^/]+)$/)?.[1];
+
+    if (sessionId && request.method === 'PATCH') {
+      const input = await readValid<UpdatePracticeSessionInput>(request, response, updatePracticeSessionSchema);
+      if (input) sendFound(response, practiceService.updateSession(sessionId, input), 'Session not found');
+      return;
+    }
+
+    if (sessionId && request.method === 'DELETE') {
+      sendFound(response, practiceService.deleteSession(sessionId) ? { ok: true } : undefined, 'Session not found');
+      return;
+    }
+
+    if (await crudRoutes(request, response, url.pathname, 'accounts', accountService, { create: createAccountSchema, update: updateAccountSchema }, 'Account not found')) return;
     if (await crudRoutes(request, response, url.pathname, 'books', bookService, { create: createBookSchema, update: updateBookSchema }, 'Book not found')) return;
 
     const bookPath = url.pathname.match(/^\/api\/books\/([^/]+)\/(log|loans)(?:\/([^/]+))?(?:\/(renew))?$/);

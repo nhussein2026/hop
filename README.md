@@ -13,14 +13,16 @@ Everything lives in one SQLite database on a server you control. There are no ac
 | **Today** | One next action, today's priorities, habits, classes, deadlines that need attention, what's coming up, and a short reflection. |
 | **Plan** | Agenda, all tasks, and habits with four-week consistency (missing a day never resets a streak). |
 | **Calendar** | Month and week views of events, tasks, deadlines, and classes. |
+| **Türkçe** | The road to a language exam, set up for the İTÜ TÖMER C1 certificate: a daily plan across listening, reading, writing, speaking and words, ticked off in a tap; a weekly balance that flags the skill falling behind; level checkpoints up to the exam; practice test results scored like the exam. On phones it takes İTÜ's place in the tab bar. |
 | **İTÜ** | This term at a glance, courses with grade tracking, target averages and the VF (final eligibility) attendance limit, a file library, thesis and research ideas, and a handbook of key dates and links. |
 | **Goals** | Outcomes with success criteria, milestones, progress history, and health signals. |
 | **Career** | Opportunity pipeline with follow-ups, interview prep, activity timeline, people and interactions, resumes with files, and analytics. |
 | **Growth** | Skills, projects, evidence, milestones, **Reading**: books for your field with who suggested them and why, pages read each day, pace, and library loans counted down to their due date, and **Radar**: an inbox for interesting finds (repos, papers, books, models, events) where each find gets one decision. |
+| **Notes** | Quick notes, pinned ones first (İTÜ library notes included), and **Accounts**: which login each service uses, what each subscription costs a month, and warnings before renewals and trial ends. Never passwords or card numbers: those belong in a password manager, and Hop refuses card numbers. |
 | **Review** | Weekly and monthly reviews built from the period's facts, reflections, and past reviews. |
 | **Settings** | Profile, timezone, theme, notification categories, career rules, university terms, backup and export, password, and signed-in devices. |
 
-Across the app: quick add (`N`), search (`/` or `Ctrl/⌘ K`), go-to shortcuts (`G` then `T` Today, `P` Plan, `L` Calendar, `U` İTÜ, `G` Goals, `C` Career, `W` Growth, `R` Review, `S` Settings), undo for most changes, in-app notifications, light and dark themes, and an installable PWA that opens offline.
+Across the app: quick add (`N`), search (`/` or `Ctrl/⌘ K`), go-to shortcuts (`G` then `T` Today, `P` Plan, `L` Calendar, `K` Türkçe, `U` İTÜ, `G` Goals, `C` Career, `W` Growth, `N` Notes, `R` Review, `S` Settings), undo for most changes, in-app notifications, light and dark themes, and an installable PWA that opens offline.
 
 The product vision and rules are in the [product specification](docs/HOP_PRODUCT_SPEC.md).
 

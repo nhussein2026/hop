@@ -84,6 +84,7 @@ export const resources = sqliteTable('resources', {
   topics: text('topics', { mode: 'json' }).$type<string[]>().notNull().default([]),
   body: text('body').notNull().default(''),
   source: text('source'),
+  pinned: integer('pinned', { mode: 'boolean' }).notNull().default(false),
   createdAt: text('created_at').notNull(),
   updatedAt: text('updated_at').notNull(),
 });

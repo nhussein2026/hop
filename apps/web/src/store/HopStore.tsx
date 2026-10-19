@@ -6,11 +6,12 @@
 // soon as the server answers again after being unreachable.
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
+import { PRACTICE_HISTORY_DAYS } from '@hop/domain'
 import { addDays, setTimezone, today as todayIn } from '../lib/dates.ts'
 import { ServerUnreachableError, pingServer } from '../lib/api.ts'
 import { useOnlineStatus } from '../lib/pwa.ts'
 import { isServerReachable, offlineAnswerCount, useServerReachable } from '../lib/server.ts'
-import type { HopData, Settings } from '../lib/types.ts'
+import type { HopData, PracticeTotals, Settings } from '../lib/types.ts'
 import { useToast } from '../components/ui-context.ts'
 import { StoreContext, api } from './store.ts'
 import type { Collection, CommitOptions, Sync, UiState } from './store.ts'
@@ -41,6 +42,10 @@ const endpoints: Record<Collection, string> = {
   ideas: '/api/ideas',
   finds: '/api/finds',
   books: '/api/books',
+  practiceActivities: '/api/practice/activities',
+  practiceSessions: '',
+  practiceTests: '/api/practice/tests',
+  accounts: '/api/accounts',
 }
 
 /** Habit consistency looks back four weeks, and the monthly review may cover last month until the 7th. */
@@ -57,10 +62,15 @@ async function loadAll(): Promise<HopData> {
   setTimezone(settings.timezone)
   const today = todayIn()
   const keys = Object.keys(endpoints) as Collection[]
-  const lists = await Promise.all(keys.map((key) => key === 'completions'
-    ? api.get(`/api/habits/completions?from=${addDays(today, -completionDays)}&to=${today}`)
-    : api.get(endpoints[key])))
-  return Object.fromEntries([['settings', settings], ...keys.map((key, index) => [key, lists[index]])]) as HopData
+  const [lists, practiceTotals] = await Promise.all([
+    Promise.all(keys.map((key) => key === 'completions'
+      ? api.get(`/api/habits/completions?from=${addDays(today, -completionDays)}&to=${today}`)
+      : key === 'practiceSessions'
+        ? api.get(`/api/practice/sessions?from=${addDays(today, -PRACTICE_HISTORY_DAYS)}&to=${today}`)
+        : api.get(endpoints[key]))),
+    api.get<PracticeTotals>('/api/practice/totals'),
+  ])
+  return Object.fromEntries([['settings', settings], ['practiceTotals', practiceTotals], ...keys.map((key, index) => [key, lists[index]])]) as HopData
 }
 
 function applyTheme(theme: Settings['theme']) {

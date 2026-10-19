@@ -5,7 +5,9 @@ import { readFileSync } from 'node:fs';
 import { InvalidInputError } from '../errors.js';
 import { backupRepository } from '../repositories/backup.repository.js';
 import { backupService } from './backup.service.js';
+import { accountService } from './account.service.js';
 import { bookService } from './book.service.js';
+import { practiceService } from './practice.service.js';
 import { courseService } from './course.service.js';
 import { libraryService } from './library.service.js';
 import { findService, ideaService } from './research.service.js';
@@ -148,4 +150,32 @@ test('books, their loans and their reading log survive a backup and restore', ()
   assert.deepEqual(restored?.takeaways, ['Search is everywhere']);
   assert.deepEqual(restored?.loans.map((l) => [l.dueOn, l.renewedOn]), [['2026-10-29', ['2026-10-14']]]);
   assert.deepEqual(restored?.log.map((entry) => entry.page), [24]);
+});
+
+test('the language track’s plan, practice and tests survive a backup and restore', () => {
+  const activity = practiceService.createActivity({ area: 'listening', title: 'Podcast', minutes: 25, days: [1, 2, 3] });
+  const session = practiceService.logSession({ date: '2026-10-19', minutes: 25, activityId: activity.id });
+  const result = practiceService.createTest({ date: '2026-10-20', scores: { reading: 22 }, max: { listening: 25, reading: 25, writing: 25, speaking: 25 } });
+  const snapshot = exportSnapshot();
+
+  practiceService.deleteActivity(activity.id);
+  practiceService.deleteTest(result.id);
+  restoreService.restore(snapshot);
+
+  assert.deepEqual(practiceService.getActivities().find((a) => a.id === activity.id)?.days, [1, 2, 3]);
+  assert.equal(practiceService.getSessions('2026-10-19', '2026-10-19').find((s) => s.id === session.id)?.activityId, activity.id);
+  assert.deepEqual(practiceService.getTests().find((t) => t.id === result.id)?.max.reading, 25);
+});
+
+test('accounts and pinned notes survive a backup and restore', () => {
+  const account = accountService.create({ name: 'Spotify', cost: 59.99, cycle: 'monthly', renewsOn: '2026-11-03', payment: 'Ziraat card' });
+  const note = libraryService.create({ kind: 'note', title: 'Bus times', body: '500T at 07:40', pinned: true });
+  const snapshot = exportSnapshot();
+
+  accountService.delete(account.id);
+  libraryService.delete(note.id);
+  restoreService.restore(snapshot);
+
+  assert.equal(accountService.getAll().find((a) => a.id === account.id)?.cost, 59.99);
+  assert.equal(libraryService.getAll().find((r) => r.id === note.id)?.pinned, true);
 });

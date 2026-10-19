@@ -9,13 +9,14 @@ import type {
   Pin, Playbook, Program, Project, Resource, ResourceKind, Settings, Task, Term, UniLink,
 } from '../lib/types.ts'
 import { api, upsert, useHop, without } from './store.ts'
+import type { Collection } from './store.ts'
 
 /** The create endpoints take optional fields, not nulls. */
 function createBody(fields: object) {
   return Object.fromEntries(Object.entries(fields).filter(([, value]) => value !== null && value !== undefined && value !== ''))
 }
 
-const applyItem = <K extends Exclude<keyof HopData, 'settings'>>(key: K) => (item: HopData[K][number], data: HopData) => upsert(data, key, item)
+const applyItem = <K extends Collection>(key: K) => (item: HopData[K][number], data: HopData) => upsert(data, key, item)
 const ok = () => undefined
 
 export type CourseFields = {
@@ -31,7 +32,7 @@ export type CourseFields = {
   vf: Course['vf']
 }
 
-type ResourceFields = { kind: ResourceKind; title: string; url?: string | null; courseId?: string | null; topics?: string[]; body?: string; source?: string | null }
+type ResourceFields = { kind: ResourceKind; title: string; url?: string | null; courseId?: string | null; topics?: string[]; body?: string; source?: string | null; pinned?: boolean }
 
 export function useUniActions() {
   const { commit, data } = useHop()

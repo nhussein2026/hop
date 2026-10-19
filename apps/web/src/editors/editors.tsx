@@ -1,13 +1,15 @@
 // One place to open any dialog, so screens and rows don't import each other's editors.
 import { useMemo } from 'react'
 import * as D from '../lib/dates.ts'
-import type { Assessment, Book, BookLoan, Contact, Course, Goal, Habit, Idea, Opportunity, OpportunityStage, Pin, Program, Project, Resource, ResourceKind, Resume, Skill, Task, Term } from '../lib/types.ts'
+import type { Account, Assessment, Book, BookLoan, Contact, PracticeActivity, PracticeArea, PracticeSession, PracticeTest, Course, Goal, Habit, Idea, Opportunity, OpportunityStage, Pin, Program, Project, Resource, ResourceKind, Resume, Skill, Task, Term } from '../lib/types.ts'
 import { CloseOpportunity, ContactDrawer, ContactEditor, LogActivity, OpportunityEditor, ResumeEditor } from './career.tsx'
 import { MoreSheet, Notifications, QuickAdd, ReflectionEditor, Search } from './global.tsx'
 import type { AddKind } from './global.tsx'
 import { EvidenceEditor, MilestoneEditor, ProjectDrawer, ProjectEditor, SkillDrawer, SkillEditor } from './growth.tsx'
 import { EventEditor, GoalEditor, HabitEditor, TaskEditor } from './planning.tsx'
 import { FindEditor } from './radar.tsx'
+import { AccountEditor, NoteEditor } from './notes.tsx'
+import { ActivityEditor, LogPractice, SessionEditor, SetupTrack, TestEditor, TrackEditor } from './practice.tsx'
 import { BookDrawer, BookEditor, FinishBook, LoanEditor, LogPages, RenewLoan } from './reading.tsx'
 import { AdvisorPicker, AssessmentEditor, CompleteCourse, CourseEditor, IdeaDrawer, IdeaEditor, KeyDateEditor, MoveResource, NoteDrawer, PinEditor, PlaybookEditor, ResourceEditor, TermEditor, UniLinkEditor } from './uni.tsx'
 import { useDialogs } from '../components/ui-context.ts'
@@ -57,9 +59,17 @@ export function useEditors() {
       borrow: (book: Book, loan?: BookLoan) => open((close) => <LoanEditor book={book} close={close} loan={loan} />),
       renew: (book: Book, loan: BookLoan) => open((close) => <RenewLoan book={book} close={close} loan={loan} />),
       finishBook: (book: Book) => open((close) => <FinishBook book={book} close={close} />),
+      note: (topics?: string[]) => open((close) => <NoteEditor close={close} topics={topics} />),
+      account: (account?: Account | null) => open((close) => <AccountEditor account={account} close={close} />),
+      setupTrack: () => open((close) => <SetupTrack close={close} />),
+      editTrack: () => open((close) => <TrackEditor close={close} />),
+      practiceActivity: (activity?: PracticeActivity | null) => open((close) => <ActivityEditor activity={activity} close={close} />),
+      logPractice: (area?: PracticeArea) => open((close) => <LogPractice area={area} close={close} />),
+      practiceSession: (session: PracticeSession, title: string) => open((close) => <SessionEditor close={close} session={session} title={title} />),
+      practiceTest: (test?: PracticeTest | null) => open((close) => <TestEditor close={close} test={test} />),
       search: () => open((close) => <Search close={close} />),
       notifications: () => open((close) => <Notifications close={close} />),
-      more: (counts: Record<string, number> = {}) => open((close) => <MoreSheet close={close} counts={counts} />),
+      more: (counts: Record<string, number> = {}, extra?: 'itu' | 'turkish') => open((close) => <MoreSheet close={close} counts={counts} extra={extra} />),
       add: (kind?: AddKind) => {
         if (kind) return switchTo(kind)
         return open((close) => <QuickAdd close={close} onSwitch={switchTo} />)
@@ -79,6 +89,8 @@ export function useEditors() {
         resource: () => editors.resource(),
         find: () => editors.find(),
         book: () => editors.book(),
+        memo: () => editors.note(),
+        account: () => editors.account(),
         idea: () => editors.idea(),
       }
       map[kind]()

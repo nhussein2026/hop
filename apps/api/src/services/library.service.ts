@@ -50,6 +50,7 @@ export const libraryService = {
       topics: input.topics ?? [],
       body: note ? input.body ?? '' : '',
       source: input.source ?? null,
+      pinned: input.pinned ?? false,
       createdAt: now,
       updatedAt: now,
     });

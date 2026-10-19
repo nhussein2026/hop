@@ -2,10 +2,11 @@
 // Raw facts are stored; health, follow-ups, overdue and progress are derived here.
 import * as D from './dates.ts'
 import { GOAL_AREAS } from '@hop/domain'
-import type { Book, Course, Goal, Habit, HabitCompletion, HopData, KeyDate, MonthFacts, MonthlyReview, Opportunity, OpportunityStage, Task, WeekFacts } from './types.ts'
+import type { Account, Book, Course, Goal, Habit, HabitCompletion, HopData, KeyDate, MonthFacts, MonthlyReview, Opportunity, OpportunityStage, Task, WeekFacts } from './types.ts'
 import { dueTime, eligibility, isPending, isExam, satInClass, taking, unsubmitted, upcoming, whenWord } from './uni.ts'
 import { AGENDA_META, BOOK_STATUS_LABEL, FIND_KINDS, IDEA_STAGE_LABEL, RESOURCE_KINDS } from './labels.ts'
 import { LOAN_NOTICE_DAYS, loanState, openLoan } from './books.ts'
+import { money, nextRenewal, renewingSoon } from './accounts.ts'
 
 /* ---- Opportunities ------------------------------------------------------- */
 export const STAGES: OpportunityStage[] = ['saved', 'interested', 'preparing', 'applied', 'screening', 'interview', 'assessment', 'final', 'offer']
@@ -89,16 +90,22 @@ export function goalBaseline(g: Goal, today: string) {
 
 type GoalHealth = { label: string; tone: Tone; icon: string; detail?: string }
 
-export function goalHealth(g: Goal, tasks: Task[], today: string): GoalHealth {
+/**
+ * A goal is moved by its open tasks, or, for the language track's goal, by the daily plan: practice
+ * logged in the last two weeks counts as recent activity.
+ */
+export function goalHealth(g: Goal, s: Pick<HopData, 'tasks' | 'settings' | 'practiceActivities' | 'practiceSessions'>, today: string): GoalHealth {
   if (g.status === 'paused') return { label: 'Paused', tone: '', icon: 'pause' }
   if (g.status === 'achieved') return { label: 'Achieved', tone: 'success', icon: 'check' }
   if (g.status === 'archived' || g.status === 'abandoned') return { label: 'Archived', tone: '', icon: 'archive' }
   if (!g.criteria.length) return { label: 'Not measured', tone: 'warning', icon: 'alert', detail: 'Add a success criterion so progress can be measured.' }
-  const open = tasks.filter((t) => t.goalId === g.id && isOpen(t))
-  if (!open.length) return { label: 'No next action', tone: 'warning', icon: 'alert', detail: 'Add one task that moves this goal.' }
+  const planned = s.settings.languageTrack?.goalId === g.id && s.practiceActivities.some((a) => a.active)
+  const open = s.tasks.filter((t) => t.goalId === g.id && isOpen(t))
+  if (!open.length && !planned) return { label: 'No next action', tone: 'warning', icon: 'alert', detail: 'Add one task that moves this goal.' }
   const idle = D.diffDays(today, D.ymdOf(g.updatedAt))
-  const recentDone = tasks.some((t) => t.goalId === g.id && t.completedAt && D.diffDays(today, D.ymdOf(t.completedAt)) <= 14)
-  if (idle > 14 && !recentDone) return { label: `Quiet for ${idle} days`, tone: 'warning', icon: 'alert' }
+  const recentDone = s.tasks.some((t) => t.goalId === g.id && t.completedAt && D.diffDays(today, D.ymdOf(t.completedAt)) <= 14)
+  const recentPractice = planned && s.practiceSessions.some((p) => D.diffDays(today, p.date) <= 14)
+  if (idle > 14 && !recentDone && !recentPractice) return { label: `Quiet for ${idle} days`, tone: 'warning', icon: 'alert' }
   return { label: 'On track', tone: 'success', icon: 'check' }
 }
 
@@ -137,6 +144,7 @@ export function daysLabel(days: number[]) {
   if (days.length === 7) return 'Every day'
   const set = [...days].sort().join(',')
   if (set === '1,2,3,4,5') return 'Weekdays'
+  if (set === '1,2,3,4,5,6') return 'Mon to Sat'
   if (set === '0,6') return 'Weekends'
   return [1, 2, 3, 4, 5, 6, 0].filter((d) => days.includes(d)).map((d) => D.DAYS[d]).join(', ')
 }
@@ -243,9 +251,17 @@ export function attention(s: HopData, today: string): AttentionItem[] {
   items.push(...courseAttention(s, today))
   items.push(...loanAttention(s.books, today))
 
+  for (const { account: a, date } of renewingSoon(s.accounts, today)) {
+    const n = D.diffDays(date, today)
+    const when = n === 0 ? 'today' : n === 1 ? 'tomorrow' : D.relative(date, today)
+    items.push(a.status === 'trial'
+      ? { level: n <= 1 ? 'critical' : 'important', icon: 'alert', title: `${a.name} free trial ends ${when}`, detail: 'Cancel before then if you don’t want to pay for it.', href: `#/notes/accounts?account=${a.id}` }
+      : { level: 'important', icon: 'refresh', title: `${a.name} renews ${when}${a.cost ? ` for ${money(a.cost, a.currency)}` : ''}`, detail: 'Still using it? If not, cancel it before then.', href: `#/notes/accounts?account=${a.id}` })
+  }
+
   for (const g of s.goals) {
     if (g.status !== 'active') continue
-    const h = goalHealth(g, s.tasks, today)
+    const h = goalHealth(g, s, today)
     if (h.tone === 'warning') items.push({ level: 'info', icon: 'target', title: `${g.name}: ${h.label.toLowerCase()}`, detail: h.detail || 'Pick the next small action.', href: `#/goals/${g.id}` })
   }
 
@@ -319,6 +335,7 @@ export type AgendaItem =
   | { kind: 'assessment'; type: 'exam' | 'coursework'; date: string; time: string | null; title: string; ref: Course; weight: number }
   | { kind: 'keyDate'; type: 'uni'; date: string; time: null; title: string; ref: KeyDate }
   | { kind: 'loan'; type: 'loan'; date: string; time: null; title: string; ref: Book }
+  | { kind: 'renewal'; type: 'renewal'; date: string; time: null; title: string; ref: Account }
 
 export type AgendaGroup = { date: string; items: AgendaItem[] }
 
@@ -360,7 +377,11 @@ export function agendaItems(s: HopData, from: string, to: string, { includeDone 
     const loan = openLoan(b)
     if (loan && inRange(loan.dueOn)) items.push({ kind: 'loan', type: 'loan', date: loan.dueOn, time: null, title: `Return “${b.title}”`, ref: b })
   }
-  const kindOrder = { event: 0, assessment: 1, oppEvent: 2, deadline: 3, keyDate: 4, loan: 5, milestone: 6, task: 7 }
+  for (const a of s.accounts) {
+    const date = nextRenewal(a, from)
+    if (date && inRange(date)) items.push({ kind: 'renewal', type: 'renewal', date, time: null, title: a.status === 'trial' ? `${a.name} trial ends` : `${a.name} renews`, ref: a })
+  }
+  const kindOrder = { event: 0, assessment: 1, oppEvent: 2, deadline: 3, keyDate: 4, loan: 5, renewal: 6, milestone: 7, task: 8 }
   return items.sort((a, b) => a.date.localeCompare(b.date) || (a.time || '99').localeCompare(b.time || '99') || kindOrder[a.kind] - kindOrder[b.kind])
 }
 
@@ -371,6 +392,7 @@ export function agendaHref(item: AgendaItem) {
   if (item.kind === 'assessment') return `#/itu/courses/${item.ref.id}`
   if (item.kind === 'keyDate') return '#/itu/handbook'
   if (item.kind === 'loan') return `#/growth/reading?book=${item.ref.id}`
+  if (item.kind === 'renewal') return `#/notes/accounts?account=${item.ref.id}`
   return item.kind === 'task' ? '' : `#/career/${item.ref.id}`
 }
 
@@ -414,7 +436,9 @@ function periodFacts(s: HopData, from: string, to: string, today: string): WeekF
     s.completions.filter((c) => within(c.date)).reduce((total, c) => {
       const h = s.habits.find((x) => x.id === c.habitId)
       return total + (h && h.goalId && learningGoals.has(h.goalId) ? h.minutes : 0)
-    }, 0)
+    }, 0) +
+    // Language practice is learning time too.
+    s.practiceSessions.filter((p) => within(p.date)).reduce((total, p) => total + p.minutes, 0)
   const timeline = s.opportunities.flatMap((o) => o.activities)
   return {
     tasks: done.length,
@@ -547,7 +571,13 @@ export function search(s: HopData, query: string): SearchResult[] {
   for (const e of s.evidence) if (has(e.title)) out.push({ group: 'Evidence', icon: 'award', title: e.title, meta: e.date ? D.short(e.date) : '', href: '#/growth/evidence' })
   const courseCode = (id: string | null) => s.courses.find((c) => c.id === id)?.code
   for (const c of s.courses) if (has(c.code, c.name)) out.unshift({ group: 'Courses', icon: 'school', title: `${c.code} ${c.name}`, meta: c.status === 'taking' ? 'This term' : capitalize(c.status), href: `#/itu/courses/${c.id}` })
-  for (const r of s.resources) if (has(r.title, r.body, r.source, r.topics.join(' '))) out.push({ group: 'Library', icon: RESOURCE_KINDS[r.kind][0], title: r.title, meta: courseCode(r.courseId) ?? 'General', href: `#/itu/library?item=${r.id}` })
+  for (const r of s.resources) {
+    if (!has(r.title, r.body, r.source, r.topics.join(' '))) continue
+    out.push(r.kind === 'note'
+      ? { group: 'Notes', icon: 'notes', title: r.title, meta: courseCode(r.courseId) ?? (r.topics.join(', ') || 'Note'), href: `#/notes?note=${r.id}` }
+      : { group: 'Library', icon: RESOURCE_KINDS[r.kind][0], title: r.title, meta: courseCode(r.courseId) ?? 'General', href: `#/itu/library?item=${r.id}` })
+  }
+  for (const a of s.accounts) if (has(a.name, a.login, a.purpose)) out.push({ group: 'Accounts', icon: 'key', title: a.name, meta: a.login ?? a.purpose, href: `#/notes/accounts?account=${a.id}` })
   for (const i of s.ideas) if (has(i.title, i.question)) out.push({ group: 'Ideas', icon: 'bulb', title: i.title, meta: IDEA_STAGE_LABEL[i.stage], href: `#/itu/research?idea=${i.id}` })
   for (const b of s.books) if (has(b.title, b.author, b.why, b.suggestedBy, b.topics.join(' '), b.takeaways.join(' '))) out.push({ group: 'Reading', icon: 'library', title: b.title, meta: [b.author, BOOK_STATUS_LABEL[b.status]].filter(Boolean).join(', '), href: `#/growth/reading?book=${b.id}` })
   for (const f of s.finds) if (has(f.title, f.why, f.topics.join(' '))) out.push({ group: 'Radar', icon: FIND_KINDS[f.kind][0], title: f.title, meta: f.status === 'inbox' ? 'In the inbox' : capitalize(f.status), href: `#/growth/radar?status=${f.status}` })

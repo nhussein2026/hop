@@ -1,6 +1,7 @@
 import type { Settings, UpdateSettingsInput } from '@hop/domain';
 
 import { db } from '../db/client.js';
+import { InvalidInputError } from '../errors.js';
 import { goals, tasks } from '../db/schema/index.js';
 import { settingsRepository } from '../repositories/settings.repository.js';
 
@@ -15,6 +16,7 @@ const defaults: Settings = {
   onboarded: false,
   readNotifications: [],
   program: { degree: '', department: '', weeks: 14, thesisStep: 'topic', advisorId: null },
+  languageTrack: null,
 };
 
 function stored(): Settings {
@@ -42,7 +44,19 @@ export const settingsService = {
 
   update(input: UpdateSettingsInput): Settings {
     const current = stored();
-    save({ ...current, ...input, notify: { ...current.notify, ...input.notify }, program: { ...current.program, ...input.program } });
+
+    if (input.languageTrack && !current.languageTrack) {
+      throw new InvalidInputError('Set up the language track first');
+    }
+
+    const languageTrack = current.languageTrack && { ...current.languageTrack, ...input.languageTrack };
+    save({ ...current, ...input, notify: { ...current.notify, ...input.notify }, program: { ...current.program, ...input.program }, languageTrack });
+    return this.get();
+  },
+
+  /** Setup is the only way a track starts, so it replaces any earlier one whole. */
+  startTrack(track: NonNullable<Settings['languageTrack']>): Settings {
+    save({ ...stored(), languageTrack: track });
     return this.get();
   },
 
