@@ -5,6 +5,7 @@ import { readFileSync } from 'node:fs';
 import { InvalidInputError } from '../errors.js';
 import { backupRepository } from '../repositories/backup.repository.js';
 import { backupService } from './backup.service.js';
+import { bookService } from './book.service.js';
 import { courseService } from './course.service.js';
 import { libraryService } from './library.service.js';
 import { findService, ideaService } from './research.service.js';
@@ -131,4 +132,20 @@ test('İTÜ and Radar data, including library files, survive a backup and restor
   assert.deepEqual(courseService.getAll().find((c) => c.id === course.id)?.schedule, course.schedule);
   assert.equal(libraryService.getFile(exam.id)?.data.toString('latin1'), pdf.toString('latin1'));
   assert.equal(findService.getAll().find((f) => f.id === find.id)?.status, 'converted');
+});
+
+test('books, their loans and their reading log survive a backup and restore', () => {
+  const book = bookService.create({ title: 'Yapay Zekâ', language: 'tr', topics: ['AI'], takeaways: ['Search is everywhere'] });
+  const loan = bookService.addLoan(book.id, { borrowedOn: '2026-10-01', dueOn: '2026-10-15', maxRenewals: 3 })!.loans[0]!;
+  bookService.renewLoan(book.id, loan.id, { date: '2026-10-14', dueOn: '2026-10-29' });
+  bookService.log(book.id, { date: '2026-10-02', page: 24 });
+  const snapshot = exportSnapshot();
+
+  bookService.delete(book.id);
+  restoreService.restore(snapshot);
+
+  const restored = bookService.getAll().find((b) => b.id === book.id);
+  assert.deepEqual(restored?.takeaways, ['Search is everywhere']);
+  assert.deepEqual(restored?.loans.map((l) => [l.dueOn, l.renewedOn]), [['2026-10-29', ['2026-10-14']]]);
+  assert.deepEqual(restored?.log.map((entry) => entry.page), [24]);
 });

@@ -310,7 +310,7 @@ export function useUniActions() {
     }
 
     const radar = {
-      add(fields: { kind: Find['kind']; title: string; url: string; source: string; why: string; topics: string[]; eventDate: string | null }) {
+      add(fields: { kind: Find['kind']; title: string; url: string; source: string; why: string; topics: string[]; eventDate: string | null; language: Find['language'] }) {
         return commit('Saved to your Radar inbox', () => api.post<Find>('/api/finds', createBody(fields)), applyItem('finds'))
       },
       update(f: Find, changes: Partial<Find>, label: string, undo = true) {
@@ -331,7 +331,7 @@ export function useUniActions() {
       /** Keep it: it becomes a library item, and any "try it" task is done. */
       keep(f: Find) {
         if (f.resourceId) return radar.update(f, { status: 'kept' }, 'Kept')
-        const kind: ResourceKind = f.kind === 'paper' ? 'paper' : f.kind === 'repo' || f.kind === 'tool' ? 'repo' : 'link'
+        const kind: ResourceKind = f.kind === 'paper' || f.kind === 'book' ? f.kind : f.kind === 'repo' || f.kind === 'tool' ? 'repo' : 'link'
         const task = f.taskId ? data.tasks.find((t) => t.id === f.taskId && isOpen(t)) : undefined
         return commit('Kept in your library', async () => {
           const resource = await api.post<Resource>('/api/resources', createBody({ kind, title: f.title, url: f.url, topics: f.topics, source: f.source }))

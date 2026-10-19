@@ -1,4 +1,5 @@
 export {};
+export * from './book.js';
 export * from './common.js';
 export * from './contact.js';
 export * from './evidence.js';

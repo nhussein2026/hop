@@ -434,8 +434,19 @@ export function ProgressBar({ pct, label = 'Progress' }: { pct: number; label?: 
 
 /** Section navigation: each section has its own URL, so these are links with aria-current. */
 export function Tabs({ items, active, label }: { items: [string, string, string, number?][]; active: string; label: string }) {
+  const ref = useRef<HTMLElement>(null)
+  // On a phone the row scrolls sideways; keep the open section in view.
+  useEffect(() => {
+    const nav = ref.current
+    const tab = nav?.querySelector<HTMLElement>('[aria-current="page"]')
+    if (!nav || !tab) return
+    const row = nav.getBoundingClientRect()
+    const box = tab.getBoundingClientRect()
+    if (box.right > row.right) nav.scrollLeft += box.right - row.right + 16
+    else if (box.left < row.left) nav.scrollLeft -= row.left - box.left + 16
+  }, [active])
   return (
-    <nav aria-label={label} className="tabs">
+    <nav aria-label={label} className="tabs" ref={ref}>
       {items.map(([key, text, href, count]) => <a aria-current={key === active ? 'page' : undefined} className="tab" href={href} key={key}>{text}{count ? <> <span className="count">{count}</span></> : null}</a>)}
     </nav>
   )

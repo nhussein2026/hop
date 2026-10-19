@@ -1,6 +1,7 @@
 export * from './common.js';
 export * from './auth.js';
 export * from './backup.js';
+export * from './book.js';
 export {};
 export * from './contact.js';
 export * from './goal.js';

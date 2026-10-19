@@ -92,6 +92,12 @@ All routes live in `apps/api/src/server.ts`. Request bodies are validated by the
 | `GET` / `POST` | `/api/evidence` | List or create evidence. |
 | `PATCH` | `/api/evidence/:id` | Update evidence. |
 | `GET` / `POST` / `PATCH` / `DELETE` | `/api/finds[/:id]` | Radar finds. |
+| `GET` / `POST` / `PATCH` / `DELETE` | `/api/books[/:id]` | Reading list. Each book comes with its `loans` and reading `log`. |
+| `POST` | `/api/books/:id/log` | Record the page reached on a day (`{ date, page }`); the same day again replaces it. Returns `{ book, completion }`, where `completion` is the linked habit's tick if this call made it. |
+| `DELETE` | `/api/books/:id/log/:date` | Remove that day's entry. |
+| `POST` | `/api/books/:id/loans` | Borrow the book (`{ library?, borrowedOn, dueOn, maxRenewals? }`). Refused with 409 while another loan is open. |
+| `PATCH` / `DELETE` | `/api/books/:id/loans/:loanId` | Edit a loan (including `returnedOn`) or remove it. |
+| `POST` | `/api/books/:id/loans/:loanId/renew` | Renew (`{ date, dueOn }`). 409 when no renewals are left. |
 
 ## University (İTÜ)
 

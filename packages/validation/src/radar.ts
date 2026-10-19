@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { FIND_KINDS, FIND_STATUSES } from '@hop/domain';
+import { FIND_KINDS, FIND_STATUSES, LANGUAGES } from '@hop/domain';
 
 import { dateSchema as date, entityIdSchema as id } from './common.js';
 
@@ -13,12 +13,14 @@ const findFields = {
   why: text('Why it matters', 500).min(1, 'Write one line on why it matters'),
   topics: z.array(text('Each topic', 60).min(1)).max(30, 'Use up to 30 topics'),
   status: z.enum(FIND_STATUSES),
+  language: z.enum(LANGUAGES).nullable(),
   eventDate: date.nullable(),
   taskId: id.nullable(),
   resourceId: id.nullable(),
   ideaId: id.nullable(),
   opportunityId: id.nullable(),
   eventId: id.nullable(),
+  bookId: id.nullable(),
 };
 
 export const createFindSchema = z.object({
@@ -29,6 +31,7 @@ export const createFindSchema = z.object({
   source: findFields.source.optional(),
   topics: findFields.topics.optional(),
   eventDate: findFields.eventDate.optional(),
+  language: findFields.language.optional(),
 }).strict();
 
 export const updateFindSchema = z.object(findFields).partial().strict();

@@ -12,7 +12,7 @@ function empty(): HopData {
   return {
     settings: {} as HopData['settings'], goals: [], tasks: [], habits: [], completions: [], events: [], opportunities: [], projects: [], skills: [],
     evidence: [], weeklyReviews: [], monthlyReviews: [], milestones: [], contacts: [], interactions: [], resumes: [], reflections: [],
-    terms: [], courses: [], keyDates: [], pins: [], uniLinks: [], resources: [], ideas: [], finds: [],
+    terms: [], courses: [], keyDates: [], pins: [], uniLinks: [], resources: [], ideas: [], finds: [], books: [],
   }
 }
 

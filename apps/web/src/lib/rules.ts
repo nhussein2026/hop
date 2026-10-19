@@ -2,9 +2,10 @@
 // Raw facts are stored; health, follow-ups, overdue and progress are derived here.
 import * as D from './dates.ts'
 import { GOAL_AREAS } from '@hop/domain'
-import type { Course, Goal, Habit, HabitCompletion, HopData, KeyDate, MonthFacts, MonthlyReview, Opportunity, OpportunityStage, Task, WeekFacts } from './types.ts'
+import type { Book, Course, Goal, Habit, HabitCompletion, HopData, KeyDate, MonthFacts, MonthlyReview, Opportunity, OpportunityStage, Task, WeekFacts } from './types.ts'
 import { dueTime, eligibility, isPending, isExam, satInClass, taking, unsubmitted, upcoming, whenWord } from './uni.ts'
-import { AGENDA_META, FIND_KINDS, IDEA_STAGE_LABEL, RESOURCE_KINDS } from './labels.ts'
+import { AGENDA_META, BOOK_STATUS_LABEL, FIND_KINDS, IDEA_STAGE_LABEL, RESOURCE_KINDS } from './labels.ts'
+import { LOAN_NOTICE_DAYS, loanState, openLoan } from './books.ts'
 
 /* ---- Opportunities ------------------------------------------------------- */
 export const STAGES: OpportunityStage[] = ['saved', 'interested', 'preparing', 'applied', 'screening', 'interview', 'assessment', 'final', 'offer']
@@ -240,6 +241,7 @@ export function attention(s: HopData, today: string): AttentionItem[] {
   }
 
   items.push(...courseAttention(s, today))
+  items.push(...loanAttention(s.books, today))
 
   for (const g of s.goals) {
     if (g.status !== 'active') continue
@@ -249,6 +251,27 @@ export function attention(s: HopData, today: string): AttentionItem[] {
 
   const order = { critical: 0, important: 1, info: 2 }
   return items.sort((a, b) => order[a.level] - order[b.level])
+}
+
+/** Library books due back soon or overdue: return them, or renew while renewals are left. */
+function loanAttention(books: Book[], today: string): AttentionItem[] {
+  const items: AttentionItem[] = []
+  for (const b of books) {
+    const loan = openLoan(b)
+    if (!loan) continue
+    const state = loanState(loan, today)
+    if (state.daysLeft > LOAN_NOTICE_DAYS) continue
+    const when = state.daysLeft === 0 ? 'today' : state.daysLeft === 1 ? 'tomorrow' : `by ${D.relative(loan.dueOn, today)}`
+    const renew = state.renewalsLeft === null ? 'Return it or renew it.' : state.renewalsLeft ? `Return it or renew it (${plural(state.renewalsLeft, 'renewal')} left).` : 'No renewals left, so return it.'
+    items.push({
+      level: state.daysLeft <= 1 ? 'critical' : 'important',
+      icon: 'library',
+      title: state.overdue ? `“${b.title}” is ${plural(-state.daysLeft, 'day')} overdue at the library` : `Return “${b.title}” ${when}`,
+      detail: `${loan.library}. ${renew}`,
+      href: `#/growth/reading?book=${b.id}`,
+    })
+  }
+  return items
 }
 
 /** Course deadlines, final eligibility and academic-calendar deadlines that need a decision soon. */
@@ -295,6 +318,7 @@ export type AgendaItem =
   | { kind: 'milestone'; type: 'milestone'; date: string; time: null; title: string; ref: Goal }
   | { kind: 'assessment'; type: 'exam' | 'coursework'; date: string; time: string | null; title: string; ref: Course; weight: number }
   | { kind: 'keyDate'; type: 'uni'; date: string; time: null; title: string; ref: KeyDate }
+  | { kind: 'loan'; type: 'loan'; date: string; time: null; title: string; ref: Book }
 
 export type AgendaGroup = { date: string; items: AgendaItem[] }
 
@@ -332,7 +356,11 @@ export function agendaItems(s: HopData, from: string, to: string, { includeDone 
     }
   }
   for (const k of s.keyDates) if (inRange(k.date)) items.push({ kind: 'keyDate', type: 'uni', date: k.date, time: null, title: k.title, ref: k })
-  const kindOrder = { event: 0, assessment: 1, oppEvent: 2, deadline: 3, keyDate: 4, milestone: 5, task: 6 }
+  for (const b of s.books) {
+    const loan = openLoan(b)
+    if (loan && inRange(loan.dueOn)) items.push({ kind: 'loan', type: 'loan', date: loan.dueOn, time: null, title: `Return “${b.title}”`, ref: b })
+  }
+  const kindOrder = { event: 0, assessment: 1, oppEvent: 2, deadline: 3, keyDate: 4, loan: 5, milestone: 6, task: 7 }
   return items.sort((a, b) => a.date.localeCompare(b.date) || (a.time || '99').localeCompare(b.time || '99') || kindOrder[a.kind] - kindOrder[b.kind])
 }
 
@@ -342,6 +370,7 @@ export function agendaHref(item: AgendaItem) {
   if (item.kind === 'milestone') return `#/goals/${item.ref.id}`
   if (item.kind === 'assessment') return `#/itu/courses/${item.ref.id}`
   if (item.kind === 'keyDate') return '#/itu/handbook'
+  if (item.kind === 'loan') return `#/growth/reading?book=${item.ref.id}`
   return item.kind === 'task' ? '' : `#/career/${item.ref.id}`
 }
 
@@ -520,6 +549,7 @@ export function search(s: HopData, query: string): SearchResult[] {
   for (const c of s.courses) if (has(c.code, c.name)) out.unshift({ group: 'Courses', icon: 'school', title: `${c.code} ${c.name}`, meta: c.status === 'taking' ? 'This term' : capitalize(c.status), href: `#/itu/courses/${c.id}` })
   for (const r of s.resources) if (has(r.title, r.body, r.source, r.topics.join(' '))) out.push({ group: 'Library', icon: RESOURCE_KINDS[r.kind][0], title: r.title, meta: courseCode(r.courseId) ?? 'General', href: `#/itu/library?item=${r.id}` })
   for (const i of s.ideas) if (has(i.title, i.question)) out.push({ group: 'Ideas', icon: 'bulb', title: i.title, meta: IDEA_STAGE_LABEL[i.stage], href: `#/itu/research?idea=${i.id}` })
+  for (const b of s.books) if (has(b.title, b.author, b.why, b.suggestedBy, b.topics.join(' '), b.takeaways.join(' '))) out.push({ group: 'Reading', icon: 'library', title: b.title, meta: [b.author, BOOK_STATUS_LABEL[b.status]].filter(Boolean).join(', '), href: `#/growth/reading?book=${b.id}` })
   for (const f of s.finds) if (has(f.title, f.why, f.topics.join(' '))) out.push({ group: 'Radar', icon: FIND_KINDS[f.kind][0], title: f.title, meta: f.status === 'inbox' ? 'In the inbox' : capitalize(f.status), href: `#/growth/radar?status=${f.status}` })
   return out.slice(0, 50)
 }

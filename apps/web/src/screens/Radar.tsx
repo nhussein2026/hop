@@ -1,19 +1,20 @@
 // Radar: things you find in your field (repos, models, papers, tools, chances, department events)
 // and a triage step that turns each one into something: a task, a reading item, an idea, an
-// opportunity, a library entry, or nothing. Lives in Growth → Radar.
+// opportunity, a library entry, a book on the reading list, or nothing. Lives in Growth → Radar.
 import { useState } from 'react'
 import type { ReactNode } from 'react'
 import * as D from '../lib/dates.ts'
 import { plural } from '../lib/rules.ts'
 import { findAgeDays, staleFinds } from '../lib/uni.ts'
 import type { Find, FindStatus } from '../lib/types.ts'
-import { FIND_KINDS, FIND_STATUS_LABEL } from '../lib/labels.ts'
+import { FIND_KINDS, FIND_STATUS_LABEL, LANGUAGE_LABEL } from '../lib/labels.ts'
 import { useEditors } from '../editors/editors.tsx'
 import { Icon } from '../components/Icon.tsx'
 import { Banner, Empty, Menu } from '../components/ui.tsx'
 import type { MenuItem } from '../components/ui.tsx'
 import { useHop } from '../store/store.ts'
 import { useUniActions } from '../store/uni-actions.ts'
+import { useBookActions } from '../store/book-actions.ts'
 
 const STATUSES: FindStatus[] = ['inbox', 'try', 'read', 'kept', 'converted', 'dismissed']
 const READING = (f: Find) => f.kind === 'paper' || f.kind === 'article'
@@ -63,6 +64,7 @@ function FindCard({ find: f }: { find: Find }) {
   const { data } = useHop()
   const editors = useEditors()
   const actions = useUniActions()
+  const bookActions = useBookActions()
   const today = D.today()
   const [icon, label] = FIND_KINDS[f.kind]
   const age = findAgeDays(f, today)
@@ -72,6 +74,7 @@ function FindCard({ find: f }: { find: Find }) {
 
   let outcome: ReactNode = null
   if (f.status === 'kept' && f.resourceId) outcome = <a className="small" href={`#/itu/library?item=${f.resourceId}`}><Icon className="icon-sm" name="library" /> In your library</a>
+  else if (f.bookId) outcome = <a className="small" href={`#/growth/reading?book=${f.bookId}`}><Icon className="icon-sm" name="library" /> On your reading list</a>
   else if (f.ideaId) outcome = <a className="small" href={`#/itu/research?idea=${f.ideaId}`}><Icon className="icon-sm" name="bulb" /> Became an idea</a>
   else if (f.opportunityId) outcome = <a className="small" href={`#/career/${f.opportunityId}`}><Icon className="icon-sm" name="career" /> Tracked in Career</a>
   else if (f.eventId) outcome = <a className="small" href="#/calendar"><Icon className="icon-sm" name="calendar" /> On your calendar</a>
@@ -81,6 +84,8 @@ function FindCard({ find: f }: { find: Find }) {
   if (f.status === 'inbox') {
     const primary = f.kind === 'opportunity'
       ? <button className="btn btn-sm btn-primary" onClick={() => void actions.radar.trackAsOpportunity(f)} type="button"><Icon className="icon-sm" name="career" />Track as opportunity</button>
+      : f.kind === 'book'
+        ? <button className="btn btn-sm btn-primary" onClick={() => void bookActions.books.fromFind(f)} type="button"><Icon className="icon-sm" name="library" />Add to reading list</button>
       : f.kind === 'event'
         ? <button className="btn btn-sm btn-primary" onClick={() => void actions.radar.addToCalendar(f)} type="button"><Icon className="icon-sm" name="calendar" />Add to calendar</button>
         : READING(f)
@@ -127,6 +132,7 @@ function FindCard({ find: f }: { find: Find }) {
         <p className="find-why">{f.why}</p>
         <div className="row-meta">
           <span>{label}</span><span>{f.source}</span>
+          {f.language && <span>{LANGUAGE_LABEL[f.language]}</span>}
           {f.eventDate && <span><Icon name="calendar" />{D.withDay(f.eventDate)}</span>}
           <span style={stale ? { color: 'var(--warning)', fontWeight: 700 } : undefined}>Saved {age === 0 ? 'today' : age === 1 ? 'yesterday' : `${age} days ago`}</span>
           {f.topics.map((t) => <span className="tag tag-sm" key={t}>{t}</span>)}

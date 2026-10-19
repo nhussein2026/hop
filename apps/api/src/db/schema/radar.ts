@@ -1,6 +1,6 @@
 import { sqliteTable, text } from 'drizzle-orm/sqlite-core';
 
-import { FIND_KINDS, FIND_STATUSES } from '@hop/domain';
+import { FIND_KINDS, FIND_STATUSES, LANGUAGES } from '@hop/domain';
 
 export const finds = sqliteTable('finds', {
   id: text('id').primaryKey(),
@@ -11,12 +11,14 @@ export const finds = sqliteTable('finds', {
   why: text('why').notNull(),
   topics: text('topics', { mode: 'json' }).$type<string[]>().notNull().default([]),
   status: text('status', { enum: FIND_STATUSES }).notNull().default('inbox'),
+  language: text('language', { enum: LANGUAGES }),
   eventDate: text('event_date'),
   taskId: text('task_id'),
   resourceId: text('resource_id'),
   ideaId: text('idea_id'),
   opportunityId: text('opportunity_id'),
   eventId: text('event_id'),
+  bookId: text('book_id'),
   createdAt: text('created_at').notNull(),
   updatedAt: text('updated_at').notNull(),
 });

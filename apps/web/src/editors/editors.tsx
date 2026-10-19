@@ -1,13 +1,14 @@
 // One place to open any dialog, so screens and rows don't import each other's editors.
 import { useMemo } from 'react'
 import * as D from '../lib/dates.ts'
-import type { Assessment, Contact, Course, Goal, Habit, Idea, Opportunity, OpportunityStage, Pin, Program, Project, Resource, ResourceKind, Resume, Skill, Task, Term } from '../lib/types.ts'
+import type { Assessment, Book, BookLoan, Contact, Course, Goal, Habit, Idea, Opportunity, OpportunityStage, Pin, Program, Project, Resource, ResourceKind, Resume, Skill, Task, Term } from '../lib/types.ts'
 import { CloseOpportunity, ContactDrawer, ContactEditor, LogActivity, OpportunityEditor, ResumeEditor } from './career.tsx'
 import { MoreSheet, Notifications, QuickAdd, ReflectionEditor, Search } from './global.tsx'
 import type { AddKind } from './global.tsx'
 import { EvidenceEditor, MilestoneEditor, ProjectDrawer, ProjectEditor, SkillDrawer, SkillEditor } from './growth.tsx'
 import { EventEditor, GoalEditor, HabitEditor, TaskEditor } from './planning.tsx'
 import { FindEditor } from './radar.tsx'
+import { BookDrawer, BookEditor, FinishBook, LoanEditor, LogPages, RenewLoan } from './reading.tsx'
 import { AdvisorPicker, AssessmentEditor, CompleteCourse, CourseEditor, IdeaDrawer, IdeaEditor, KeyDateEditor, MoveResource, NoteDrawer, PinEditor, PlaybookEditor, ResourceEditor, TermEditor, UniLinkEditor } from './uni.tsx'
 import { useDialogs } from '../components/ui-context.ts'
 import { celebrate } from '../lib/notifications.ts'
@@ -49,6 +50,13 @@ export function useEditors() {
       pin: (pin?: Pin | null) => open((close) => <PinEditor close={close} pin={pin} />),
       uniLink: () => open((close) => <UniLinkEditor close={close} />),
       find: () => open((close) => <FindEditor close={close} />),
+      book: (defaults: Partial<Book> = {}) => open((close) => <BookEditor close={close} defaults={defaults} />),
+      editBook: (book: Book) => open((close) => <BookEditor book={book} close={close} />),
+      bookDrawer: (book: Book) => open((close) => <BookDrawer book={book} close={close} />),
+      logPages: (book: Book) => open((close) => <LogPages book={book} close={close} />),
+      borrow: (book: Book, loan?: BookLoan) => open((close) => <LoanEditor book={book} close={close} loan={loan} />),
+      renew: (book: Book, loan: BookLoan) => open((close) => <RenewLoan book={book} close={close} loan={loan} />),
+      finishBook: (book: Book) => open((close) => <FinishBook book={book} close={close} />),
       search: () => open((close) => <Search close={close} />),
       notifications: () => open((close) => <Notifications close={close} />),
       more: (counts: Record<string, number> = {}) => open((close) => <MoreSheet close={close} counts={counts} />),
@@ -70,6 +78,7 @@ export function useEditors() {
         deadline: () => editors.assessment(),
         resource: () => editors.resource(),
         find: () => editors.find(),
+        book: () => editors.book(),
         idea: () => editors.idea(),
       }
       map[kind]()

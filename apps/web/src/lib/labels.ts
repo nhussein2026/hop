@@ -1,5 +1,5 @@
 // Display labels and small lookups shared by screens and dialogs.
-import type { AssessmentType, CourseStatus, FindKind, FindStatus, IdeaKind, IdeaStage, KeyDateKind, OpportunityActivityType, OpportunityType, PinKind, ResourceKind, SkillLevel } from './types.ts'
+import type { AssessmentType, BookFormat, BookStatus, CourseStatus, FindKind, FindStatus, IdeaKind, IdeaStage, KeyDateKind, Language, OpportunityActivityType, OpportunityType, PinKind, ResourceKind, SkillLevel } from './types.ts'
 
 export const OPPORTUNITY_TYPES: [OpportunityType, string][] = [
   ['job', 'Job'], ['internship', 'Internship'], ['program', 'Program'], ['scholarship', 'Scholarship'], ['fellowship', 'Fellowship'],
@@ -45,6 +45,7 @@ export const AGENDA_META: Record<string, [string, string, string]> = {
   exam: ['file', 'Exam', 'warning'],
   coursework: ['school', 'Coursework', 'primary'],
   uni: ['school', 'İTÜ calendar', ''],
+  loan: ['library', 'Library return', 'warning'],
 }
 
 /* ---- İTÜ and Radar ---------------------------------------------------------------------- */
@@ -62,7 +63,7 @@ export const RESOURCE_KINDS: Record<ResourceKind, [string, string]> = {
 /** Icon and label for each kind of Radar find. */
 export const FIND_KINDS: Record<FindKind, [string, string]> = {
   repo: ['code', 'Repository'], model: ['sparkle', 'Model'], paper: ['book', 'Paper'], tool: ['sliders', 'Tool'],
-  dataset: ['database', 'Dataset'], article: ['file', 'Article'], opportunity: ['career', 'Opportunity'], event: ['calendar', 'Event'],
+  dataset: ['database', 'Dataset'], article: ['file', 'Article'], book: ['library', 'Book'], opportunity: ['career', 'Opportunity'], event: ['calendar', 'Event'],
 }
 
 export const FIND_STATUS_LABEL: Record<FindStatus, string> = { inbox: 'Inbox', try: 'To try', read: 'To read', kept: 'Kept', converted: 'Turned into something', dismissed: 'Dismissed' }
@@ -86,3 +87,10 @@ export const PIN_KINDS: [PinKind, string, string][] = [['rule', 'Rule', 'shield'
 
 export { RESOURCE_FILE_MAX_BYTES } from '@hop/domain'
 export const RESOURCE_FILE_ACCEPT = ['.pdf', '.pptx', '.docx', '.zip', '.ipynb', '.png', '.jpg', '.jpeg']
+
+/* ---- Reading ------------------------------------------------------------------------------ */
+export const LANGUAGE_LABEL: Record<Language, string> = { tr: 'Turkish', en: 'English', ar: 'Arabic', other: 'Other' }
+export const LANGUAGE_OPTIONS = Object.entries(LANGUAGE_LABEL) as [Language, string][]
+
+export const BOOK_STATUS_LABEL: Record<BookStatus, string> = { want: 'Want to read', reading: 'Reading', finished: 'Finished', dropped: 'Dropped' }
+export const BOOK_FORMAT_LABEL: Record<BookFormat, string> = { paper: 'Paper', ebook: 'E-book', audio: 'Audiobook' }

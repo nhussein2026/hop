@@ -9,6 +9,7 @@ import { Icon, Pad } from '../components/Icon.tsx'
 import { AttentionList, HabitRow, InlineAdd, TaskRow } from '../components/rows.tsx'
 import { DateChip, Empty, ProgressBar } from '../components/ui.tsx'
 import { classesOn, currentTerm, nextClass, taking } from '../lib/uni.ts'
+import { loanLabel, loanState, openLoan, progress } from '../lib/books.ts'
 import { useHop } from '../store/store.ts'
 import { useToast } from '../components/ui-context.ts'
 
@@ -38,8 +39,8 @@ export function Today() {
   const habitsDone = habitsToday.filter((h) => habitDone(h, data.completions, today)).length
   const attentionItems = attention(data, today)
   const urgent = attentionItems.filter((item) => item.level === 'critical').length
-  // Courses alone are enough to make Today useful: their deadlines and classes show here.
-  const fresh = !data.goals.length && !data.tasks.length && !data.courses.length
+  // Courses or books in hand are enough to make Today useful: their deadlines, classes and pages show here.
+  const fresh = !data.goals.length && !data.tasks.length && !data.courses.length && !data.books.some((b) => b.status === 'reading' || openLoan(b))
   const learningMin = weekFacts(data, today).learningMin
   const name = data.settings.name
   const lastActive = data.tasks.map((t) => t.completedAt).filter(Boolean).sort().at(-1)
@@ -106,6 +107,8 @@ export function Today() {
                 ? <div className="rows">{habitsToday.map((h) => <HabitRow habit={h} key={h.id} />)}</div>
                 : <Empty body="Habits show up here on the days they’re scheduled." icon="leaf" pad={false} title="No habits scheduled today" />}
             </section>
+
+            <ReadingNow />
           </div>
 
           <aside aria-label="Context" className="stack">
@@ -165,6 +168,41 @@ function NextUp({ next, plan, onSkip }: { next: Task | undefined; plan: ReturnTy
         <button className="btn btn-primary btn-lg" onClick={() => void actions.tasks.toggle(next)} type="button"><Icon name="check" />Mark done</button>
         <button className="btn btn-lg" disabled={!remaining} onClick={() => onSkip(next)} type="button">Not now</button>
         <button className="btn btn-ghost btn-lg" onClick={() => editors.task(next)} type="button">Edit</button>
+      </div>
+    </section>
+  )
+}
+
+/** Books in progress, one line each, so logging pages on the commute is one tap away. */
+function ReadingNow() {
+  const { data } = useHop()
+  const editors = useEditors()
+  const today = D.today()
+  const books = data.books.filter((b) => b.status === 'reading')
+  if (!books.length) return null
+  return (
+    <section aria-labelledby="read-h" className="section">
+      <div className="section-head"><h2 id="read-h">Reading</h2><a className="small" href="#/growth/reading">All books</a></div>
+      <div className="rows">
+        {books.map((b) => {
+          const { page, pct } = progress(b)
+          const loan = openLoan(b)
+          const state = loan ? loanState(loan, today) : null
+          return (
+            <div className="row row-link" key={b.id}>
+              <span aria-hidden="true" className="type-tile type-book"><Icon name="library" /></span>
+              <div className="row-main">
+                <button className="row-open" onClick={() => editors.bookDrawer(b)} type="button">{b.title}</button>
+                <div className="row-meta">
+                  <span className="num">{b.pages ? `Page ${page} of ${b.pages} (${pct}%)` : page ? `Page ${page}` : 'Not started'}</span>
+                  {b.log.some((entry) => entry.date === today) && <span><Icon name="check" />Logged today</span>}
+                  {loan && state && <span className={`loan-state${state.overdue ? ' is-danger' : state.daysLeft <= 3 ? ' is-warning' : ''}`}><Icon name="library" />{loanLabel(loan, today)}</span>}
+                </div>
+              </div>
+              <div className="row-actions"><button className="btn btn-sm" onClick={() => editors.logPages(b)} type="button"><Icon className="icon-sm" name="book" />Log pages</button></div>
+            </div>
+          )
+        })}
       </div>
     </section>
   )

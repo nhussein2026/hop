@@ -9,12 +9,15 @@ import { db } from '../db/client.js';
 import { migrateDatabase } from '../db/migrate.js';
 import {
   assessments,
+  bookLoans,
+  books,
   contacts,
   courses,
   finds,
   ideas,
   keyDates,
   pins,
+  readingLog,
   resourceFiles,
   resources,
   terms,
@@ -74,6 +77,9 @@ const tables = {
   resourceFiles,
   ideas,
   finds,
+  books,
+  bookLoans,
+  readingLog,
   settings,
 } satisfies Record<BackupTable, unknown>;
 

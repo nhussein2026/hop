@@ -2,6 +2,8 @@ import { z } from 'zod';
 
 import {
   ASSESSMENT_TYPES,
+  BOOK_FORMATS,
+  BOOK_STATUSES,
   CONTACT_KINDS,
   COURSE_STATUSES,
   FIND_KINDS,
@@ -9,6 +11,7 @@ import {
   IDEA_KINDS,
   IDEA_STAGES,
   KEY_DATE_KINDS,
+  LANGUAGES,
   LETTER_GRADES,
   PIN_KINDS,
   RESOURCE_KINDS,
@@ -159,8 +162,19 @@ const ideaRow = z.object({
 }).strict();
 const findRow = z.object({
   id, kind: z.enum(FIND_KINDS), title: text, url: optionalText, source: text, why: text, topics: z.array(text), status: z.enum(FIND_STATUSES),
-  eventDate: optionalText, taskId: optionalText, resourceId: optionalText, ideaId: optionalText, opportunityId: optionalText, eventId: optionalText, ...timestamps,
+  language: z.enum(LANGUAGES).nullable().default(null),
+  eventDate: optionalText, taskId: optionalText, resourceId: optionalText, ideaId: optionalText, opportunityId: optionalText, eventId: optionalText,
+  bookId: optionalText.default(null), ...timestamps,
 }).strict();
+const bookRow = z.object({
+  id, title: text, author: optionalText, pages: optionalInteger, language: z.enum(LANGUAGES).nullable(), format: z.enum(BOOK_FORMATS), status: z.enum(BOOK_STATUSES),
+  why: text, suggestedById: optionalText, suggestedBy: optionalText, topics: z.array(text), skillIds: ids, goalId: optionalText, habitId: optionalText,
+  startedOn: optionalText, finishedOn: optionalText, rating: optionalInteger, takeaways: z.array(text), ...timestamps,
+}).strict();
+const bookLoanRow = z.object({
+  id, bookId: id, library: text, borrowedOn: text, dueOn: text, renewedOn: z.array(text), maxRenewals: optionalInteger, returnedOn: optionalText, ...timestamps,
+}).strict();
+const readingEntryRow = z.object({ id, bookId: id, date: text, page: z.number().int(), createdAt: text }).strict();
 const settingsRow = z.object({ id: z.number().int(), data: z.record(z.string(), z.unknown()), updatedAt: text }).strict();
 
 function uniqueBy<T>(rows: T[], key: (row: T) => string) {
@@ -209,6 +223,9 @@ export const backupSnapshotSchema = z.object({
   resourceFiles: z.array(resourceFileRow).refine((items) => uniqueBy(items, (item) => item.resourceId), 'Contains more than one file for the same library item').default([]),
   ideas: rows(ideaRow).default([]),
   finds: rows(findRow).default([]),
+  books: rows(bookRow).default([]),
+  bookLoans: rows(bookLoanRow).default([]),
+  readingLog: rows(readingEntryRow).refine((items) => uniqueBy(items, (item) => `${item.bookId}|${item.date}`), 'Contains more than one reading entry for the same book and date').default([]),
   monthlyReviews: rows(monthlyReviewRow).refine((items) => uniqueBy(items, (item) => item.monthStart), 'Contains more than one review for the same month').default([]),
   settings: rows(settingsRow).default([]),
 }).strict();
@@ -218,7 +235,7 @@ export const BACKUP_TABLES = [
   'goals', 'tasks', 'habits', 'habitCompletions', 'events', 'opportunities', 'projects', 'skills', 'evidence', 'weeklyReviews',
   'goalCriteria', 'goalProgress', 'milestones', 'opportunityPrep', 'opportunityActivities', 'contacts', 'interactions', 'resumes',
   'resumeFiles', 'reflections', 'monthlyReviews', 'terms', 'courses', 'assessments', 'keyDates', 'pins', 'uniLinks',
-  'resources', 'resourceFiles', 'ideas', 'finds', 'settings',
+  'resources', 'resourceFiles', 'ideas', 'finds', 'books', 'bookLoans', 'readingLog', 'settings',
 ] as const;
 export type BackupTable = (typeof BACKUP_TABLES)[number];
 

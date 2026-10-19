@@ -40,6 +40,7 @@ const endpoints: Record<Collection, string> = {
   resources: '/api/resources',
   ideas: '/api/ideas',
   finds: '/api/finds',
+  books: '/api/books',
 }
 
 /** Habit consistency looks back four weeks, and the monthly review may cover last month until the 7th. */

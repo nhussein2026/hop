@@ -65,9 +65,19 @@ import {
   updateResourceSchema,
   updateTermSchema,
   updateUniLinkSchema,
+  createBookSchema,
+  createLoanSchema,
+  logReadingSchema,
+  renewLoanSchema,
+  updateBookSchema,
+  updateLoanSchema,
 } from '@hop/validation';
 import type { ZodType } from 'zod';
 import type {
+  CreateLoanInput,
+  LogReadingInput,
+  RenewLoanInput,
+  UpdateLoanInput,
   CreateContactInput,
   CreateInteractionInput,
   CreateMilestoneInput,
@@ -108,6 +118,7 @@ import { RESOURCE_FILE_MAX_BYTES, RESUME_FILE_MAX_BYTES } from '@hop/domain';
 
 import { authService } from './services/auth.service.js';
 import { backupService } from './services/backup.service.js';
+import { bookService } from './services/book.service.js';
 import { contactService } from './services/contact.service.js';
 import { courseService, termService } from './services/course.service.js';
 import { keyDateService, pinService, uniLinkService } from './services/handbook.service.js';
@@ -1022,6 +1033,49 @@ const server = createServer(async (request, response) => {
     if (await crudRoutes(request, response, url.pathname, 'ideas', ideaService, { create: createIdeaSchema, update: updateIdeaSchema }, 'Idea not found')) return;
     if (await crudRoutes(request, response, url.pathname, 'finds', findService, { create: createFindSchema, update: updateFindSchema }, 'Find not found')) return;
     if (await crudRoutes(request, response, url.pathname, 'resources', libraryService, { create: createResourceSchema, update: updateResourceSchema }, 'Library item not found')) return;
+    if (await crudRoutes(request, response, url.pathname, 'books', bookService, { create: createBookSchema, update: updateBookSchema }, 'Book not found')) return;
+
+    const bookPath = url.pathname.match(/^\/api\/books\/([^/]+)\/(log|loans)(?:\/([^/]+))?(?:\/(renew))?$/);
+
+    if (bookPath) {
+      const [, bookId, area, itemId, renew] = bookPath as unknown as [string, string, 'log' | 'loans', string | undefined, string | undefined];
+
+      if (area === 'log' && !itemId && request.method === 'POST') {
+        const input = await readValid<LogReadingInput>(request, response, logReadingSchema);
+        if (input) sendFound(response, bookService.log(bookId, input), 'Book not found');
+        return;
+      }
+
+      if (area === 'log' && itemId && !renew && request.method === 'DELETE') {
+        const date = dateSchema.safeParse(itemId);
+        if (!date.success) sendJson(response, 400, { error: 'Use a date like 2026-10-18' });
+        else sendFound(response, bookService.unlog(bookId, date.data), 'Reading entry not found');
+        return;
+      }
+
+      if (area === 'loans' && !itemId && request.method === 'POST') {
+        const input = await readValid<CreateLoanInput>(request, response, createLoanSchema);
+        if (input) sendFound(response, bookService.addLoan(bookId, input), 'Book not found', 201);
+        return;
+      }
+
+      if (area === 'loans' && itemId && renew && request.method === 'POST') {
+        const input = await readValid<RenewLoanInput>(request, response, renewLoanSchema);
+        if (input) sendFound(response, bookService.renewLoan(bookId, itemId, input), 'Loan not found');
+        return;
+      }
+
+      if (area === 'loans' && itemId && !renew && request.method === 'PATCH') {
+        const input = await readValid<UpdateLoanInput>(request, response, updateLoanSchema);
+        if (input) sendFound(response, bookService.updateLoan(bookId, itemId, input), 'Loan not found');
+        return;
+      }
+
+      if (area === 'loans' && itemId && !renew && request.method === 'DELETE') {
+        sendFound(response, bookService.deleteLoan(bookId, itemId), 'Loan not found');
+        return;
+      }
+    }
 
     const resourceFileId = url.pathname.match(/^\/api\/resources\/([^/]+)\/file$/)?.[1];
 

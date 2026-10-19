@@ -1,4 +1,5 @@
 import type {
+  BookWithDetails,
   Contact,
   CourseWithDetails,
   Event,
@@ -27,6 +28,12 @@ import type {
 } from '@hop/domain'
 
 export type {
+  BookFormat,
+  BookLoan,
+  BookStatus,
+  BookWithDetails as Book,
+  Language,
+  ReadingEntry,
   Assessment,
   AssessmentType,
   ClassSlot,
@@ -109,4 +116,5 @@ export type HopData = {
   resources: Resource[]
   ideas: Idea[]
   finds: Find[]
+  books: BookWithDetails[]
 }

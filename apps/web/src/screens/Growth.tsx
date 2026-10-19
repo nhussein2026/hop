@@ -1,4 +1,4 @@
-// Growth: skills, projects, evidence, milestones and Radar. A skill is only as strong as the evidence behind it.
+// Growth: skills, projects, evidence, milestones, Reading and Radar. A skill is only as strong as the evidence behind it.
 import { useEffect } from 'react'
 import * as D from '../lib/dates.ts'
 import { capitalize, orgOf, plural } from '../lib/rules.ts'
@@ -11,6 +11,7 @@ import { Badge, Banner, Empty, Tabs } from '../components/ui.tsx'
 import { useHop } from '../store/store.ts'
 import { LEVELS, levelIndex } from '../lib/labels.ts'
 import { Radar } from './Radar.tsx'
+import { Reading } from './Reading.tsx'
 
 export function Growth({ route }: { route: Route }) {
   const { data } = useHop()
@@ -21,17 +22,18 @@ export function Growth({ route }: { route: Route }) {
     projects: [() => editors.project(), 'New project'],
     evidence: [() => editors.evidence(), 'Add evidence'],
     milestones: [() => editors.milestone(), 'Add milestone'],
+    reading: [() => editors.book(), 'Add a book'],
     radar: [() => editors.find(), 'Save a find'],
   }[tab] ?? [() => editors.skill(), 'New skill']
 
   return (
     <div className="page">
       <header className="page-head">
-        <div className="page-head-text"><h1 tabIndex={-1}>Growth</h1><p>{tab === 'radar' ? 'What’s happening in your field, and what you’ll do about it.' : 'What you’re learning and building, and the proof behind it.'}</p></div>
+        <div className="page-head-text"><h1 tabIndex={-1}>Growth</h1><p>{tab === 'radar' ? 'What’s happening in your field, and what you’ll do about it.' : tab === 'reading' ? 'Books for your field: what to read next, what you’re reading, and what’s due back.' : 'What you’re learning and building, and the proof behind it.'}</p></div>
         <div className="page-head-actions"><button className="btn btn-primary" onClick={add[0] as () => void} type="button"><Icon className="icon-sm" name="plus" />{add[1] as string}</button></div>
       </header>
-      <Tabs active={tab} items={[['skills', 'Skills', '#/growth/skills', data.skills.length], ['projects', 'Projects', '#/growth/projects', data.projects.length], ['evidence', 'Evidence', '#/growth/evidence', data.evidence.length], ['milestones', 'Milestones', '#/growth/milestones'], ['radar', 'Radar', '#/growth/radar', data.finds.filter((f) => f.status === 'inbox').length]]} label="Growth sections" />
-      {tab === 'radar' ? <Radar key={route.query.status} status={route.query.status} /> : tab === 'projects' ? <Projects projectId={route.query.project} /> : tab === 'evidence' ? <EvidenceList /> : tab === 'milestones' ? <Milestones /> : <Skills skillId={route.query.skill} />}
+      <Tabs active={tab} items={[['skills', 'Skills', '#/growth/skills', data.skills.length], ['projects', 'Projects', '#/growth/projects', data.projects.length], ['evidence', 'Evidence', '#/growth/evidence', data.evidence.length], ['milestones', 'Milestones', '#/growth/milestones'], ['reading', 'Reading', '#/growth/reading', data.books.filter((b) => b.status === 'reading').length], ['radar', 'Radar', '#/growth/radar', data.finds.filter((f) => f.status === 'inbox').length]]} label="Growth sections" />
+      {tab === 'radar' ? <Radar key={route.query.status} status={route.query.status} /> : tab === 'reading' ? <Reading bookId={route.query.book} key={route.query.status} status={route.query.status} /> : tab === 'projects' ? <Projects projectId={route.query.project} /> : tab === 'evidence' ? <EvidenceList /> : tab === 'milestones' ? <Milestones /> : <Skills skillId={route.query.skill} />}
     </div>
   )
 }

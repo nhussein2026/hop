@@ -1,11 +1,12 @@
+import type { Language } from './book.js';
 import type { EntityId, ISODate, ISODateTime } from './common.js';
 
-export const FIND_KINDS = ['repo', 'model', 'paper', 'tool', 'dataset', 'article', 'opportunity', 'event'] as const;
+export const FIND_KINDS = ['repo', 'model', 'paper', 'tool', 'dataset', 'article', 'book', 'opportunity', 'event'] as const;
 export type FindKind = (typeof FIND_KINDS)[number];
 
 /**
  * Where a find is in triage. Each one in the inbox gets one decision: try it, read it, keep it,
- * turn it into something (an idea, an opportunity, an event), or dismiss it.
+ * turn it into something (an idea, an opportunity, an event, a book to read), or dismiss it.
  */
 export const FIND_STATUSES = ['inbox', 'try', 'read', 'kept', 'converted', 'dismissed'] as const;
 export type FindStatus = (typeof FIND_STATUSES)[number];
@@ -24,6 +25,8 @@ export interface Find {
   why: string;
   topics: string[];
   status: FindStatus;
+  /** Null for finds saved before Hop recorded languages. */
+  language: Language | null;
   /** For events: when it happens. */
   eventDate: ISODate | null;
   /** What triage turned it into. */
@@ -32,9 +35,10 @@ export interface Find {
   ideaId: EntityId | null;
   opportunityId: EntityId | null;
   eventId: EntityId | null;
+  bookId: EntityId | null;
   createdAt: ISODateTime;
   updatedAt: ISODateTime;
 }
 
-export type CreateFindInput = Pick<Find, 'kind' | 'title' | 'why'> & Partial<Pick<Find, 'url' | 'source' | 'topics' | 'eventDate'>>;
+export type CreateFindInput = Pick<Find, 'kind' | 'title' | 'why'> & Partial<Pick<Find, 'url' | 'source' | 'topics' | 'eventDate' | 'language'>>;
 export type UpdateFindInput = Partial<Omit<Find, 'id' | 'createdAt' | 'updatedAt'>>;

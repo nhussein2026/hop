@@ -36,7 +36,7 @@ a.code:hover { background: color-mix(in srgb, var(--primary) 22%, transparent); 
 .type-tile .icon { width: 16px; height: 16px; }
 .type-note, .type-find-article { background: var(--warning-soft); color: var(--warning); }
 .type-past-exam { background: var(--danger-soft); color: var(--danger); }
-.type-paper, .type-book, .type-find-paper { background: var(--info-soft); color: var(--info); }
+.type-paper, .type-book, .type-find-paper, .type-find-book { background: var(--info-soft); color: var(--info); }
 .type-repo, .type-find-repo, .type-find-tool { background: var(--surface-3); color: var(--text); }
 .type-find-model, .type-find-dataset { background: var(--primary-soft); color: var(--primary); }
 .type-find-opportunity, .type-find-event { background: var(--success-soft); color: var(--success); }
@@ -183,6 +183,16 @@ a.find-title:hover { text-decoration: underline; }
 .find-outcome a, .find-outcome span { display: inline-flex; align-items: center; gap: 6px; }
 .find-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-2); margin-top: var(--s-2); }
 .detect:empty { display: none; }
+
+/* ---- Reading ---------------------------------------------------------------------- */
+.book-open { all: unset; cursor: pointer; font-weight: 700; font-size: var(--fs-md); color: var(--text); overflow-wrap: anywhere; }
+.book-open:hover { text-decoration: underline; }
+.book-open:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: 4px; }
+.chip-sep { align-self: stretch; width: 1px; margin: 4px var(--s-1); background: var(--border-strong); }
+.book-progress { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-2) var(--s-3); max-width: 520px; }
+.book-progress .progress { flex: 1 1 160px; }
+.loan-state.is-warning { color: var(--warning); font-weight: 700; }
+.loan-state.is-danger { color: var(--danger); font-weight: 700; }
 
 .review-checks { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s-3); }
 .review-check { display: flex; align-items: flex-start; gap: var(--s-3); color: var(--text); text-decoration: none; }

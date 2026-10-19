@@ -16,7 +16,7 @@ Everything lives in one SQLite database on a server you control. There are no ac
 | **İTÜ** | This term at a glance, courses with grade tracking, target averages and the VF (final eligibility) attendance limit, a file library, thesis and research ideas, and a handbook of key dates and links. |
 | **Goals** | Outcomes with success criteria, milestones, progress history, and health signals. |
 | **Career** | Opportunity pipeline with follow-ups, interview prep, activity timeline, people and interactions, resumes with files, and analytics. |
-| **Growth** | Skills, projects, evidence, milestones, and **Radar**: an inbox for interesting finds (repos, papers, models, events) where each find gets one decision. |
+| **Growth** | Skills, projects, evidence, milestones, **Reading**: books for your field with who suggested them and why, pages read each day, pace, and library loans counted down to their due date, and **Radar**: an inbox for interesting finds (repos, papers, books, models, events) where each find gets one decision. |
 | **Review** | Weekly and monthly reviews built from the period's facts, reflections, and past reviews. |
 | **Settings** | Profile, timezone, theme, notification categories, career rules, university terms, backup and export, password, and signed-in devices. |
 

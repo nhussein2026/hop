@@ -2,8 +2,8 @@
 import { useRef, useState } from 'react'
 import { detectLink, splitList } from '../lib/uni.ts'
 import type { DetectedLink } from '../lib/uni.ts'
-import type { FindKind } from '../lib/types.ts'
-import { FIND_KINDS } from '../lib/labels.ts'
+import type { FindKind, Language } from '../lib/types.ts'
+import { FIND_KINDS, LANGUAGE_OPTIONS } from '../lib/labels.ts'
 import { useUniActions } from '../store/uni-actions.ts'
 import { Icon } from '../components/Icon.tsx'
 import { Dialog, Field, SubmitButton } from '../components/ui.tsx'
@@ -21,6 +21,7 @@ export function FindEditor({ close }: { close: () => void }) {
   const [kind, setKind] = useState<FindKind>('repo')
   const autoTitle = useRef('')
   const topics = [...new Set(data.finds.flatMap((f) => f.topics))].sort()
+  const lastLanguage = [...data.finds].sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0]?.language
 
   function onUrl(form: HTMLFormElement, value: string) {
     const found = detectLink(value)
@@ -54,6 +55,7 @@ export function FindEditor({ close }: { close: () => void }) {
       why,
       topics: [...new Set([...fd.getAll('topics').map(String), ...splitList(formText(form, 'newTopics'))])],
       eventDate: kind === 'event' ? String(fd.get('eventDate') || '') || null : null,
+      language: (String(fd.get('language') || '') || null) as Language | null,
     })
     if (saved) closeDialog(form)
   }
@@ -82,7 +84,10 @@ export function FindEditor({ close }: { close: () => void }) {
           </div>
           <Field label="Source" name="source" placeholder="GitHub, Department, a friend…" />
         </div>
-        {kind === 'event' && <Field label="When is it?" name="eventDate" optional type="date" />}
+        <div className="form-row">
+          <Field defaultValue={lastLanguage ?? ''} label="Language" name="language" options={[['', 'Not set'], ...LANGUAGE_OPTIONS]} type="select" />
+          {kind === 'event' && <Field label="When is it?" name="eventDate" optional type="date" />}
+        </div>
         <Field error={errors.why} hint="This line is what makes a find useful when you come back to it." label="Why does it matter to you?" name="why" placeholder="One line. e.g. “Could be the baseline for my thesis idea.”" rows={2} type="textarea" />
         <fieldset className="field">
           <legend className="field-label">Topics</legend>

@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import { setupPasswordSchema } from './auth.js';
+import { createBookSchema, logReadingSchema, updateLoanSchema } from './book.js';
 import { dateSchema } from './common.js';
 import { createEventSchema } from './event.js';
 import { habitCompletionRangeSchema } from './habit.js';
@@ -40,4 +41,19 @@ test('updateSkillSchema rejects unknown fields and allows clearing notes', () =>
 test('setupPasswordSchema requires at least 12 characters and keeps surrounding spaces', () => {
   assert.equal(setupPasswordSchema.safeParse({ password: 'short' }).success, false);
   assert.equal(setupPasswordSchema.safeParse({ password: ' twelve chars ' }).data?.password, ' twelve chars ');
+});
+
+test('createBookSchema needs a title and keeps takeaways short', () => {
+  assert.equal(createBookSchema.safeParse({ title: 'Kod', language: 'tr' }).success, true);
+  assert.equal(createBookSchema.safeParse({ language: 'tr' }).success, false);
+  assert.equal(createBookSchema.safeParse({ title: 'Kod', language: 'tr-TR' }).success, false);
+  assert.equal(createBookSchema.safeParse({ title: 'Kod', takeaways: ['a', 'b', 'c', 'd'] }).success, false);
+  assert.equal(createBookSchema.safeParse({ title: 'Kod', isbn: '123' }).success, false);
+});
+
+test('reading log and loan schemas accept only real values', () => {
+  assert.equal(logReadingSchema.safeParse({ date: '2026-10-18', page: 42 }).success, true);
+  assert.equal(logReadingSchema.safeParse({ date: '2026-10-18', page: 4.5 }).success, false);
+  assert.equal(updateLoanSchema.safeParse({ returnedOn: null }).success, true);
+  assert.equal(updateLoanSchema.safeParse({ library: '' }).success, false);
 });

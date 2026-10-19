@@ -13,7 +13,7 @@ import { useHop } from '../store/store.ts'
 import { closeDialog, focusFirstInvalid, formText } from '../components/ui-context.ts'
 
 /* ---- Quick add ---------------------------------------------------------------------------- */
-export type AddKind = 'opportunity' | 'event' | 'evidence' | 'goal' | 'note' | 'project' | 'milestone' | 'deadline' | 'resource' | 'find' | 'idea'
+export type AddKind = 'opportunity' | 'event' | 'evidence' | 'goal' | 'note' | 'project' | 'milestone' | 'deadline' | 'resource' | 'find' | 'idea' | 'book'
 
 function whenOptions(): [string, string][] {
   const today = D.today()
@@ -40,7 +40,7 @@ export function QuickAdd({ close, onSwitch }: { close: () => void; onSwitch: (ki
     if (saved) closeDialog(form)
   }
 
-  const more: [AddKind, string, string][] = [['deadline', 'school', 'Course deadline'], ['resource', 'library', 'To library'], ['find', 'radar', 'Radar find'], ['idea', 'bulb', 'Idea'], ['opportunity', 'career', 'Opportunity'], ['event', 'calendar', 'Event'], ['evidence', 'award', 'Evidence'], ['goal', 'goals', 'Goal'], ['note', 'edit', 'Reflection'], ['project', 'code', 'Project'], ['milestone', 'flag', 'Milestone']]
+  const more: [AddKind, string, string][] = [['deadline', 'school', 'Course deadline'], ['resource', 'library', 'To library'], ['find', 'radar', 'Radar find'], ['book', 'book', 'Book to read'], ['idea', 'bulb', 'Idea'], ['opportunity', 'career', 'Opportunity'], ['event', 'calendar', 'Event'], ['evidence', 'award', 'Evidence'], ['goal', 'goals', 'Goal'], ['note', 'edit', 'Reflection'], ['project', 'code', 'Project'], ['milestone', 'flag', 'Milestone']]
 
   return (
     <Dialog foot={<><span className="xs muted hide-phone qa-hint"><kbd>Enter</kbd> to add</span><span className="spacer" /><button className="btn" data-close type="button">Cancel</button><SubmitButton>Add task</SubmitButton></>} onClose={close} onSubmit={submit} title="Add">
