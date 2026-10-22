@@ -102,12 +102,14 @@ yarn typecheck      # Typecheck every workspace
 yarn workspace web lint
 ```
 
-Code layout, conventions, schema changes, and troubleshooting are in [Development](docs/DEVELOPMENT.md).
+Code layout, conventions, schema changes, versions and releases, and troubleshooting are in [Development](docs/DEVELOPMENT.md).
 
 ## Documentation
 
 | Document | Contents |
 | --- | --- |
+| [Changelog](CHANGELOG.md) | What changed in each release. |
+| [Roadmap](docs/ROADMAP.md) | What gets built next, and in which version. |
 | [Product specification](docs/HOP_PRODUCT_SPEC.md) | Vision, principles, domain model, UX rules, roadmap. The product source of truth. |
 | [Architecture](docs/ARCHITECTURE.md) | How the pieces fit: layers, data flow, PWA, backups, time handling. |
 | [Repository structure](docs/hop-structure.md) | Directory map. |
@@ -117,3 +119,4 @@ Code layout, conventions, schema changes, and troubleshooting are in [Developmen
 | [Deployment](docs/DEPLOYMENT.md) | Running Hop on a server and reaching it from your devices. |
 | [Development](docs/DEVELOPMENT.md) | Workspaces, commands, conventions, and troubleshooting. |
 | [ADR 0001](docs/ADR/0001-foundation-architecture.md) | The foundation architecture decision. |
+| [ADR 0002](docs/ADR/0002-versioning-and-releases.md) | Versions, releases, and deploying only releases. |

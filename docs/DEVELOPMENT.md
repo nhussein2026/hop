@@ -33,6 +33,7 @@ Open [http://localhost:5173](http://localhost:5173). Vite proxies `/api` to the 
 | `yarn workspace @hop/api db:generate --name <name>` | Generate a migration from schema changes |
 | `yarn workspace @hop/api db:studio` | Browse the database |
 | `yarn workspace @hop/api auth:reset` | Remove the password and sessions |
+| `yarn release <major\|minor\|patch>` | Release a new version from `master` (see [Versions and Releases](#versions-and-releases)) |
 
 ## Where Code Goes
 
@@ -69,6 +70,36 @@ cd apps/api && yarn tsx --import ./src/test-setup.ts --test src/services/task.se
 ```
 
 Before committing: `yarn typecheck && yarn test && yarn workspace web lint`.
+
+## Versions and Releases
+
+Hop has one version, `MAJOR.MINOR.PATCH`, in the root `package.json`, and every workspace carries the same number. The reasons and the alternatives considered are in [ADR 0002](ADR/0002-versioning-and-releases.md).
+
+### Which Number Goes Up
+
+| Bump | When | Example |
+| --- | --- | --- |
+| **MAJOR** | Updating needs manual work (a new required setting in `hop.env`, a newer Node, a change to the service), or Hop stops accepting something it accepted before (older backups, a removed feature, a migration that drops data). | |
+| **MINOR** | Something new: a feature, screen or field, a migration that only adds, or a new backup format that still restores older backups. | The reading shelf |
+| **PATCH** | A fix or polish with nothing new to use: bugs, wording, styling, performance, refactoring. | The dropdown positioning fix |
+
+A release takes the highest bump among its changes. Commit types point to it: `feat` is MINOR, `fix` and `perf` are PATCH, and `feat!` or a `BREAKING CHANGE:` footer is MAJOR. `docs`, `refactor`, `test`, `style`, `build` and `chore` never need a release of their own.
+
+### From Request to Release
+
+1. **Agree first.** Discuss the request, then settle its type, scope, acceptance criteria and target version, and add it to [ROADMAP.md](ROADMAP.md). Only items under Next are built. Anything else that comes up goes to the Backlog.
+2. **Branch.** Build each item on its own branch from `master`: `feat/<name>`, `fix/<name>`, `docs/<name>` or `chore/<name>`. Commit messages follow [Conventional Commits](https://www.conventionalcommits.org/), as in the history.
+3. **Changelog.** In the same branch, add a line under `## [Unreleased]` in [CHANGELOG.md](../CHANGELOG.md), in an `Added`, `Changed`, `Fixed` or `Removed` group. Say what changed for the user, not which files.
+4. **Merge** into `master` once the checks pass and the acceptance criteria are met. `master` only holds finished work, so it can be released at any time. Roadmap edits are the exception and may go straight to `master`.
+5. **Release** when every Next item is merged, or right away for an urgent fix:
+
+   ```bash
+   yarn release minor
+   git push origin master v1.1.0
+   ```
+
+   `yarn release` only runs on a clean `master` that has everything GitHub has. It builds, tests and lints, sets the version in every `package.json`, moves the Unreleased entries under the new version with today's date, commits `chore(release): v1.1.0` and creates the tag `v1.1.0`. Nothing leaves your machine until you push.
+6. **Deploy** on the server with `sudo /opt/hop/deploy/update.sh`, which installs the newest release ([Deployment](DEPLOYMENT.md#updating)). Then update the roadmap: remove what shipped and promote the next version to Next.
 
 ## Troubleshooting
 

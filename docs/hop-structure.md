@@ -39,6 +39,9 @@ hop/
 ├── db/
 │   └── migrations/                  # Drizzle SQL migrations
 │
+├── scripts/
+│   └── release.mjs                  # yarn release: version bump, changelog, tag
+│
 ├── storage/                         # Local database and backups (ignored by Git)
 │
 ├── docs/
@@ -49,10 +52,12 @@ hop/
 │   ├── DEPLOYMENT.md
 │   ├── DEVELOPMENT.md
 │   ├── HOP_PRODUCT_SPEC.md
+│   ├── ROADMAP.md                   # What gets built next, by version
 │   ├── SECURITY.md
 │   └── hop-structure.md
 │
 ├── .env.example
+├── CHANGELOG.md                     # What changed in each release
 ├── package.json
 ├── README.md
 └── start.sh

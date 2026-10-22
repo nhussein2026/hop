@@ -1,0 +1,35 @@
+# Roadmap
+
+What gets built next, and in which version. The long-term vision is in the [product specification](HOP_PRODUCT_SPEC.md); this file is the short list of what is actually planned. What has shipped is in the [changelog](../CHANGELOG.md).
+
+How it works (details in [Development](DEVELOPMENT.md#versions-and-releases)):
+
+- **Only items under Next get built.**
+- A request is discussed first. It gets a type, a scope, acceptance criteria and a version, and only then lands here.
+- Ideas that come up while a version is being built go to the Backlog, unless we agree to pull them into Next.
+- After a release, its items leave this file and the first version under Later becomes Next.
+
+## Next: v1.1.0
+
+| Item | Type | Spec | Status |
+| --- | --- | --- | --- |
+| Proven skills: a skill's level comes from its evidence | feat | [Proposal A](proposals/2026-10-skills-and-branding.md#a-proven-skills) | In progress |
+
+## Later
+
+| Version | Item | Type | Spec |
+| --- | --- | --- | --- |
+| v1.2.0 | Block-day next step: a habit linked to a goal shows that goal's next task on Today | feat | [Proposal B](proposals/2026-10-skills-and-branding.md#b-block-day-next-step) |
+
+## Backlog
+
+Not assigned to a version. Each one needs a conversation before it moves up.
+
+| Item | Type | Notes |
+| --- | --- | --- |
+| Update notice: when the server has a newer version than this device, say so on every screen, not only in Settings | feat | Settings already shows both versions and a Reload. |
+| Market check: sample job postings and compare them with your skills | feat | [Proposal C](proposals/2026-10-skills-and-branding.md#c-market-check). Waits until you've done one sample by hand. |
+| Portfolio export for nhussein.io | feat | [Proposal D](proposals/2026-10-skills-and-branding.md#d-portfolio-export). Maybe 2027. |
+| Calendar feed (ICS) to subscribe to from a phone's calendar app | feat | |
+| The root `.env` is ignored by `yarn dev` and `yarn start` | fix | `dotenv` reads `.env` from `apps/api`, the API's working directory. Fixing it changes which database development uses. |
+| Offline write queue: tick habits, complete tasks and quick-add while the server is off, and sync later | feat | About two days of work. Full offline sync was advised against. |
