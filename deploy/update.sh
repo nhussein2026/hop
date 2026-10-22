@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
-# Updates the running Hop to the latest commit of its branch on GitHub. Run it with:
+# Updates the running Hop to the newest release on GitHub: the highest vMAJOR.MINOR.PATCH tag, never
+# unreleased commits on master. Run it with:
 #   sudo /opt/hop/deploy/update.sh
 #
 # 1. Backs up first: the off-site backup when it's set up, otherwise a local copy of the database.
-# 2. Pulls, installs and builds as the hop account. If that fails, it goes back to the previous
-#    version and rebuilds it without restarting Hop, so Hop keeps running as before.
+# 2. Checks out the release, installs and builds as the hop account. If that fails, it goes back to
+#    the previous version and rebuilds it without restarting Hop, so Hop keeps running as before.
 # 3. Installs changed service files, restarts Hop and checks that it answers.
 #
 # Everything runs inside main(), which bash reads in full before starting, because updating the
@@ -36,17 +37,29 @@ main() {
     exit 1
   fi
 
-  hop_git fetch -q origin
-  local before after
+  hop_git fetch -q --tags origin
+  local before after tag current
   before=$(hop_git rev-parse HEAD)
-  after=$(hop_git rev-parse '@{u}')
+  current=$(hop_git describe --tags --exact-match HEAD 2>/dev/null || hop_git rev-parse --short HEAD)
+  # Only plain release tags count; grep and sed read every line, so pipefail never sees a SIGPIPE.
+  tag=$(hop_git tag --list 'v*' --sort=-version:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | sed -n 1p || true)
+  if [ -z "$tag" ]; then
+    echo "GitHub has no releases yet (tags like v1.0.0), so nothing was updated." >&2
+    exit 1
+  fi
+  after=$(hop_git rev-parse "$tag^{commit}")
   if [ "$before" = "$after" ]; then
-    echo "Hop is already up to date: $(hop_git log -1 --format='%h %s')"
+    echo "Hop is already up to date: $tag"
     exit 0
   fi
+  # Older code can't be trusted with a database that newer migrations have already changed.
+  if ! hop_git merge-base --is-ancestor "$before" "$after"; then
+    echo "Hop runs $current, which $tag doesn't include, so updating would take it backwards. Nothing was updated." >&2
+    exit 1
+  fi
 
-  step "New changes"
-  hop_git log --oneline "$before..$after"
+  step "Updating $current to $tag"
+  hop_git log --oneline --no-merges "$before..$after"
 
   step "Backing up"
   if [ -f "$UNIT_DIR/hop-offsite-backup.service" ]; then
@@ -59,10 +72,10 @@ main() {
   fi
 
   step "Building"
-  hop_git merge -q --ff-only "$after"
+  hop_git checkout -q --detach "$tag"
   if ! build; then
-    echo "The build failed. Going back to $(hop_git log -1 --format=%h "$before") and rebuilding it; Hop was not restarted." >&2
-    hop_git reset -q --hard "$before"
+    echo "The build failed. Going back to $current and rebuilding it; Hop was not restarted." >&2
+    hop_git checkout -q -f --detach "$before"
     if build; then
       echo "Hop keeps running the previous version." >&2
     else
@@ -91,11 +104,16 @@ main() {
 
   step "Restarting Hop"
   systemctl restart hop
-  local port
+  local port health running
   port=$(sed -n 's/^PORT=//p' "$HOP_ENV" | tail -n 1)
-  if curl -fs --retry 15 --retry-delay 1 --retry-connrefused "http://127.0.0.1:${port:-4321}/api/health" >/dev/null; then
-    echo "Hop is running $(hop_git log -1 --format='%h %s')."
-    echo "Close and reopen Hop on your devices to load the new version."
+  if health=$(curl -fs --retry 15 --retry-delay 1 --retry-connrefused "http://127.0.0.1:${port:-4321}/api/health"); then
+    running=$(printf '%s' "$health" | sed -n 's/.*"version":"\([^"]*\)".*/\1/p')
+    if [ "v$running" = "$tag" ]; then
+      echo "Hop $tag is running."
+    else
+      echo "Hop is running, but it reports version ${running:-unknown} instead of $tag." >&2
+    fi
+    echo "Reopen Hop on your devices, or use Reload in Settings, to load the new version."
   else
     echo "Hop didn't answer after the restart. Its recent log:" >&2
     journalctl -u hop -n 30 --no-pager >&2

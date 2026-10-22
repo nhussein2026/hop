@@ -94,6 +94,7 @@ sudo -iu hop
 export COREPACK_ENABLE_DOWNLOAD_PROMPT=0
 git clone https://github.com/nhussein2026/hop.git /opt/hop
 cd /opt/hop
+git checkout -q "$(git describe --tags --abbrev=0)"   # the newest release, not unreleased work
 yarn install
 yarn build
 exit
@@ -196,7 +197,7 @@ The real Hop runs as its own `hop` account from `/opt/hop`, on port 4400, with i
 
    sudo -u hop -H bash -c 'export COREPACK_ENABLE_DOWNLOAD_PROMPT=0
      git clone https://github.com/nhussein2026/hop.git /opt/hop
-     cd /opt/hop && yarn install && yarn build'
+     cd /opt/hop && git checkout -q "$(git describe --tags --abbrev=0)" && yarn install && yarn build'
    ```
 
 3. **Settings and the service.** Port 4400 keeps clear of `yarn dev`.
@@ -225,7 +226,7 @@ To update the laptop's Hop after you push changes, see [Updating](#updating).
 
 ## Updating
 
-Pushing to GitHub doesn't change the running Hop: it runs from its own copy in `/opt/hop`. When you're ready to deploy what's on `master`:
+The server runs releases, never whatever is newest on `master`. Pushing commits or branches to GitHub doesn't change the running Hop; pushing a release tag ([Versions and Releases](DEVELOPMENT.md#versions-and-releases)) makes it available. To install the newest release:
 
 ```bash
 sudo /opt/hop/deploy/update.sh
@@ -233,12 +234,14 @@ sudo /opt/hop/deploy/update.sh
 
 The script:
 
-1. Stops if `/opt/hop` has local edits, and does nothing if there's nothing new.
+1. Stops if `/opt/hop` has local edits, and does nothing if the newest release is already running. It also refuses to go back to an older release, because older code can't be trusted with a database that newer migrations have changed.
 2. Backs up first: the off-site backup when it's set up (which also leaves a local copy in `/var/lib/hop-backup/hop.db`), otherwise just that local copy.
-3. Pulls, installs and builds as the `hop` account. **If the build fails, it goes back to the previous version and rebuilds it without restarting Hop**, so Hop keeps running as before.
-4. Installs service files from `deploy/` that changed (so edit them there, not in `/etc/systemd/system/`), restarts Hop, and checks that it answers.
+3. Checks out the release, installs and builds as the `hop` account. **If the build fails, it goes back to the previous version and rebuilds it without restarting Hop**, so Hop keeps running as before.
+4. Installs service files from `deploy/` that changed (so edit them there, not in `/etc/systemd/system/`), restarts Hop, and checks that the new version answers.
 
-Migrations run automatically on startup in one transaction. If the script says the settings templates changed, compare `/etc/hop/hop.env` with `deploy/hop.env.example`. After an update, close and reopen Hop on your devices to load the new version.
+Migrations run automatically on startup in one transaction. If the script says the settings templates changed, compare `/etc/hop/hop.env` with `deploy/hop.env.example`. After an update, reopen Hop on your devices, or use Reload at the bottom of Settings, to load the new version. Settings shows which version each device runs.
+
+`/opt/hop` stays on the release tag (a detached HEAD), not on `master`. `git -C /opt/hop describe --tags` shows which release is installed.
 
 Copies of the repository cloned before `deploy/update.sh` existed need one last manual update to get it:
 
