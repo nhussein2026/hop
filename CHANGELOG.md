@@ -6,6 +6,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Ver
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-10-22
+
 ### Added
 
 - The first numbered release. It covers everything built so far: Today, Plan, Calendar, Türkçe, İTÜ, Goals, Career, Growth (with Reading and Radar), Notes (with Accounts), Review and Settings, plus quick add, search, undo, notifications, daily backups with tested restores, password sign-in, and an installable app that opens offline.
@@ -16,4 +18,5 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Ver
 
 - `deploy/update.sh` installs the newest release (the highest `vX.Y.Z` tag) instead of the newest commit on `master`. It refuses to take Hop back to an older release, and after the restart it checks that the new version is the one answering.
 
-[Unreleased]: https://github.com/nhussein2026/hop/commits/HEAD
+[Unreleased]: https://github.com/nhussein2026/hop/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/nhussein2026/hop/releases/tag/v1.0.0
