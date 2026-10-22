@@ -3,7 +3,8 @@ import { useEffect, useState } from 'react'
 import type { ChangeEvent, FormEvent, ReactNode } from 'react'
 import * as D from '../lib/dates.ts'
 import { followUp, orgOf } from '../lib/rules.ts'
-import { LONG_REQUEST_TIMEOUT_MS, postJson, readErrorMessage } from '../lib/api.ts'
+import { LONG_REQUEST_TIMEOUT_MS, fetchServerVersion, postJson, readErrorMessage } from '../lib/api.ts'
+import { APP_VERSION } from '../lib/version.ts'
 import type { Settings as SettingsType, Term } from '../lib/types.ts'
 import { useActions } from '../store/actions.ts'
 import { Icon } from '../components/Icon.tsx'
@@ -24,6 +25,7 @@ export function Settings({ section, onSignOut }: { section?: string; onSignOut: 
       <div className="page page-narrow">
         <header className="page-head"><div className="page-head-text"><h1 tabIndex={-1}>Settings</h1></div></header>
         <nav aria-label="Settings sections" className="rows">{SETTINGS_SECTIONS.map(([key, label, icon]) => <a className="row settings-link" href={`#/settings/${key}`} key={key}><Icon name={icon} /><span className="row-main row-title">{label}</span><Icon className="icon-sm" name="chevron" /></a>)}</nav>
+        <VersionNote />
       </div>
     )
   }
@@ -41,10 +43,22 @@ export function Settings({ section, onSignOut }: { section?: string; onSignOut: 
     <div className="page">
       <header className="page-head"><div className="page-head-text"><h1 tabIndex={-1}>{phone ? settingsTitle(active, phone) : 'Settings'}</h1></div></header>
       <div className="settings-layout">
-        <nav aria-label="Settings sections" className="settings-nav hide-phone">{SETTINGS_SECTIONS.map(([key, label, icon]) => <a aria-current={key === active ? 'page' : undefined} className="nav-item" href={`#/settings/${key}`} key={key}><Icon name={icon} /><span>{label}</span></a>)}</nav>
+        <nav aria-label="Settings sections" className="settings-nav hide-phone">{SETTINGS_SECTIONS.map(([key, label, icon]) => <a aria-current={key === active ? 'page' : undefined} className="nav-item" href={`#/settings/${key}`} key={key}><Icon name={icon} /><span>{label}</span></a>)}<VersionNote /></nav>
         <div className="settings-body">{body[active]}</div>
       </div>
     </div>
+  )
+}
+
+/** This device's version of Hop, and a way to catch up when the server has a different one. */
+function VersionNote() {
+  const [server, setServer] = useState<string>()
+  useEffect(() => { void fetchServerVersion().then(setServer) }, [])
+  return (
+    <p className="xs muted settings-version">
+      Hop v{APP_VERSION}
+      {server && server !== APP_VERSION && <>. The server has v{server}. <button className="link-btn" onClick={() => window.location.reload()} type="button">Reload</button></>}
+    </p>
   )
 }
 

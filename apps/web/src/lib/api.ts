@@ -54,6 +54,17 @@ export async function pingServer() {
   }
 }
 
+/** The version of Hop the server runs, or undefined when it can't be reached. */
+export async function fetchServerVersion() {
+  try {
+    const response = await fetch('/api/health', { cache: 'no-store', signal: AbortSignal.timeout(5000) })
+    const body = await response.json() as { version?: string }
+    return body.version
+  } catch {
+    return undefined
+  }
+}
+
 export async function postJson(path: string, body: unknown, timeoutMs?: number) {
   return apiFetch(path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), timeoutMs })
 }

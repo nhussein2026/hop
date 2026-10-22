@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -44,4 +45,10 @@ export function resolveMigrationsFolder() {
 export function resolveWebDistDirectory(webDistDir = process.env.WEB_DIST_DIR ?? './apps/web/dist') {
   const value = webDistDir.trim() || './apps/web/dist';
   return value.startsWith('/') ? value : resolve(repoRoot, value);
+}
+
+/** Hop's version from the root package.json; every workspace carries the same one (see scripts/release.mjs). */
+export function resolveAppVersion() {
+  const { version } = JSON.parse(readFileSync(resolve(repoRoot, 'package.json'), 'utf8')) as { version: string };
+  return version;
 }

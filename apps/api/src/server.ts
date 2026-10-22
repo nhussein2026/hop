@@ -155,7 +155,7 @@ import { skillService } from './services/skill.service.js';
 import { taskService } from './services/task.service.js';
 import { weeklyReviewService } from './services/weekly-review.service.js';
 
-import { resolveBackupDirectory, resolveDatabasePath, resolveHost, resolvePort, resolveWebDistDirectory } from './config.js';
+import { resolveAppVersion, resolveBackupDirectory, resolveDatabasePath, resolveHost, resolvePort, resolveWebDistDirectory } from './config.js';
 import { clearedSessionCookie, isSameOriginRequest, readSessionToken, sessionCookie } from './auth/http.js';
 import { createRateLimiter } from './auth/rate-limit.js';
 import { ConflictError, InvalidInputError, RequestError } from './errors.js';
@@ -164,6 +164,7 @@ import { serveWebApp } from './static.js';
 const port = resolvePort();
 const host = resolveHost();
 const webDistDir = resolveWebDistDirectory();
+const appVersion = resolveAppVersion();
 const maxBodyBytes = 1024 * 1024;
 // Backups hold every record, so restore requests may be much larger than ordinary ones.
 const maxRestoreBodyBytes = 200 * 1024 * 1024;
@@ -326,7 +327,7 @@ const server = createServer(async (request, response) => {
     }
 
     if (request.method === 'GET' && url.pathname === '/api/health') {
-      sendJson(response, 200, { name: 'Hop API', status: 'ok' });
+      sendJson(response, 200, { name: 'Hop API', status: 'ok', version: appVersion });
       return;
     }
 

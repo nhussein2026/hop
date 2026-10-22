@@ -668,6 +668,7 @@ legend { padding: 0; margin-bottom: 6px; }
 /* ---- Settings -------------------------------------------------------------------- */
 .settings-layout { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: var(--s-8); align-items: start; }
 .settings-nav { display: grid; gap: 2px; position: sticky; top: 80px; }
+.settings-version { margin-top: var(--s-4); padding-inline: var(--s-3); }
 .settings-body { display: grid; gap: var(--s-5); max-width: 720px; }
 .settings-card { display: grid; gap: var(--s-4); }
 .settings-card-head { display: grid; gap: 4px; }

@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { resolveDatabasePath, resolvePort } from './config.js';
+import { resolveAppVersion, resolveDatabasePath, resolvePort } from './config.js';
 
 test('resolveDatabasePath uses the repository storage directory by default', () => {
   const path = resolveDatabasePath('./storage/hop.db');
@@ -26,4 +26,8 @@ test('resolvePort uses the configured PORT when present', () => {
 
 test('tests run against an in-memory database', () => {
   assert.equal(process.env.DATABASE_URL, ':memory:');
+});
+
+test('resolveAppVersion reads MAJOR.MINOR.PATCH from the root package.json', () => {
+  assert.match(resolveAppVersion(), /^\d+\.\d+\.\d+$/);
 });

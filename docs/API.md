@@ -25,7 +25,7 @@ All routes live in `apps/api/src/server.ts`. Request bodies are validated by the
 
 | Method | Path | Description |
 | --- | --- | --- |
-| `GET` | `/api/health` | `{ "name": "Hop API", "status": "ok" }`. No session needed. |
+| `GET` | `/api/health` | `{ "name": "Hop API", "status": "ok", "version": "1.0.0" }`. No session needed. |
 | `GET` | `/api/auth/session` | `{ setupRequired, authenticated }` |
 | `POST` | `/api/auth/setup` | `{ password }`: creates the password (12+ characters). `409` if one exists. |
 | `POST` | `/api/auth/login` | `{ password }`: starts a 30-day session. |

@@ -12,9 +12,16 @@ function apiPort() {
   return process.env.PORT || fileEnv.PORT || '4321'
 }
 
+// Every workspace carries the root package.json's version (see scripts/release.mjs).
+function appVersion() {
+  const { version } = JSON.parse(readFileSync(new URL('../../package.json', import.meta.url), 'utf8')) as { version: string }
+  return version
+}
+
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
+  define: { __HOP_VERSION__: JSON.stringify(appVersion()) },
   server: {
     proxy: {
       // Keep the browser's Host header so the API's same-origin check sees the page's own origin.
