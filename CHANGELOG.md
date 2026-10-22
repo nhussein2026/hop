@@ -6,6 +6,18 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Ver
 
 ## [Unreleased]
 
+### Added
+
+- Proven skills: a skill's level now comes from its evidence instead of a self-rating. Each piece of evidence has a kind (Built, Test, Review, Used, Top or Learned), attested kinds name who vouched for them, and proof of a tool skill stops counting after 18 months. An optional notification says when that happens.
+- Learned evidence for books, courses and tutorials. It stays in a skill's history but never raises its level. Finishing a book records it as Learned, and earlier "Read …" entries become Learned.
+- A completed İTÜ course offers to add its grade as proof.
+- Evidence can be edited from the skill drawer and the Evidence tab.
+- On a block day, a habit linked to a goal shows that goal's next task on Today, with Start, Done and Skip.
+
+### Changed
+
+- The old self-rated level is still shown where one was set, but new skills don't get one.
+
 ## [1.0.0] - 2026-10-22
 
 ### Added

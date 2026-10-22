@@ -13,13 +13,12 @@ How it works (details in [Development](DEVELOPMENT.md#versions-and-releases)):
 
 | Item | Type | Spec | Status |
 | --- | --- | --- | --- |
-| Proven skills: a skill's level comes from its evidence | feat | [Proposal A](proposals/2026-10-skills-and-branding.md#a-proven-skills) | In progress |
+| Proven skills: a skill's level comes from its evidence | feat | [Proposal A](proposals/2026-10-skills-and-branding.md#a-proven-skills) | Built, in review |
+| Block-day next step: a habit linked to a goal shows that goal's next task on Today | feat | [Proposal B](proposals/2026-10-skills-and-branding.md#b-block-day-next-step) | Built, in review |
 
 ## Later
 
-| Version | Item | Type | Spec |
-| --- | --- | --- | --- |
-| v1.2.0 | Block-day next step: a habit linked to a goal shows that goal's next task on Today | feat | [Proposal B](proposals/2026-10-skills-and-branding.md#b-block-day-next-step) |
+Nothing planned yet.
 
 ## Backlog
 
@@ -32,4 +31,5 @@ Not assigned to a version. Each one needs a conversation before it moves up.
 | Portfolio export for nhussein.io | feat | [Proposal D](proposals/2026-10-skills-and-branding.md#d-portfolio-export). Maybe 2027. |
 | Calendar feed (ICS) to subscribe to from a phone's calendar app | feat | |
 | The root `.env` is ignored by `yarn dev` and `yarn start` | fix | `dotenv` reads `.env` from `apps/api`, the API's working directory. Fixing it changes which database development uses. |
+| Skills polish: edit a skill's name and layer; line up the parked table with the main one; make a skill and the six evidence kinds fit a phone | fix | Found while testing proven skills. |
 | Offline write queue: tick habits, complete tasks and quick-add while the server is off, and sync later | feat | About two days of work. Full offline sync was advised against. |
