@@ -1,5 +1,6 @@
 // Display labels and small lookups shared by screens and dialogs.
-import type { AccountStatus, AssessmentType, BillingCycle, BookFormat, BookStatus, CefrLevel, CourseStatus, FindKind, FindStatus, IdeaKind, IdeaStage, KeyDateKind, Language, OpportunityActivityType, OpportunityType, PinKind, PracticeArea, PracticeSlot, ResourceKind, SkillLevel } from './types.ts'
+import { EVIDENCE_VALID_MONTHS } from '@hop/domain'
+import type { AccountStatus, AssessmentType, BillingCycle, BookFormat, BookStatus, CefrLevel, CourseStatus, EvidenceKind, FindKind, FindStatus, IdeaKind, IdeaStage, KeyDateKind, Language, OpportunityActivityType, OpportunityType, PinKind, PracticeArea, PracticeSlot, ResourceKind, SkillFocus, SkillLevel, SkillType } from './types.ts'
 
 export const OPPORTUNITY_TYPES: [OpportunityType, string][] = [
   ['job', 'Job'], ['internship', 'Internship'], ['program', 'Program'], ['scholarship', 'Scholarship'], ['fellowship', 'Fellowship'],
@@ -24,8 +25,34 @@ export const ACTIVITY_TYPES: Record<OpportunityActivityType, [string, string]> =
 export const interactionIcon = (type: string) => (type === 'email' ? 'mail' : type === 'call' ? 'phone' : type === 'meeting' ? 'users' : 'message')
 export const initials = (name: string) => name.split(' ').map((part) => part[0]).join('').slice(0, 2)
 
-export const LEVELS: [SkillLevel, string][] = [['learning', 'Learning'], ['practicing', 'Practising'], ['confident', 'Confident']]
-export const levelIndex = (level: SkillLevel) => LEVELS.findIndex(([value]) => value === level)
+/* ---- Skills and evidence ------------------------------------------------------------------- */
+/** The self-assessed levels from before levels came from evidence. */
+export const SKILL_LEVEL_LABEL: Record<SkillLevel, string> = { learning: 'Learning', practicing: 'Practising', confident: 'Confident' }
+
+/** The user's skill layers, suggested for a skill's category. Groups follow this order. */
+export const SKILL_LAYERS = ['Foundations', 'Software engineering', 'AI engineering', 'Practices']
+
+export const SKILL_TYPE: Record<SkillType, [string, string]> = {
+  tool: ['Tool', `Proof counts for ${EVIDENCE_VALID_MONTHS} months, then needs renewing.`],
+  fundamental: ['Fundamental', 'Proof never expires.'],
+}
+
+export const SKILL_FOCUS: Record<SkillFocus, [string, string]> = {
+  core: ['Core', 'On your current path.'],
+  standout: ['Standout', 'Aiming for Top-tier. Keep it to one or two.'],
+  keep: ['Keep', 'Kept up, not a priority.'],
+  parked: ['Parked', 'Kept, but left out of warnings.'],
+}
+
+/** Label, meaning, and what `by` asks for each kind of evidence. Built needs no `by`. */
+export const EVIDENCE_KIND: Record<EvidenceKind, { label: string; meaning: string; by: string }> = {
+  built: { label: 'Built', meaning: 'Made something real with it, beyond a tutorial. Your own work, so never enough alone for Verified.', by: '' },
+  test: { label: 'Test', meaning: 'A graded assessment you don’t control: a course grade, a proctored exam, a ranked contest. Click-through certificates don’t count.', by: 'Who graded it?' },
+  review: { label: 'Review', meaning: 'Someone stronger reviewed the work and would sign off on it.', by: 'Who reviewed it?' },
+  used: { label: 'Used', meaning: 'Real users or a client relied on it.', by: 'Who used it?' },
+  top: { label: 'Top', meaning: 'Compared with the best: teaching it, a merged contribution to a well-known project, a top-10% result.', by: 'Compared with whom?' },
+  learned: { label: 'Learned', meaning: 'Studied it: a book, a course, a tutorial. Kept in the skill’s history, never counted as proof.', by: 'From where?' },
+}
 
 
 /** A file size for people: 340 KB, 2.4 MB. */

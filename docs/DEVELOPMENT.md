@@ -60,7 +60,7 @@ Conventions:
 Tests use Node's built-in test runner through `tsx`, next to the code they test (`*.test.ts`).
 
 - **API** (`apps/api`): services, migrations, auth, backups, and restores. `src/test-setup.ts` points every run at an in-memory database and a temporary backup directory, so tests never touch your data.
-- **Web** (`apps/web/src/lib`): pure rules for dates, health signals, habits, agenda, and university logic.
+- **Web** (`apps/web/src/lib`): pure rules for dates, health signals, habits, agenda, skill proof levels, and university logic.
 - **Validation** (`packages/validation`): schema edge cases.
 
 Run one file with:

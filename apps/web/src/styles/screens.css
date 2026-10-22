@@ -610,6 +610,9 @@ legend { padding: 0; margin-bottom: 6px; }
 .bars { display: grid; gap: var(--s-2); }
 .split-even { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 
+/* The next task for a habit's goal, shown inside the habit on a block day. */
+.block-step { min-height: 0; padding-block: 0 var(--s-3); padding-left: calc(var(--s-4) + 24px + var(--s-3)); border-top: 0; }
+
 /* ---- Growth -------------------------------------------------------------------- */
 .level { display: inline-flex; align-items: center; gap: var(--s-2); }
 .level-bars { display: inline-flex; gap: 2px; }
@@ -618,6 +621,12 @@ legend { padding: 0; margin-bottom: 6px; }
 .skills-table td:first-child { position: relative; }
 .tr-link:hover td { background: var(--surface-2); }
 .skill-cat { display: block; margin-top: 2px; }
+.skills-table .group-row th { border-top: 1px solid var(--border); color: var(--text); }
+.done-list > .table-wrap { margin-top: var(--s-1); }
+.proof-summary { display: grid; gap: var(--s-2); padding: var(--s-4); border: 1px solid var(--border); border-radius: var(--r-panel); background: var(--surface-2); }
+.proof-next { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--s-2); }
+.ev-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; }
+.tl-body .is-warning { color: var(--warning); font-weight: 700; }
 .project-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: var(--s-4); }
 .project-card { position: relative; display: grid; gap: var(--s-3); padding: var(--s-5); align-content: start; }
 .project-card:hover { border-color: var(--border-strong); }
@@ -809,6 +818,8 @@ dialog.search-dialog { width: min(640px, calc(100vw - 32px)); margin-top: 12vh; 
   .cal-entries { display: none; }
   .cal-dots { display: flex; }
   .cal-week .cal-day { min-height: 64px; }
+  .table-stack .group-row { padding: 0; }
+  .table-stack .group-row th { display: block; }
   .table-stack tr:has(.table-actions) { position: relative; padding-right: 52px; }
   .table-stack td.table-actions { position: absolute; top: var(--s-2); right: var(--s-2); width: auto; padding: 0; }
 }

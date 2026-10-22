@@ -1,11 +1,12 @@
 // One place to open any dialog, so screens and rows don't import each other's editors.
 import { useMemo } from 'react'
 import * as D from '../lib/dates.ts'
-import type { Account, Assessment, Book, BookLoan, Contact, PracticeActivity, PracticeArea, PracticeSession, PracticeTest, Course, Goal, Habit, Idea, Opportunity, OpportunityStage, Pin, Program, Project, Resource, ResourceKind, Resume, Skill, Task, Term } from '../lib/types.ts'
+import type { Account, Assessment, Book, BookLoan, Contact, PracticeActivity, PracticeArea, PracticeSession, PracticeTest, Course, Evidence, Goal, Habit, Idea, Opportunity, OpportunityStage, Pin, Program, Project, Resource, ResourceKind, Resume, Skill, Task, Term } from '../lib/types.ts'
 import { CloseOpportunity, ContactDrawer, ContactEditor, LogActivity, OpportunityEditor, ResumeEditor } from './career.tsx'
 import { MoreSheet, Notifications, QuickAdd, ReflectionEditor, Search } from './global.tsx'
 import type { AddKind } from './global.tsx'
 import { EvidenceEditor, MilestoneEditor, ProjectDrawer, ProjectEditor, SkillDrawer, SkillEditor } from './growth.tsx'
+import type { EvidenceDefaults } from './growth.tsx'
 import { EventEditor, GoalEditor, HabitEditor, TaskEditor } from './planning.tsx'
 import { FindEditor } from './radar.tsx'
 import { AccountEditor, NoteEditor } from './notes.tsx'
@@ -34,7 +35,8 @@ export function useEditors() {
       skillDrawer: (skill: Skill) => open((close) => <SkillDrawer close={close} skill={skill} />),
       project: () => open((close) => <ProjectEditor close={close} />),
       projectDrawer: (project: Project) => open((close) => <ProjectDrawer close={close} project={project} />),
-      evidence: (defaults: { skillId?: string; projectId?: string; goalId?: string } = {}) => open((close) => <EvidenceEditor close={close} {...defaults} />),
+      evidence: (defaults: EvidenceDefaults = {}) => open((close) => <EvidenceEditor close={close} defaults={defaults} />),
+      editEvidence: (evidence: Evidence) => open((close) => <EvidenceEditor close={close} evidence={evidence} />),
       milestone: (goalId?: string) => open((close) => <MilestoneEditor close={close} goalId={goalId} />),
       reflection: (date = D.today()) => open((close) => <ReflectionEditor close={close} date={date} />),
       term: (term?: Term | null) => open((close) => <TermEditor close={close} term={term} />),

@@ -23,7 +23,12 @@ export const skillService = {
       id: randomUUID(),
       name: input.name,
       category: input.category ?? null,
-      level: input.level ?? 'learning',
+      type: input.type ?? 'tool',
+      focus: input.focus ?? 'keep',
+      listed: input.listed ?? false,
+      bar: input.bar ?? null,
+      // Levels come from evidence now; only skills from before have a self-assessed one.
+      level: null,
       confidence: input.confidence ?? null,
       lastPracticedAt: input.lastPracticedAt ?? null,
       yearsExperience: input.yearsExperience ?? null,

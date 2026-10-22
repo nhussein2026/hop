@@ -6,8 +6,9 @@ import { setupPasswordSchema } from './auth.js';
 import { createBookSchema, logReadingSchema, updateLoanSchema } from './book.js';
 import { dateSchema } from './common.js';
 import { createEventSchema } from './event.js';
+import { createEvidenceSchema, updateEvidenceSchema } from './evidence.js';
 import { habitCompletionRangeSchema } from './habit.js';
-import { updateSkillSchema } from './skill.js';
+import { createSkillSchema, updateSkillSchema } from './skill.js';
 import { createTaskSchema } from './task.js';
 
 test('dateSchema accepts real calendar dates only', () => {
@@ -37,6 +38,23 @@ test('habitCompletionRangeSchema requires from to be on or before to', () => {
 test('updateSkillSchema rejects unknown fields and allows clearing notes', () => {
   assert.equal(updateSkillSchema.safeParse({ notes: null }).success, true);
   assert.equal(updateSkillSchema.safeParse({ unexpected: true }).success, false);
+});
+
+test('skill schemas take proof fields, and the old level is no longer set', () => {
+  assert.equal(createSkillSchema.safeParse({ name: 'Rust', type: 'tool', focus: 'standout', listed: true }).success, true);
+  assert.equal(createSkillSchema.safeParse({ name: 'Rust', level: 'confident' }).success, false);
+  assert.equal(updateSkillSchema.safeParse({ level: 'learning' }).success, false);
+  assert.equal(updateSkillSchema.safeParse({ focus: 'someday' }).success, false);
+  assert.equal(updateSkillSchema.safeParse({ bar: null }).success, true);
+});
+
+test('evidence needs a kind when created, and cannot lose it later', () => {
+  assert.equal(createEvidenceSchema.safeParse({ title: 'Shipped Hop' }).success, false);
+  assert.equal(createEvidenceSchema.safeParse({ title: 'Shipped Hop', kind: 'built' }).success, true);
+  assert.equal(createEvidenceSchema.safeParse({ title: 'Read a book', kind: 'learned' }).success, true);
+  assert.equal(createEvidenceSchema.safeParse({ title: 'Shipped Hop', kind: 'certificate' }).success, false);
+  assert.equal(updateEvidenceSchema.safeParse({ kind: null }).success, false);
+  assert.equal(updateEvidenceSchema.safeParse({ by: null, result: null, courseId: null }).success, true);
 });
 
 test('setupPasswordSchema requires at least 12 characters and keeps surrounding spaces', () => {

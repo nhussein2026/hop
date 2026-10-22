@@ -5,7 +5,7 @@ import * as D from '../lib/dates.ts'
 import { isOpen } from '../lib/rules.ts'
 import { currentTerm, isExam } from '../lib/uni.ts'
 import type {
-  Assessment, AssessmentType, ClassSlot, Contact, Course, Event, Evidence, Find, HopData, Idea, IdeaStage, KeyDate, LetterGrade, Opportunity,
+  Assessment, AssessmentType, ClassSlot, Contact, Course, Event, Find, HopData, Idea, IdeaStage, KeyDate, LetterGrade, Opportunity,
   Pin, Playbook, Program, Project, Resource, ResourceKind, Settings, Task, Term, UniLink,
 } from '../lib/types.ts'
 import { api, upsert, useHop, without } from './store.ts'
@@ -92,18 +92,9 @@ export function useUniActions() {
         const label = absences < c.absences ? 'Absence removed' : left === null ? 'Absence recorded' : left <= 0 ? `Absence recorded. No absences left in ${c.code}.` : `Absence recorded. ${left} left in ${c.code}.`
         return courses.update(c, { absences }, label, { undo: true })
       },
-      /** Completing can also record the course as evidence, unless it was failed. */
-      complete(c: Course, grade: LetterGrade, asEvidence: boolean) {
-        return commit(`${c.code} completed with ${grade}`, async () => {
-          const saved = await api.post<Course>(`${course(c)}/complete`, { grade })
-          const evidence = asEvidence && grade !== 'FF' && grade !== 'VF'
-            ? await api.post<Evidence>('/api/evidence', { title: `Completed ${c.code} ${c.name} (${grade})`, date: D.today() })
-            : undefined
-          return { saved, evidence }
-        }, ({ saved, evidence }, current) => {
-          const next = upsert(current, 'courses', saved)
-          return evidence ? upsert(next, 'evidence', evidence) : next
-        })
+      /** The grade becomes proof separately, once the skills it proves are picked (see courseProof). */
+      complete(c: Course, grade: LetterGrade) {
+        return commit(`${c.code} completed with ${grade}`, () => api.post<Course>(`${course(c)}/complete`, { grade }), applyItem('courses'))
       },
       /** The library keeps the course's materials, unlinked. Deadlines and grades go with it. */
       remove(c: Course) {

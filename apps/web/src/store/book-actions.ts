@@ -42,12 +42,12 @@ export function useBookActions() {
       wantAgain(b: Book) {
         return books.update(b, { status: 'want' }, 'Back on your reading list', true)
       },
-      /** Finishing can also record the book as evidence for the skills it's linked to. */
+      /** Finishing can also record the book in the history of the skills it's linked to: as Learned, since reading isn't proof. */
       finish(b: Book, fields: { finishedOn: string; rating: number | null; takeaways: string[] }, asEvidence: boolean) {
         return commit('Finished. Nice work.', async () => {
           const saved = await api.patch<Book>(path(b), { status: 'finished', ...fields, startedOn: b.startedOn ?? fields.finishedOn })
           const evidence = asEvidence
-            ? await api.post<Evidence>('/api/evidence', createBody({ title: `Read “${b.title}”${b.author ? ` by ${b.author}` : ''}`, description: fields.takeaways.join('\n'), date: fields.finishedOn, skillIds: b.skillIds, goalId: b.goalId }))
+            ? await api.post<Evidence>('/api/evidence', createBody({ title: `Read “${b.title}”${b.author ? ` by ${b.author}` : ''}`, kind: 'learned', description: fields.takeaways.join('\n'), date: fields.finishedOn, skillIds: b.skillIds, goalId: b.goalId }))
             : undefined
           return { saved, evidence }
         }, ({ saved, evidence }, current) => {

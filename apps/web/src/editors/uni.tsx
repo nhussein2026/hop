@@ -2,6 +2,7 @@
 import { useState } from 'react'
 import * as D from '../lib/dates.ts'
 import { currentTerm, parseGrading, splitList, standing, taking } from '../lib/uni.ts'
+import { courseProof, provesSomething } from '../lib/skills.ts'
 import type { Assessment, AssessmentType, ClassSlot, Contact, Course, Idea, KeyDate, LetterGrade, Pin, Program, Resource, ResourceKind, Term } from '../lib/types.ts'
 import { ASSESSMENT_TYPES, IDEA_KINDS, IDEA_STAGES, IDEA_STAGE_HINT, IDEA_STAGE_LABEL, KEY_DATE_KINDS, PIN_KINDS, RESOURCE_FILE_ACCEPT, RESOURCE_FILE_MAX_BYTES, RESOURCE_KINDS, initials, sizeLabel } from '../lib/labels.ts'
 import { navigate } from '../lib/router.ts'
@@ -11,7 +12,8 @@ import { Icon } from '../components/Icon.tsx'
 import { Dialog, Field, FieldError, FilePicker, SubmitButton } from '../components/ui.tsx'
 import { useConfirm } from '../components/confirm.tsx'
 import { useHop } from '../store/store.ts'
-import { closeDialog, focusFirstInvalid, formText } from '../components/ui-context.ts'
+import { closeDialog, focusFirstInvalid, formText, useDialogs } from '../components/ui-context.ts'
+import { EvidenceEditor } from './growth.tsx'
 
 type Errors = Record<string, string>
 const LETTER_GRADES: LetterGrade[] = ['AA', 'BA', 'BB', 'CB', 'CC', 'DC', 'DD', 'FF', 'VF']
@@ -167,19 +169,25 @@ export function CourseEditor({ course, close }: { course?: Course | null; close:
 }
 
 export function CompleteCourse({ course, close }: { course: Course; close: () => void }) {
+  const { data } = useHop()
   const actions = useUniActions()
+  const { open } = useDialogs()
   const s = standing(course)
 
   async function submit(form: HTMLFormElement) {
     const fd = new FormData(form)
-    if (await actions.courses.complete(course, fd.get('grade') as LetterGrade, Boolean(fd.get('evidence')))) closeDialog(form)
+    const saved = await actions.courses.complete(course, fd.get('grade') as LetterGrade)
+    if (!saved) return
+    closeDialog(form)
+    // A passing grade is a Test for the skills the course proves, which only the user can pick.
+    if (fd.get('proof') && provesSomething(saved.grade)) open((closeNext) => <EvidenceEditor close={closeNext} defaults={courseProof(saved, data.terms, D.today())} />)
   }
 
   return (
     <Dialog className="dialog-sm" desc={s.average !== null ? `Your weighted average was ${s.average} on ${s.gradedWeight}% graded.` : undefined} foot={<><button className="btn" data-close type="button">Cancel</button><SubmitButton>Mark completed</SubmitButton></>} onClose={close} onSubmit={submit} title={`Complete ${course.code}`}>
       <div className="form-grid">
         <Field defaultValue="BB" label="Letter grade" name="grade" options={LETTER_GRADES} type="select" />
-        <label className="check-line"><input defaultChecked name="evidence" type="checkbox" /> Add to Evidence in Growth</label>
+        <label className="check-line"><input defaultChecked name="proof" type="checkbox" /> Next, add the grade as proof for your skills</label>
       </div>
     </Dialog>
   )

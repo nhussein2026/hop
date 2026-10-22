@@ -1,8 +1,9 @@
 // Today: "Here is what matters." One next action, then the rest of today's Musts, Shoulds and
 // habits. The side shows what needs a decision soon, then the horizon.
+import { Fragment } from 'react'
 import * as D from '../lib/dates.ts'
-import { STAGE_LABEL, agenda, agendaLabel, attention, goalHealth, goalProgress, habitDone, habitDue, orgOf, plural, todayPlan, weekFacts } from '../lib/rules.ts'
-import type { Task } from '../lib/types.ts'
+import { STAGE_LABEL, agenda, agendaLabel, attention, goalHealth, goalProgress, habitDone, habitDue, nextForGoal, orgOf, plural, todayPlan, weekFacts } from '../lib/rules.ts'
+import type { Habit, Task } from '../lib/types.ts'
 import { useActions } from '../store/actions.ts'
 import { useEditors } from '../editors/editors.tsx'
 import { Icon, Pad } from '../components/Icon.tsx'
@@ -106,7 +107,7 @@ export function Today() {
                 <a className="small" href="#/plan/habits">Manage</a>
               </div>
               {habitsToday.length
-                ? <div className="rows">{habitsToday.map((h) => <HabitRow habit={h} key={h.id} />)}</div>
+                ? <div className="rows">{habitsToday.map((h) => <Fragment key={h.id}><HabitRow habit={h} /><BlockStep habit={h} /></Fragment>)}</div>
                 : <Empty body="Habits show up here on the days they’re scheduled." icon="leaf" pad={false} title="No habits scheduled today" />}
             </section>
 
@@ -174,6 +175,36 @@ function NextUp({ next, plan, onSkip }: { next: Task | undefined; plan: ReturnTy
         <button className="btn btn-ghost btn-lg" onClick={() => editors.task(next)} type="button">Edit</button>
       </div>
     </section>
+  )
+}
+
+/**
+ * On a block day, a habit linked to a goal shows the goal's next task, so work kept undated still
+ * has a place on Today. It's only a suggestion inside the habit: Today's plan doesn't change.
+ */
+function BlockStep({ habit }: { habit: Habit }) {
+  const { data, ui, setUi } = useHop()
+  const actions = useActions()
+  const editors = useEditors()
+  const today = D.today()
+  const goal = habit.goalId ? data.goals.find((g) => g.id === habit.goalId) : undefined
+  if (!goal || !habitDue(habit, today) || habitDone(habit, data.completions, today)) return null
+  const { next, open } = nextForGoal(goal.id, data.tasks, ui.skipped)
+  if (!next) return null
+  const started = next.status === 'in_progress'
+  return (
+    <div className="row row-link block-step">
+      <div className="row-main">
+        <button className="row-open" onClick={() => editors.task(next)} type="button"><span className="muted">Next for {goal.name}:</span> {next.title}</button>
+        {started && <div className="row-meta"><span><Icon name="play" />In progress</span></div>}
+      </div>
+      <div className="row-actions">
+        {started
+          ? <button className="btn btn-sm" onClick={() => void actions.tasks.toggle(next)} type="button"><Icon className="icon-sm" name="check" />Done</button>
+          : <button className="btn btn-sm" onClick={() => void actions.tasks.update(next, { status: 'in_progress' }, 'Task started', true)} type="button"><Icon className="icon-sm" name="play" />Start</button>}
+        <button className="btn btn-sm btn-ghost" disabled={open < 2} onClick={() => setUi({ skipped: [...ui.skipped.filter((id) => id !== next.id), next.id] })} type="button">Skip</button>
+      </div>
+    </div>
   )
 }
 

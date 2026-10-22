@@ -175,6 +175,8 @@ type FieldProps = FieldBase & {
   readOnly?: boolean
   rows?: number
   options?: (string | [string, string])[]
+  /** Values offered while typing; anything else can still be entered. */
+  suggestions?: string[]
   onChange?: (value: string) => void
 }
 
@@ -204,7 +206,8 @@ export function Field(props: FieldProps) {
       </select>
     )
   } else {
-    control = <input {...common} autoComplete={props.autoComplete} className="input" defaultValue={props.defaultValue ?? ''} max={props.max} maxLength={props.maxLength} min={props.min} placeholder={props.placeholder} readOnly={props.readOnly} type={props.type ?? 'text'} />
+    control = <input {...common} autoComplete={props.autoComplete} className="input" defaultValue={props.defaultValue ?? ''} list={props.suggestions ? `${id}-list` : undefined} max={props.max} maxLength={props.maxLength} min={props.min} placeholder={props.placeholder} readOnly={props.readOnly} type={props.type ?? 'text'} />
+    if (props.suggestions) control = <>{control}<datalist id={`${id}-list`}>{props.suggestions.map((value) => <option key={value} value={value} />)}</datalist></>
   }
   return (
     <div className="field">
@@ -300,7 +303,7 @@ export function FilePicker({ label, hint, accept, maxBytes, value, onChange, err
 }
 
 /** Radio group styled as buttons. */
-export function Segmented({ name, label, options, defaultValue, value, onChange, small }: {
+export function Segmented({ name, label, options, defaultValue, value, onChange, small, hint, error }: {
   name: string
   label: ReactNode
   options: [string, ReactNode][]
@@ -308,16 +311,19 @@ export function Segmented({ name, label, options, defaultValue, value, onChange,
   value?: string
   onChange?: (value: string) => void
   small?: boolean
+  hint?: ReactNode
+  error?: string
 }) {
   const labelId = useId()
   const base = useId()
   return (
     <div className="field">
       <span className="field-label" id={labelId}>{label}</span>
-      <div aria-labelledby={labelId} className={`segmented${small ? ' segmented-sm' : ''}`} role="radiogroup">
+      <div aria-describedby={hint ? `${base}-hint` : undefined} aria-labelledby={labelId} className={`segmented${small ? ' segmented-sm' : ''}`} role="radiogroup">
         {options.map(([optionValue, optionLabel]) => (
           <span key={optionValue} style={{ display: 'contents' }}>
             <input
+              aria-invalid={error ? true : undefined}
               checked={value === undefined ? undefined : value === optionValue}
               defaultChecked={value === undefined ? defaultValue === optionValue : undefined}
               id={`${base}-${optionValue}`}
@@ -330,6 +336,8 @@ export function Segmented({ name, label, options, defaultValue, value, onChange,
           </span>
         ))}
       </div>
+      {hint && <span className="field-hint" id={`${base}-hint`}>{hint}</span>}
+      <FieldError error={error} />
     </div>
   )
 }

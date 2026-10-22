@@ -1,10 +1,14 @@
 // Notifications: only things that lead to an action, filtered by the categories the user enabled.
 import * as D from './dates.ts'
-import { attention, monthEnd, reviewMonth } from './rules.ts'
+import { attention, monthEnd, plural, reviewMonth } from './rules.ts'
 import type { AttentionItem } from './rules.ts'
+import { expiringProof } from './skills.ts'
 import type { HopData } from './types.ts'
 
 const CATEGORY = { critical: 'critical', important: 'important', info: 'optional' } as const
+
+/** Proof that holds up a skill's level is announced this many days before it stops counting. */
+const PROOF_NOTICE_DAYS = 30
 
 /** Only things that lead to an action, filtered by the categories the user enabled. */
 export function notificationsFor(data: HopData): AttentionItem[] {
@@ -23,6 +27,12 @@ export function notificationsFor(data: HopData): AttentionItem[] {
   if (!monthReviewed && D.diffDays(lastDay, today) <= 1 && notify.important) {
     const when = lastDay < today ? `${D.monthLong(month)} ended` : `the month ends ${lastDay === today ? 'today' : 'tomorrow'}`
     items.push({ level: 'important', icon: 'review', title: `Monthly review for ${D.monthLong(month)} is due`, detail: `About 20 minutes; ${when}.`, href: '#/review/month' })
+  }
+  // Not part of attention(): Today stays about today, so this only reaches the notifications.
+  if (notify.optional) {
+    for (const { skill, days } of expiringProof(data.skills, data.evidence, today, PROOF_NOTICE_DAYS)) {
+      items.push({ level: 'info', icon: 'award', title: `Proof for ${skill.name} expires in ${plural(days, 'day')}`, detail: 'Fresh proof of the same kind keeps its level.', href: `#/growth/skills?skill=${skill.id}` })
+    }
   }
   return items
 }

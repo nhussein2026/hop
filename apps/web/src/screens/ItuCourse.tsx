@@ -7,6 +7,7 @@ import { eligibility, isExam, isPending, satInClass, scheduleLabel, standing, wh
 import type { Standing } from '../lib/uni.ts'
 import type { Assessment, Contact, Course, Resource } from '../lib/types.ts'
 import { ASSESSMENT_LABEL, COURSE_STATUS, IDEA_STAGE_LABEL } from '../lib/labels.ts'
+import { courseProof, provesSomething } from '../lib/skills.ts'
 import { navigate } from '../lib/router.ts'
 import { useEditors } from '../editors/editors.tsx'
 import { Icon } from '../components/Icon.tsx'
@@ -46,6 +47,19 @@ export function DeadlineRow({ course: c, item: a }: { course: Course; item: Asse
       {!prep && <div className="row-actions"><button className="btn btn-sm" onClick={() => void actions.grading.planPrep(c, a)} type="button">Plan prep</button></div>}
     </div>
   )
+}
+
+/** A completed course. A passing grade can be proof for the skills it shows: a Test nobody can self-declare. */
+function Completed({ course: c }: { course: Course }) {
+  const { data } = useHop()
+  const editors = useEditors()
+  const proof = data.evidence.find((e) => e.courseId === c.id)
+  const skills = proof ? data.skills.filter((k) => proof.skillIds.includes(k.id)) : []
+  const action = !provesSomething(c.grade) ? undefined
+    : proof ? <button className="btn btn-sm" onClick={() => editors.editEvidence(proof)} type="button">Edit proof</button>
+    : <button className="btn btn-sm" onClick={() => editors.evidence(courseProof(c, data.terms, D.today()))} type="button"><Icon className="icon-sm" name="award" />Add as proof</button>
+  const linked = !proof ? '' : skills.length ? `Proof for ${skills.map((k) => k.name).join(', ')}. ` : 'Added as proof, but not for any skill yet. '
+  return <Banner action={action} icon="award" title={`Completed with ${c.grade ?? '—'}.`} tone="success">{linked}Materials and notes stay here for future courses and your thesis.</Banner>
 }
 
 export function CourseDetail({ id }: { id: string }) {
@@ -99,7 +113,7 @@ export function CourseDetail({ id }: { id: string }) {
 
       {later && <Banner icon="bulb" title={c.status === 'planned' ? `Planned for ${term?.name ?? 'a later term'}.` : 'A course you’re curious about.'} tone="info">{c.why || 'Save anything useful here now; it will be waiting when the course starts.'} {plural(materials.length, 'resource')} saved so far.</Banner>}
       {isTaking && v?.atRisk && <Banner icon="alert" title={!v.gradeOk ? 'In-term average below the VF limit' : v.left !== null && v.left <= 0 ? 'No absences left' : 'One absence left before VF'} tone="warning">{c.vf!.rule}.</Banner>}
-      {c.status === 'completed' && <Banner icon="award" title={`Completed with ${c.grade ?? '—'}.`} tone="success">Materials and notes stay here for future courses and your thesis.</Banner>}
+      {c.status === 'completed' && <Completed course={c} />}
 
       <div className="split">
         <div className="stack">

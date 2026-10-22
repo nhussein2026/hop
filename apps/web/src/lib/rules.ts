@@ -7,6 +7,7 @@ import { dueTime, eligibility, isPending, isExam, satInClass, taking, unsubmitte
 import { AGENDA_META, BOOK_STATUS_LABEL, FIND_KINDS, IDEA_STAGE_LABEL, RESOURCE_KINDS } from './labels.ts'
 import { LOAN_NOTICE_DAYS, loanState, openLoan } from './books.ts'
 import { money, nextRenewal, renewingSoon } from './accounts.ts'
+import { PROOF_LABEL, proofLevel } from './skills.ts'
 
 /* ---- Opportunities ------------------------------------------------------- */
 export const STAGES: OpportunityStage[] = ['saved', 'interested', 'preparing', 'applied', 'screening', 'interview', 'assessment', 'final', 'offer']
@@ -163,6 +164,19 @@ export function sortTasks(list: Task[]) {
     const bd = b.dueDate || b.scheduledDate || '9999'
     return ad.localeCompare(bd) || a.title.localeCompare(b.title)
   })
+}
+
+/**
+ * What to work on in a goal's block of time (a habit linked to the goal): its highest-priority open
+ * task, then the one planned earliest, then the oldest. Undated tasks never reach Today's plan, so
+ * this is how they show up on a block day. Skipped tasks come last; once all are skipped, the order
+ * starts again.
+ */
+export function nextForGoal(goalId: string, tasks: Task[], skipped: string[] = []) {
+  const open = tasks
+    .filter((t) => t.goalId === goalId && isOpen(t))
+    .sort((a, b) => PRIORITY[a.priority] - PRIORITY[b.priority] || (a.scheduledDate ?? '9999').localeCompare(b.scheduledDate ?? '9999') || a.createdAt.localeCompare(b.createdAt))
+  return { next: open.find((t) => !skipped.includes(t.id)) ?? open[0], open: open.length }
 }
 
 /** Today: Must = high priority, due by tomorrow, or overdue; Should = the rest planned for today or slipped. */
@@ -566,7 +580,7 @@ export function search(s: HopData, query: string): SearchResult[] {
   for (const t of s.tasks) if (has(t.title, t.description)) out.push({ group: 'Tasks', icon: 'check', title: t.title, meta: t.status === 'completed' ? 'Done' : t.dueDate ? D.dueLabel(t.dueDate) : 'Open', href: `#/plan/tasks?task=${t.id}` })
   for (const o of s.opportunities) if (has(o.title, o.organization, o.technologyTags.join(' '), o.notes)) out.push({ group: 'Opportunities', icon: 'career', title: `${orgOf(o)}: ${o.title}`, meta: STAGE_LABEL[o.stage], href: `#/career/${o.id}` })
   for (const c of s.contacts) if (has(c.name, c.organization, c.role)) out.push({ group: 'People', icon: 'user', title: c.name, meta: [c.role, c.organization].filter(Boolean).join(', '), href: `#/career/people?contact=${c.id}` })
-  for (const k of s.skills) if (has(k.name, k.category)) out.push({ group: 'Skills', icon: 'growth', title: k.name, meta: k.level, href: `#/growth/skills?skill=${k.id}` })
+  for (const k of s.skills) if (has(k.name, k.category)) out.push({ group: 'Skills', icon: 'growth', title: k.name, meta: PROOF_LABEL[proofLevel(k, s.evidence, D.today()).level], href: `#/growth/skills?skill=${k.id}` })
   for (const p of s.projects) if (has(p.name, p.blurb, p.stack.join(' '))) out.push({ group: 'Projects', icon: 'code', title: p.name, meta: p.status, href: `#/growth/projects?project=${p.id}` })
   for (const e of s.evidence) if (has(e.title)) out.push({ group: 'Evidence', icon: 'award', title: e.title, meta: e.date ? D.short(e.date) : '', href: '#/growth/evidence' })
   const courseCode = (id: string | null) => s.courses.find((c) => c.id === id)?.code

@@ -315,7 +315,8 @@ export function FinishBook({ book, close }: { book: Book; close: () => void }) {
             ))}
           </div>
         </fieldset>
-        <label className="check-line"><input defaultChecked={skills.length > 0} name="evidence" type="checkbox" /> Add it to Evidence{skills.length ? ` for ${skills.map((k) => k.name).join(', ')}` : ''}</label>
+        <label className="check-line"><input defaultChecked={skills.length > 0} name="evidence" type="checkbox" /> Add it to Evidence{skills.length ? ` for ${skills.map((k) => k.name).join(', ')}` : ''} as Learned</label>
+        <p className="xs muted">Learned stays in a skill’s history but never raises its level: reading is learning, not proof.</p>
       </div>
     </Dialog>
   )

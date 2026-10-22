@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { setTimezone } from './dates.ts'
-import { goalHealth, habitWeek, monthEnd, monthFacts, reviewMonth } from './rules.ts'
+import { goalHealth, habitWeek, monthEnd, monthFacts, nextForGoal, reviewMonth, todayPlan } from './rules.ts'
 import type { Goal, Habit, HopData, Task } from './types.ts'
 
 setTimezone('UTC')
@@ -107,4 +107,27 @@ test('the language track’s goal is moved by its daily plan, not only by tasks'
 
   data.practiceSessions = [{ id: 's', date: '2026-10-18', area: 'listening', minutes: 25, activityId: 'a', note: '', createdAt: stamp }]
   assert.equal(goalHealth(g, data, '2026-10-19').label, 'On track')
+})
+
+test('nextForGoal picks the goal’s highest-priority open task, then the earliest planned, then the oldest', () => {
+  const tasks = [
+    task({ id: 'done', goalId: 'g', status: 'completed', priority: 'high' }),
+    task({ id: 'other-goal', goalId: 'x', status: 'todo', priority: 'high' }),
+    task({ id: 'old', goalId: 'g', status: 'todo', priority: 'medium', createdAt: '2026-09-01T00:00:00.000Z' }),
+    task({ id: 'new', goalId: 'g', status: 'todo', priority: 'medium', createdAt: '2026-10-01T00:00:00.000Z' }),
+    task({ id: 'planned', goalId: 'g', status: 'in_progress', priority: 'medium', scheduledDate: '2026-10-25', createdAt: '2026-10-10T00:00:00.000Z' }),
+    task({ id: 'high', goalId: 'g', status: 'todo', priority: 'high', createdAt: '2026-10-15T00:00:00.000Z' }),
+  ]
+  const order: string[] = []
+  for (let skipped: string[] = []; order.length < 4; skipped = [...skipped, order.at(-1)!]) order.push(nextForGoal('g', tasks, skipped).next!.id)
+  assert.deepEqual(order, ['high', 'planned', 'old', 'new'])
+  assert.equal(nextForGoal('g', tasks).open, 4)
+  // Once every task has been skipped, it starts again from the top.
+  assert.equal(nextForGoal('g', tasks, order).next?.id, 'high')
+  assert.equal(nextForGoal('x', tasks.slice(0, 1)).next, undefined)
+})
+
+test('undated tasks stay out of Today’s plan', () => {
+  const tasks = [task({ id: 'undated', status: 'todo', priority: 'high', goalId: 'g' }), task({ id: 'today', status: 'todo', scheduledDate: '2026-10-22' })]
+  assert.deepEqual(todayPlan(tasks, '2026-10-22').all.map((t) => t.id), ['today'])
 })

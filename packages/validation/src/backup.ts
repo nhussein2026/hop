@@ -3,6 +3,7 @@ import { z } from 'zod';
 import {
   ACCOUNT_STATUSES,
   ASSESSMENT_TYPES,
+  EVIDENCE_KINDS,
   BILLING_CYCLES,
   CURRENCIES,
   BOOK_FORMATS,
@@ -32,7 +33,9 @@ import {
   PRACTICE_AREAS,
   PRACTICE_SLOTS,
   PROJECT_STATUSES,
+  SKILL_FOCUSES,
   SKILL_LEVELS,
+  SKILL_TYPES,
   TASK_PRIORITIES,
   TASK_STATUSES,
   WEEKLY_REVIEW_STATUSES,
@@ -104,14 +107,17 @@ const projectRow = z.object({
   architectureNotes: optionalText, goalIds: jsonList, skillIds: jsonList, ...timestamps,
 }).strict();
 
+// Skills from before proof levels have no type, focus, listing or bar, and always have a level.
 const skillRow = z.object({
-  id, name: text, category: optionalText, level: z.enum(SKILL_LEVELS), confidence: optionalInteger, lastPracticedAt: optionalText,
+  id, name: text, category: optionalText, type: z.enum(SKILL_TYPES).default('tool'), focus: z.enum(SKILL_FOCUSES).default('keep'), listed: flag.default(false),
+  bar: optionalText.default(null), level: z.enum(SKILL_LEVELS).nullable().default(null), confidence: optionalInteger, lastPracticedAt: optionalText,
   yearsExperience: z.number().nullable(), notes: optionalText, ...timestamps,
 }).strict();
 
 const evidenceRow = z.object({
-  id, title: text, description: optionalText, skillId: optionalText, skillIds: ids.default([]), projectId: optionalText, opportunityId: optionalText,
-  goalId: optionalText, url: optionalText, date: optionalText, ...timestamps,
+  id, title: text, description: optionalText, kind: z.enum(EVIDENCE_KINDS).nullable().default(null), by: optionalText.default(null), result: optionalText.default(null),
+  skillId: optionalText, skillIds: ids.default([]), projectId: optionalText, opportunityId: optionalText,
+  goalId: optionalText, courseId: optionalText.default(null), url: optionalText, date: optionalText, ...timestamps,
 }).strict();
 
 const weeklyReviewRow = z.object({

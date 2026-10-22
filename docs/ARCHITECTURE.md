@@ -83,7 +83,7 @@ Other devices change the same data, so the store loads everything again when Hop
 
 ### Derived data
 
-Health signals, follow-up timing, habit consistency, deadlines, grade standing, agenda building, and notifications are **computed in the browser** from the loaded data (`lib/rules.ts`, `lib/uni.ts`, `lib/notifications.ts`) rather than stored. This follows the spec's rule of deriving rather than duplicating data. These modules are pure functions and carry most of the web tests.
+Health signals, follow-up timing, habit consistency, deadlines, grade standing, skill proof levels, agenda building, and notifications are **computed in the browser** from the loaded data (`lib/rules.ts`, `lib/uni.ts`, `lib/skills.ts`, `lib/notifications.ts`) rather than stored. This follows the spec's rule of deriving rather than duplicating data. These modules are pure functions and carry most of the web tests.
 
 ### PWA and offline
 

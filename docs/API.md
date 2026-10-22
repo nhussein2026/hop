@@ -85,12 +85,12 @@ All routes live in `apps/api/src/server.ts`. Request bodies are validated by the
 
 | Method | Path | Description |
 | --- | --- | --- |
-| `GET` / `POST` | `/api/skills` | List or create skills. |
+| `GET` / `POST` | `/api/skills` | List or create skills. A skill's proof level isn't stored; the web app derives it from the evidence. The old self-assessed `level` is read-only. |
 | `PATCH` | `/api/skills/:id` | Update a skill. |
 | `GET` / `POST` | `/api/projects` | List or create projects. |
 | `PATCH` | `/api/projects/:id` | Update a project. |
-| `GET` / `POST` | `/api/evidence` | List or create evidence. |
-| `PATCH` | `/api/evidence/:id` | Update evidence. |
+| `GET` / `POST` | `/api/evidence` | List or create evidence. New evidence needs a `kind`. Kinds `test`, `review`, `used` and `top` also need `by` and a `date`, or the request is refused with 400. |
+| `PATCH` | `/api/evidence/:id` | Update evidence. The same rule applies to the result of the change. |
 | `GET` / `POST` / `PATCH` / `DELETE` | `/api/finds[/:id]` | Radar finds. |
 | `GET` / `POST` / `PATCH` / `DELETE` | `/api/books[/:id]` | Reading list. Each book comes with its `loans` and reading `log`. |
 | `POST` | `/api/books/:id/log` | Record the page reached on a day (`{ date, page }`); the same day again replaces it. Returns `{ book, completion }`, where `completion` is the linked habit's tick if this call made it. |

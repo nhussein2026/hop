@@ -505,6 +505,8 @@ A habit can be marked complete quickly.
 
 A completion should record an actual completion date/time rather than simply toggling a boolean forever.
 
+A habit linked to a goal can be a block of time for that goal. While it is due and not yet done, Today shows the goal's next task under it ("Next for <goal>: <task>"): the highest-priority open task, then the one planned earliest, then the oldest. **Start** marks it in progress and **Skip** shows the following one. It is a suggestion inside the habit, not part of today's priorities, so undated tasks have a place on a block day without crowding Today.
+
 ---
 
 ## 9.4 Needs Attention
@@ -1215,24 +1217,33 @@ The purpose is to make professional development visible and reusable for future 
 
 # 28. Skills
 
-The original levels were:
+A skill's level is **earned from evidence**, never set by hand, and it can always be explained, the same way a goal's progress is explained by its criteria. The job market decides which skills matter; the user decides how high the bar is and what counts as proof.
 
-```text
-Learning
-Practicing
-Confident
-```
+| Level | Rule |
+| --- | --- |
+| Claimed | No valid evidence. |
+| Practised | At least one valid piece of evidence of any kind (Learned aside). |
+| Verified | Valid evidence of **two different kinds** among Test, Review and Used. |
+| Top-tier | Verified, plus at least one valid Top proof. Meant for one or two standout skills. |
 
-Keep a simple proficiency model, but add evidence.
+What "valid" means depends on the skill's type:
 
-Recommended fields:
+- **Tool** skills (React, FastAPI): evidence counts for **18 months** after its date.
+- **Fundamental** skills (data structures, computer architecture): evidence never expires.
+- Undated evidence counts toward Practised only, never toward Verified or Top-tier. Evidence dated in the future doesn't count yet.
+
+Fields:
 
 ```text
 id
 name
-category
-level
-confidence
+category        the layer: Foundations, Software engineering, AI engineering, Practices (free text)
+type            tool | fundamental
+focus           core | standout | keep | parked
+listed          shown publicly: portfolio, LinkedIn, CV
+bar             what Verified means for this skill, in the user's words
+level           the self-assessed rating from before proof levels; read-only, null for newer skills
+confidence      a private 1–10 rating, never part of the level
 lastPracticedAt
 yearsExperience
 notes
@@ -1240,49 +1251,51 @@ createdAt
 updatedAt
 ```
 
+Focus: **core** skills are on the current path; **standout** skills aim for Top-tier; **parked** skills are kept but left out of warnings.
+
+The Skills screen groups skills by layer and shows each one's level, the kinds of proof behind it, its focus and whether it is listed. It warns when listed skills are only Claimed (the honesty check) and when proof that holds up a core, standout or listed skill's level expires within 60 days. A skill's drawer explains the level ("Verified: Test (Mar 2027, İTÜ BLG 527E) + Review (Jan 2027, …)") and names the one missing step, which can be planned as a task.
+
 Example:
 
 ```text
-TypeScript
-Level: Practicing
-Confidence: 7/10
-
-Evidence:
-- Production web project
-- Hop
-- Veribir work
+React (tool, core, listed)
+Verified: Review (Sep 2026, senior engineer at Getir) + Used (May 2025, Mawaheb, ~200 users)
+The Used proof stops counting in 39 days, and the level drops then.
 ```
-
-Confidence is optional and should not be mistaken for objective proficiency.
 
 ---
 
 # 29. Skill Evidence
 
-Evidence connects skills to reality.
+Evidence connects skills to reality. Each piece has a **kind**:
 
-Example:
+| Kind | Meaning | Examples |
+| --- | --- | --- |
+| Built | Made something real with it, beyond a tutorial. Self-produced, so never enough alone for Verified. | A deployed app, a non-trivial repo |
+| Test | A graded assessment the user doesn't control. Click-through certificates don't count. | İTÜ course grade, proctored certification, ranked timed contest |
+| Review | Someone stronger reviewed the work and would sign off. | Senior code review, mock interview, a maintainer merging a non-trivial PR |
+| Used | Real users or a client relied on it. | Client project in production, an app with real users |
+| Top | Compared against the best. | Teaching it, a merged contribution to a well-known project, a top-10% ranked result |
+| Learned | Studied it. Kept in the skill's history, never counted toward a level. | A book, an online course, a tutorial |
 
-```text
-Skill: TypeScript
+Test, Review, Used and Top need **`by`** (who graded, reviewed or used it, or who it was compared with), so they can't be self-declared, and a **date**, because proof of a tool skill expires. Entries recorded before kinds existed have no kind; they count as Built until the user sets one.
 
-Evidence:
-- Built API in TypeScript
-- Implemented typed state layer
-- Reviewed production code
-- Built reusable generic components
-```
+A graded İTÜ course can become a Test in one step: its code is `by`, its letter grade the result, and the end of its term the date. The user picks the skills it proves. Finishing a book can record it as Learned.
 
 Recommended model:
 
 ```text
 id
-skillId
 title
 description
+kind            built | test | review | used | top | learned (null for old entries)
+by
+result          grade, score, percentile, user count
+skillIds
 projectId
 opportunityId
 goalId
+courseId
 url
 date
 ```

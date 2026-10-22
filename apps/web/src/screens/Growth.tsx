@@ -4,12 +4,15 @@ import * as D from '../lib/dates.ts'
 import { capitalize, orgOf, plural } from '../lib/rules.ts'
 import { navigate } from '../lib/router.ts'
 import type { Route } from '../lib/router.ts'
-import type { Evidence, SkillLevel } from '../lib/types.ts'
+import { PROOF_LEVELS, byLayer, expiringProof, honesty, proofLevel } from '../lib/skills.ts'
+import type { Proof } from '../lib/skills.ts'
+import type { Evidence, Skill } from '../lib/types.ts'
+import { EVIDENCE_KIND, SKILL_FOCUS } from '../lib/labels.ts'
 import { useEditors } from '../editors/editors.tsx'
+import { KindBadge, ProofMeter } from '../editors/growth.tsx'
 import { Icon } from '../components/Icon.tsx'
 import { Badge, Banner, Empty, Tabs } from '../components/ui.tsx'
 import { useHop } from '../store/store.ts'
-import { LEVELS, levelIndex } from '../lib/labels.ts'
 import { Radar } from './Radar.tsx'
 import { Reading } from './Reading.tsx'
 
@@ -38,11 +41,6 @@ export function Growth({ route }: { route: Route }) {
   )
 }
 
-function LevelMeter({ level }: { level: SkillLevel }) {
-  const index = levelIndex(level)
-  return <span aria-label={`Level: ${LEVELS[index]![1]}`} className="level"><span aria-hidden="true" className="level-bars">{LEVELS.map(([value], k) => <i className={k <= index ? 'on' : ''} key={value} />)}</span><span className="small">{LEVELS[index]![1]}</span></span>
-}
-
 /** Open a drawer from a link such as #/growth/skills?skill=<id>, then drop the query. */
 function useOpenFromLink(id: string | undefined, path: string, openItem: (id: string) => void) {
   useEffect(() => {
@@ -54,6 +52,14 @@ function useOpenFromLink(id: string | undefined, path: string, openItem: (id: st
   }, [id])
 }
 
+type SkillRow = { skill: Skill; proof: Proof }
+
+/** "Proof for React expires in 40 days." */
+function expiryTitle(items: { skill: Skill; days: number }[]) {
+  if (items.length === 1) return `Proof for ${items[0]!.skill.name} expires in ${plural(items[0]!.days, 'day')}.`
+  return `Proof expires soon for ${items.map(({ skill, days }) => `${skill.name} (${plural(days, 'day')})`).join(', ')}.`
+}
+
 function Skills({ skillId }: { skillId?: string }) {
   const { data } = useHop()
   const editors = useEditors()
@@ -61,32 +67,53 @@ function Skills({ skillId }: { skillId?: string }) {
     const skill = data.skills.find((k) => k.id === id)
     if (skill) editors.skillDrawer(skill)
   })
-  if (!data.skills.length) return <Empty action={() => editors.skill()} actionLabel="New skill" body="Add the capabilities you’re building. Link evidence so they’re more than labels." title="No skills yet" />
-  const evidenceCount = (id: string) => data.evidence.filter((e) => e.skillIds.includes(id)).length
-  const noEvidence = data.skills.filter((k) => !evidenceCount(k.id))
+  if (!data.skills.length) return <Empty action={() => editors.skill()} actionLabel="New skill" body="Add the capabilities you’re building. Their level comes from the evidence you add." title="No skills yet" />
+  const today = D.today()
+  const rows = data.skills
+    .map((skill): SkillRow => ({ skill, proof: proofLevel(skill, data.evidence, today) }))
+    .sort((a, b) => PROOF_LEVELS.indexOf(b.proof.level) - PROOF_LEVELS.indexOf(a.proof.level) || a.skill.name.localeCompare(b.skill.name))
+  const parked = rows.filter((r) => r.skill.focus === 'parked')
+  const { listed, claimed } = honesty(data.skills, data.evidence, today)
+  const expiring = expiringProof(data.skills, data.evidence, today)
   return (
     <>
-      {noEvidence.length > 0 && <Banner icon="info" title={`${plural(noEvidence.length, 'skill')} without evidence: ${noEvidence.map((k) => k.name).join(', ')}.`} tone="info">Link a project, certificate or result so it holds up in an interview.</Banner>}
-      <div className="table-wrap">
-        <table className="table table-stack skills-table">
-          <thead><tr><th>Skill</th><th>Level</th><th className="num">Evidence</th><th>Last practised</th></tr></thead>
-          <tbody>
-            {[...data.skills].sort((a, b) => levelIndex(b.level) - levelIndex(a.level) || a.name.localeCompare(b.name)).map((k) => {
-              const count = evidenceCount(k.id)
-              return (
-                <tr className="tr-link" key={k.id}>
-                  <td><button className="row-open" onClick={() => editors.skillDrawer(k)} type="button">{k.name}</button>{k.category && <span className="xs muted skill-cat">{k.category}</span>}</td>
-                  <td data-label="Level:"><LevelMeter level={k.level} /></td>
-                  <td className="num" data-label="Evidence:">{count || <Badge icon="alert" tone="warning">None</Badge>}</td>
-                  <td className="muted" data-label="Last practised:">{k.lastPracticedAt ? D.relative(k.lastPracticedAt) : 'Not recorded'}</td>
-                </tr>
-              )
-            })}
-          </tbody>
-        </table>
-      </div>
-      <p className="small muted">Levels are self-assessed. Evidence is what makes them credible.</p>
+      {claimed.length > 0 && <Banner icon="alert" title={`You list ${plural(listed.length, 'skill')} publicly; ${claimed.length} ${claimed.length === 1 ? 'is' : 'are'} only Claimed: ${claimed.map((k) => k.name).join(', ')}.`} tone="warning">Add proof, or take {claimed.length === 1 ? 'it' : 'them'} off your profile until there is some.</Banner>}
+      {expiring.length > 0 && <Banner icon="clock" title={expiryTitle(expiring)} tone="info">Fresh proof of the same kind keeps the level.</Banner>}
+      {rows.length > parked.length && <SkillTable rows={rows.filter((r) => r.skill.focus !== 'parked')} />}
+      {parked.length > 0 && (
+        <details className="done-list">
+          <summary>Show parked <span className="count">{parked.length}</span></summary>
+          <SkillTable rows={parked} />
+        </details>
+      )}
+      <p className="small muted">Levels come from evidence. Confidence is your own rating.</p>
     </>
+  )
+}
+
+/** Skills grouped by layer, strongest proof first. */
+function SkillTable({ rows }: { rows: SkillRow[] }) {
+  const editors = useEditors()
+  return (
+    <div className="table-wrap">
+      <table className="table table-stack skills-table">
+        <thead><tr><th>Skill</th><th>Proof level</th><th>Proof</th><th>Focus</th><th>Listed</th></tr></thead>
+        {byLayer(rows).map(({ layer, items }) => (
+          <tbody key={layer}>
+            <tr className="group-row"><th colSpan={5} scope="rowgroup">{layer}</th></tr>
+            {items.map(({ skill: k, proof }) => (
+              <tr className="tr-link" key={k.id}>
+                <td><button className="row-open" onClick={() => editors.skillDrawer(k)} type="button">{k.name}</button></td>
+                <td data-label="Proof level:"><ProofMeter level={proof.level} /></td>
+                <td data-label="Proof:">{proof.kinds.length ? proof.kinds.map((kind) => EVIDENCE_KIND[kind].label).join(' · ') : <span className="muted">None yet</span>}</td>
+                <td data-label="Focus:">{SKILL_FOCUS[k.focus][0]}</td>
+                <td data-label="Listed:">{k.listed ? <Badge icon="check" tone="primary">Listed</Badge> : <span className="muted">Private</span>}</td>
+              </tr>
+            ))}
+          </tbody>
+        ))}
+      </table>
+    </div>
   )
 }
 
@@ -124,7 +151,7 @@ function Projects({ projectId }: { projectId?: string }) {
 function EvidenceList() {
   const { data } = useHop()
   const editors = useEditors()
-  if (!data.evidence.length) return <Empty action={() => editors.evidence()} actionLabel="Add evidence" body="Evidence is proof: a shipped feature, a passed interview, a certificate. It builds your career history." title="No evidence yet" />
+  if (!data.evidence.length) return <Empty action={() => editors.evidence()} actionLabel="Add evidence" body="Evidence is proof: something you built, a graded test, a review, real users. It builds your career history." title="No evidence yet" />
   const sorted = [...data.evidence].sort((a, b) => (b.date ?? '').localeCompare(a.date ?? ''))
   const groups: { month: string; items: Evidence[] }[] = []
   for (const e of sorted) {
@@ -144,17 +171,21 @@ function EvidenceList() {
               const opportunity = data.opportunities.find((o) => o.id === e.opportunityId)
               const tags = data.skills.filter((k) => e.skillIds.includes(k.id))
               return (
-                <div className="row" key={e.id}>
+                <div className="row row-link" key={e.id}>
                   <span aria-hidden="true" className="ev-icon"><Icon name="award" /></span>
                   <div className="row-main">
-                    <span className="row-title">{e.url ? <a href={e.url} rel="noopener noreferrer" target="_blank">{e.title}</a> : e.title}</span>
+                    <button className="row-open" onClick={() => editors.editEvidence(e)} type="button">{e.title}</button>
                     <div className="row-meta">
+                      <KindBadge kind={e.kind} />
                       {e.date && <span>{D.short(e.date)}</span>}
+                      {e.by && <span>{e.by}</span>}
+                      {e.result && <span>{e.result}</span>}
                       {project && <span><Icon name="code" />{project.name}</span>}
                       {opportunity && <span><Icon name="career" />{orgOf(opportunity)}</span>}
                       {tags.map((k) => <span className="tag tag-sm" key={k.id}>{k.name}</span>)}
                     </div>
                   </div>
+                  {e.url && <div className="row-actions"><a aria-label={`Open the link for ${e.title}`} className="icon-btn" href={e.url} rel="noopener noreferrer" target="_blank"><Icon name="external" /></a></div>}
                 </div>
               )
             })}

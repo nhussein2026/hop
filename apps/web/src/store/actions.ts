@@ -4,12 +4,25 @@ import { useMemo } from 'react'
 import * as D from '../lib/dates.ts'
 import { STAGE_LABEL, isOverdue } from '../lib/rules.ts'
 import type {
-  Contact, Event, Evidence, Goal, GoalArea, GoalCriterion, GoalStatus, Habit, HabitCompletion, HopData, Interaction, Milestone,
+  Contact, Event, Evidence, EvidenceKind, Goal, GoalArea, GoalCriterion, GoalStatus, Habit, HabitCompletion, HopData, Interaction, Milestone,
   Opportunity, OpportunityActivity, OpportunityActivityType, OpportunityStage, Project, ProjectStatus, Reflection, Resume, Settings,
-  MonthFacts, MonthlyReview, Skill, SkillLevel, Task, TaskPriority, WeekFacts, WeeklyReview,
+  MonthFacts, MonthlyReview, Skill, SkillFocus, SkillType, Task, TaskPriority, WeekFacts, WeeklyReview,
 } from '../lib/types.ts'
 import { api, upsert, useHop, without } from './store.ts'
 import type { Collection } from './store.ts'
+
+export type EvidenceFields = {
+  title: string
+  kind: EvidenceKind
+  by: string | null
+  result: string | null
+  date: string | null
+  skillIds: string[]
+  projectId: string | null
+  goalId: string | null
+  courseId: string | null
+  url: string | null
+}
 
 export type TaskFields = {
   title: string
@@ -217,8 +230,8 @@ export function useActions() {
     }
 
     const growth = {
-      addSkill(fields: { name: string; category: string; level: SkillLevel }) {
-        return commit('Skill added', () => api.post<Skill>('/api/skills', { ...fields, confidence: 3, lastPracticedAt: D.today() }), applyItem('skills'))
+      addSkill(fields: { name: string; category: string | null; type: SkillType; focus: SkillFocus }) {
+        return commit('Skill added', () => api.post<Skill>('/api/skills', { ...createBody(fields), confidence: 3, lastPracticedAt: D.today() }), applyItem('skills'))
       },
       updateSkill(skill: Skill, changes: Partial<Skill>, label: string, quiet = false) {
         return commit(label, () => api.patch<Skill>(`/api/skills/${skill.id}`, changes), applyItem('skills'), { quiet })
@@ -229,7 +242,8 @@ export function useActions() {
       setProjectStatus(project: Project, status: ProjectStatus) {
         return commit('Project status updated', () => api.patch<Project>(`/api/projects/${project.id}`, { status }), applyItem('projects'))
       },
-      addEvidence(fields: { title: string; date: string; skillIds: string[]; projectId: string | null; goalId: string | null; url: string }) {
+      saveEvidence(evidence: Evidence | null, fields: EvidenceFields) {
+        if (evidence) return commit('Evidence saved', () => api.patch<Evidence>(`/api/evidence/${evidence.id}`, fields), applyItem('evidence'))
         return commit('Evidence added', () => api.post<Evidence>('/api/evidence', { ...createBody(fields), skillIds: fields.skillIds }), applyItem('evidence'))
       },
     }

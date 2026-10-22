@@ -9,6 +9,8 @@ import { accountService } from './account.service.js';
 import { bookService } from './book.service.js';
 import { practiceService } from './practice.service.js';
 import { courseService } from './course.service.js';
+import { evidenceService } from './evidence.service.js';
+import { skillService } from './skill.service.js';
 import { libraryService } from './library.service.js';
 import { findService, ideaService } from './research.service.js';
 import { goalService } from './goal.service.js';
@@ -178,4 +180,32 @@ test('accounts and pinned notes survive a backup and restore', () => {
 
   assert.equal(accountService.getAll().find((a) => a.id === account.id)?.cost, 59.99);
   assert.equal(libraryService.getAll().find((r) => r.id === note.id)?.pinned, true);
+});
+
+test('a backup from before proof levels restores, with defaults for the new skill and evidence fields', () => {
+  const current = exportSnapshot();
+  const stamp = '2026-10-01T00:00:00.000Z';
+  const snapshot = {
+    ...current,
+    skills: [{ id: 'skill-old', name: 'React', category: 'Frontend', level: 'confident', confidence: 7, lastPracticedAt: '2026-09-30', yearsExperience: 2, notes: null, createdAt: stamp, updatedAt: stamp }],
+    evidence: [{ id: 'ev-old', title: 'Shipped the dashboard', description: null, skillId: 'skill-old', skillIds: ['skill-old'], projectId: null, opportunityId: null, goalId: null, url: null, date: '2026-09-30', createdAt: stamp, updatedAt: stamp }],
+  };
+
+  restoreService.restore(snapshot);
+
+  const skill = skillService.getById('skill-old');
+  assert.deepEqual([skill?.level, skill?.type, skill?.focus, skill?.listed, skill?.bar], ['confident', 'tool', 'keep', false, null]);
+  const item = evidenceService.getById('ev-old');
+  assert.deepEqual([item?.kind, item?.by, item?.result, item?.courseId], [null, null, null, null]);
+});
+
+test('proof fields survive a backup and restore', () => {
+  const skill = skillService.create({ name: 'Machine learning', type: 'fundamental', focus: 'standout', listed: true, bar: 'An A from İTÜ and a reviewed project.' });
+  const item = evidenceService.create({ title: 'Completed BLG 527E', kind: 'test', by: 'İTÜ, BLG 527E', result: 'AA', date: '2027-01-20', courseId: 'course-1', skillIds: [skill.id] });
+  const snapshot = exportSnapshot();
+
+  restoreService.restore(snapshot);
+
+  assert.deepEqual(skillService.getById(skill.id), skill);
+  assert.deepEqual(evidenceService.getById(item.id), item);
 });
