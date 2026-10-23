@@ -9,27 +9,17 @@ How it works (details in [Development](DEVELOPMENT.md#versions-and-releases)):
 - Ideas that come up while a version is being built go to the Backlog, unless we agree to pull them into Next.
 - After a release, its items leave this file and the first version under Later becomes Next.
 
-## Next: v1.2.0
+## Next: v1.3.0 (by end of November)
 
 | Item | Type | Spec | Status |
 | --- | --- | --- | --- |
-| Skill checks: log measured Türkçe results (speaking, writing, listening, reading, vocabulary, grammar) and see the latest and the trend on Progress | feat | [Proposal A](proposals/2026-10-turkish-c1-measurement.md#a-skill-checks), without gates | Built, in review |
-| Renaming a level checkpoint no longer stops it from ticking its goal criterion | fix | [Limit 3](proposals/2026-10-turkish-c1-measurement.md#limits-found-while-planning) | Built, in review |
-
-Agreed scope for skill checks (2026-10-23):
-
-- A check of each area can be added, edited and deleted (with Undo) from Progress. The editor asks for the area first and then shows only that area's fields.
-- Derived values are computed, not stored: 150 words in 120 s shows 75 wpm.
-- Progress shows one row per area with the latest value and the last 8 checks as a trend.
-- Backups include checks; a backup from before v1.2.0 restores with none.
-- Not in this version: gates, Today's "Log check", the error log.
+| Error log: mistakes by category, recurring ones on Today, Anki export | feat | [Proposal B](proposals/2026-10-turkish-c1-measurement.md#b-error-log) | Scope to agree |
+| Minimum day: a tier on each plan activity | feat | [Proposal C](proposals/2026-10-turkish-c1-measurement.md#c-minimum-day) | Scope to agree |
 
 ## Later
 
 | Version | Item | Type | Spec |
 | --- | --- | --- | --- |
-| v1.3.0 (by end of Nov) | Error log: mistakes by category, recurring ones on Today, Anki export | feat | [Proposal B](proposals/2026-10-turkish-c1-measurement.md#b-error-log) |
-| v1.3.0 | Minimum day: a tier on each plan activity | feat | [Proposal C](proposals/2026-10-turkish-c1-measurement.md#c-minimum-day) |
 | v1.4.0 (by mid-Dec) | Gates: each checkpoint's targets with ✓/✗, and a confirmation before passing with unmet targets | feat | [Proposal A](proposals/2026-10-turkish-c1-measurement.md#gates) |
 | v1.4.0 | Score targets for mock exams | feat | [Proposal D](proposals/2026-10-turkish-c1-measurement.md#d-score-targets) |
 
