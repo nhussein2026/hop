@@ -1,10 +1,11 @@
 // Language track dialogs: setting the track up, editing the daily plan, logging practice outside
-// the plan, practice test results, and the track itself (level, exam date, exam sections).
+// the plan, practice test results, skill checks, and the track itself (level, exam date, exam sections).
 import { useState } from 'react'
-import { CEFR_LEVELS, ITU_TOMER_EXAM, LANGUAGE_SKILLS, PRACTICE_AREAS, PRACTICE_SLOTS } from '@hop/domain'
+import { CEFR_LEVELS, CHECK_AREAS, CHECK_JUDGES, ITU_TOMER_EXAM, LANGUAGE_SKILLS, PRACTICE_AREAS, PRACTICE_SLOTS } from '@hop/domain'
 import * as D from '../lib/dates.ts'
-import { PRACTICE_AREA, PRACTICE_SLOT_LABEL } from '../lib/labels.ts'
-import type { CefrLevel, LanguageSkill, PracticeActivity, PracticeArea, PracticeSession, PracticeSlot, PracticeTest } from '../lib/types.ts'
+import { checkValues, formatValue } from '../lib/checks.ts'
+import { CHECK_AREA, CHECK_JUDGE, PRACTICE_AREA, PRACTICE_SLOT_LABEL } from '../lib/labels.ts'
+import type { CefrLevel, CheckArea, CheckJudge, CheckMetrics, LanguageCheck, LanguageSkill, ListeningMode, PracticeActivity, PracticeArea, PracticeSession, PracticeSlot, PracticeTest } from '../lib/types.ts'
 import { usePracticeActions } from '../store/practice-actions.ts'
 import { useHop } from '../store/store.ts'
 import { Icon } from '../components/Icon.tsx'
@@ -292,6 +293,151 @@ export function TestEditor({ test, close }: { test?: PracticeTest | null; close:
           {LANGUAGE_SKILLS.map((skill) => <Field defaultValue={test?.scores[skill]} error={errors[skill]} id={`pt-${skill}`} key={skill} label={`${PRACTICE_AREA[skill][1]} (of ${max[skill]})`} max={max[skill]} min={0} name={skill} type="number" />)}
         </div>
         <Field defaultValue={test?.note} hint="What cost you points, and what you’ll change next week." label="Notes" name="note" optional rows={2} type="textarea" />
+      </div>
+    </Dialog>
+  )
+}
+
+/* ---- Skill check ------------------------------------------------------------------------- */
+type MetricField = { key: string; label: string; min: number; max: number; whole?: boolean; optional?: boolean; hint?: string }
+
+const counted = (key: string, label: string, max: number, fields: Partial<MetricField> = {}): MetricField => ({ key, label, min: 0, max, whole: true, ...fields })
+
+/** The counts each area asks for. Rates are worked out from them, so they're never typed in. */
+const METRIC_FIELDS: Record<CheckArea, MetricField[]> = {
+  speaking: [counted('seconds', 'Seconds recorded', 3600, { min: 10 }), counted('words', 'Words', 10000, { hint: 'From the transcript.' }), counted('errors', 'Errors', 1000, { hint: 'After correction.' })],
+  writing: [counted('minutes', 'Minutes', 240, { min: 1 }), counted('words', 'Words', 10000, { min: 1 }), counted('errors', 'Errors', 1000), { key: 'rubric', label: 'Rubric (of 25)', min: 0, max: 25, optional: true, hint: 'The exam’s writing rubric.' }],
+  listening: [counted('correct', 'Right', 1000), counted('total', 'Out of', 1000, { min: 1 })],
+  reading: [counted('correct', 'Right', 1000), counted('total', 'Out of', 1000, { min: 1 }), counted('minutes', 'Minutes', 240, { min: 1, optional: true })],
+  words: [
+    { key: 'retention', label: 'True retention %', min: 0, max: 100, optional: true, hint: 'Anki’s True Retention, last month.' },
+    counted('mature', 'Mature cards', 100000, { optional: true }),
+    counted('known', 'Sample: known', 10000, { optional: true }),
+    counted('sampled', 'Sample: words', 10000, { min: 1, optional: true, hint: 'From a frequency band.' }),
+  ],
+  grammar: [counted('correct', 'Right', 1000), counted('total', 'Out of', 1000, { min: 1 })],
+}
+
+const TASK_EXAMPLE: Record<CheckArea, string> = {
+  speaking: 'e.g. 2-min monologue: my neighbourhood',
+  writing: 'e.g. Email to a landlord, 150 words',
+  listening: 'e.g. Dictation: Easy Turkish #120, 0:30–1:30',
+  reading: 'e.g. İTÜ TÖMER sample B1, reading part',
+  words: 'e.g. Anki stats + top-2000 sample',
+  grammar: 'e.g. A2 structures test, unit 1–8',
+}
+
+const metricText = (check: LanguageCheck | null | undefined) => Object.fromEntries(Object.entries(check?.metrics ?? {}).filter(([, v]) => typeof v === 'number').map(([k, v]) => [k, String(v)]))
+
+/** A measured result. The area comes first, then only that area's counts. */
+export function CheckEditor({ check, close }: { check?: LanguageCheck | null; close: () => void }) {
+  const actions = usePracticeActions()
+  const [area, setArea] = useState<CheckArea>(check?.area ?? 'speaking')
+  const [mode, setMode] = useState<ListeningMode>(check?.area === 'listening' ? (check.metrics as { mode: ListeningMode }).mode : 'dictation')
+  const [values, setValues] = useState<Record<string, string>>(() => metricText(check))
+  const [errors, setErrors] = useState<Errors>({})
+  const fields = METRIC_FIELDS[area]
+
+  /** The counts typed so far, and what is wrong with them. */
+  function read(): { metrics: Record<string, number | string>; problems: Errors } {
+    const metrics: Record<string, number | string> = area === 'listening' ? { mode } : {}
+    const problems: Errors = {}
+    for (const f of fields) {
+      const raw = values[f.key]?.trim() ?? ''
+      if (!raw) {
+        if (!f.optional) problems[f.key] = 'Required.'
+        continue
+      }
+      const value = Number(raw)
+      if (!Number.isFinite(value) || value < f.min || value > f.max || (f.whole && !Number.isInteger(value))) problems[f.key] = f.whole ? `A whole number from ${f.min} to ${f.max}.` : `From ${f.min} to ${f.max}.`
+      else metrics[f.key] = value
+    }
+    if (typeof metrics.correct === 'number' && typeof metrics.total === 'number' && metrics.correct > metrics.total) problems.correct = 'More than the total.'
+    if (area === 'words') {
+      if ((metrics.known === undefined) !== (metrics.sampled === undefined)) problems[metrics.known === undefined ? 'known' : 'sampled'] = 'Give both numbers of the sample.'
+      else if (typeof metrics.known === 'number' && typeof metrics.sampled === 'number' && metrics.known > metrics.sampled) problems.known = 'More than the sample.'
+      if (!Object.keys(metrics).length && !Object.keys(problems).length) problems.retention = 'Add retention, mature cards or a sample.'
+    }
+    return { metrics, problems }
+  }
+
+  const current = read()
+  const preview = Object.keys(current.problems).length ? [] : checkValues({ area, metrics: current.metrics as unknown as CheckMetrics })
+
+  async function submit(form: HTMLFormElement) {
+    const date = formText(form, 'date')
+    const next: Errors = { ...current.problems }
+    if (!date) next.date = 'Add the day of the check.'
+    else if (date > D.today()) next.date = 'That day hasn’t happened yet.'
+    setErrors(next)
+    if (Object.keys(next).length) return focusFirstInvalid(form)
+    const level = formText(form, 'level')
+    const judgedBy = formText(form, 'judgedBy')
+    const saved = {
+      date,
+      area,
+      metrics: current.metrics as unknown as CheckMetrics,
+      task: formText(form, 'task'),
+      level: level ? level as CefrLevel : null,
+      judgedBy: judgedBy ? judgedBy as CheckJudge : null,
+      link: formText(form, 'link'),
+      note: formText(form, 'note'),
+    }
+    if (await (check ? actions.checks.update(check, saved) : actions.checks.add(saved))) closeDialog(form)
+  }
+
+  function remove(form: HTMLFormElement) {
+    if (!check) return
+    void actions.checks.remove(check).then((done) => { if (done !== undefined) closeDialog(form) })
+  }
+
+  const correctLabel = area === 'listening' && mode === 'dictation' ? ['Words right', 'Words in the passage'] : ['Right', 'Out of']
+
+  return (
+    <Dialog
+      desc="Record the counts. Hop works out the rates, so checks stay comparable over the months."
+      foot={<>
+        {check && <button className="btn btn-ghost btn-danger" onClick={(event) => remove(event.currentTarget.form!)} type="button">Delete</button>}
+        <span className="spacer" />
+        <button className="btn" data-close type="button">Cancel</button>
+        <SubmitButton>{check ? 'Save' : 'Save check'}</SubmitButton>
+      </>}
+      onClose={close}
+      onSubmit={submit}
+      title={check ? `${CHECK_AREA[check.area][1]} check` : 'Log a skill check'}
+    >
+      <div className="form-grid">
+        {!check && <Segmented label="Area" name="area" onChange={(value) => { setArea(value as CheckArea); setErrors({}) }} options={CHECK_AREAS.map((a): [string, string] => [a, CHECK_AREA[a][1]])} value={area} />}
+        {area === 'listening' && <Segmented label="Kind" name="mode" onChange={(value) => setMode(value as ListeningMode)} options={[['dictation', 'Dictation'], ['questions', 'Exam questions']]} small value={mode} />}
+        <div className="form-row check-metrics">
+          {fields.map((f) => (
+            <Field
+              defaultValue={values[f.key]}
+              error={errors[f.key]}
+              hint={f.hint}
+              id={`check-${f.key}`}
+              key={`${area}-${f.key}`}
+              label={f.key === 'correct' ? correctLabel[0]! : f.key === 'total' ? correctLabel[1]! : f.label}
+              max={f.max}
+              min={f.min}
+              name={`m-${f.key}`}
+              onChange={(value) => setValues((v) => ({ ...v, [f.key]: value }))}
+              optional={f.optional}
+              type="number"
+            />
+          ))}
+        </div>
+        <p aria-live="polite" className="small check-preview">{preview.length ? <strong>{preview.map(formatValue).join(' · ')}</strong> : <span className="muted">The result shows here as you type.</span>}</p>
+        <div className="form-row">
+          <Field defaultValue={check?.date ?? D.today()} error={errors.date} label="Day" name="date" type="date" />
+          <Field defaultValue={check?.task} label="Task" name="task" optional placeholder={TASK_EXAMPLE[area]} />
+        </div>
+        <div className="form-row">
+          <Field defaultValue={check?.level ?? ''} label="Level judged" name="level" optional options={[['', 'Not judged'], ...CEFR_LEVELS.map((l): [string, string] => [l, l])]} type="select" />
+          <Field defaultValue={check?.judgedBy ?? ''} label="Judged or corrected by" name="judgedBy" optional options={[['', '–'], ...CHECK_JUDGES.map((j): [string, string] => [j, CHECK_JUDGE[j]])]} type="select" />
+        </div>
+        <Field defaultValue={check?.link} hint="Hop doesn’t keep audio or texts. Say where they are." label="Recording or text" name="link" optional placeholder="e.g. Recorder/2026-10-24 monologue.m4a" />
+        <Field defaultValue={check?.note} label="Notes" name="note" optional rows={2} type="textarea" />
       </div>
     </Dialog>
   )

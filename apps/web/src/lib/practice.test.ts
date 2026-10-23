@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { setTimezone } from './dates.ts'
-import { adjustTotals, checkpointLevel, checkpoints, dayProgress, minutesByWeekday, planFor, recentWeeks, testDue, testResult, weekBalance, weeklyPlan } from './practice.ts'
+import { adjustTotals, checkpointCriterion, checkpointLevel, checkpoints, dayProgress, minutesByWeekday, planFor, recentWeeks, testDue, testResult, weekBalance, weeklyPlan } from './practice.ts'
 import type { LanguageTrack, Milestone, PracticeActivity, PracticeArea, PracticeSession, PracticeTest } from './types.ts'
 
 setTimezone('UTC')
@@ -91,4 +91,14 @@ test('checkpoints come from the track goal’s milestones', () => {
   assert.deepEqual(road.list.map((m) => m.title), ['Finish A2', 'Finish B1'])
   assert.equal(road.next?.title, 'Finish B1')
   assert.equal(checkpointLevel({ title: 'C1: İTÜ TÖMER certificate exam' }), 'C1')
+})
+
+test('a renamed checkpoint still finds its goal criterion by level', () => {
+  const criterion = (id: string, text: string, done = false) => ({ id, goalId: 'g', text, note: null, done, position: 0, createdAt: stamp, updatedAt: stamp })
+  const goal = { criteria: [criterion('a2', 'Finish A2', true), criterion('b1', 'Finish B1'), criterion('score', 'Score 70 or more on a full practice test')] }
+  assert.equal(checkpointCriterion(goal, { title: 'Finish B1' })?.id, 'b1')
+  assert.equal(checkpointCriterion(goal, { title: 'B1 gate: speaking and writing' })?.id, 'b1')
+  assert.equal(checkpointCriterion(goal, { title: 'Finish A2' }), undefined)
+  assert.equal(checkpointCriterion(goal, { title: 'Mid-term check' }), undefined)
+  assert.equal(checkpointCriterion(undefined, { title: 'Finish B1' }), undefined)
 })

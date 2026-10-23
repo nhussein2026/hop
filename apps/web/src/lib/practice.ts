@@ -2,7 +2,7 @@
 // test results and the road to the exam, all derived from the plan and what was logged.
 import { CEFR_LEVELS, LANGUAGE_SKILLS, PRACTICE_AREAS, PRACTICE_SLOTS } from '@hop/domain'
 import * as D from './dates.ts'
-import type { CefrLevel, HopData, LanguageSkill, LanguageTrack, Milestone, PracticeActivity, PracticeArea, PracticeSession, PracticeTest, PracticeTotals } from './types.ts'
+import type { CefrLevel, Goal, HopData, LanguageSkill, LanguageTrack, Milestone, PracticeActivity, PracticeArea, PracticeSession, PracticeTest, PracticeTotals } from './types.ts'
 
 
 /** A skill is "behind" when it has had less than this share of the week's plan so far. */
@@ -139,6 +139,16 @@ export function checkpoints(track: LanguageTrack, milestones: Milestone[]) {
 
 /** The level a checkpoint finishes, read from its title ("Finish B1", "C1: …"). */
 export const checkpointLevel = (m: Pick<Milestone, 'title'>): CefrLevel | null => (m.title.match(/\b(A1|A2|B1|B2|C1|C2)\b/)?.[1] as CefrLevel | undefined) ?? null
+
+/**
+ * The goal criterion a checkpoint ticks: the one with the same title, or, once either was renamed,
+ * the open criterion for the same level ("Finish B1" and "B1 gate: speaking and writing").
+ */
+export function checkpointCriterion(goal: Pick<Goal, 'criteria'> | undefined, checkpoint: Pick<Milestone, 'title'>) {
+  const open = goal?.criteria.filter((c) => !c.done) ?? []
+  const level = checkpointLevel(checkpoint)
+  return open.find((c) => c.text === checkpoint.title) ?? (level ? open.find((c) => checkpointLevel({ title: c.text }) === level) : undefined)
+}
 
 /** Today's minutes on the track, for the Learning figure on Today. */
 export const practiceMinutesOn = (data: Pick<HopData, 'practiceSessions'>, ymd: string) => sessionsOn(data.practiceSessions, ymd).reduce((sum, s) => sum + s.minutes, 0)

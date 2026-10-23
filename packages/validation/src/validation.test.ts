@@ -8,6 +8,7 @@ import { dateSchema } from './common.js';
 import { createEventSchema } from './event.js';
 import { createEvidenceSchema, updateEvidenceSchema } from './evidence.js';
 import { habitCompletionRangeSchema } from './habit.js';
+import { createLanguageCheckSchema, updateLanguageCheckSchema } from './language.js';
 import { createSkillSchema, updateSkillSchema } from './skill.js';
 import { createTaskSchema } from './task.js';
 
@@ -84,4 +85,25 @@ test('accounts refuse anything that looks like a card number', () => {
   // A phone number is not a card number.
   assert.equal(createAccountSchema.safeParse({ name: 'Turkcell', notes: 'Support: +90 532 123 45 67' }).success, true);
   assert.equal(createAccountSchema.safeParse({ name: 'Spotify', password: 'hunter2' }).success, false);
+});
+
+test('a skill check’s metrics must fit its area', () => {
+  const ok = (input: unknown) => createLanguageCheckSchema.safeParse(input).success;
+  assert.equal(ok({ date: '2026-10-24', area: 'speaking', metrics: { seconds: 120, words: 150, errors: 9 } }), true);
+  assert.equal(ok({ date: '2026-10-24', area: 'speaking', metrics: { seconds: 120, words: 150 } }), false);
+  assert.equal(ok({ date: '2026-10-24', area: 'speaking', metrics: { seconds: 120, words: 150, errors: 9, wpm: 75 } }), false);
+  assert.equal(ok({ date: '2026-10-24', area: 'grammar', metrics: { correct: 21, total: 20 } }), false);
+  assert.equal(ok({ date: '2026-10-24', area: 'listening', metrics: { mode: 'questions', correct: 14, total: 20 } }), true);
+  assert.equal(ok({ date: '2026-10-24', area: 'writing', metrics: { minutes: 30, words: 180, errors: 14, rubric: 26 } }), false);
+  assert.equal(ok({ date: '2026-10-24', area: 'words', metrics: {} }), false);
+  assert.equal(ok({ date: '2026-10-24', area: 'words', metrics: { known: 40 } }), false);
+  assert.equal(ok({ date: '2026-10-24', area: 'words', metrics: { retention: 87.5, known: 40, sampled: 50 } }), true);
+
+  const issue = createLanguageCheckSchema.safeParse({ date: '2026-10-24', area: 'reading', metrics: { correct: 30, total: 25 } }).error?.issues[0];
+  assert.deepEqual(issue?.path, ['metrics', 'correct']);
+
+  // A change to the metrics comes with the area they're checked against.
+  assert.equal(updateLanguageCheckSchema.safeParse({ note: 'Recorded on the bus' }).success, true);
+  assert.equal(updateLanguageCheckSchema.safeParse({ metrics: { correct: 3, total: 5 } }).success, false);
+  assert.equal(updateLanguageCheckSchema.safeParse({ area: 'grammar', metrics: { correct: 3, total: 5 } }).success, true);
 });

@@ -206,7 +206,7 @@ export function Field(props: FieldProps) {
       </select>
     )
   } else {
-    control = <input {...common} autoComplete={props.autoComplete} className="input" defaultValue={props.defaultValue ?? ''} list={props.suggestions ? `${id}-list` : undefined} max={props.max} maxLength={props.maxLength} min={props.min} placeholder={props.placeholder} readOnly={props.readOnly} type={props.type ?? 'text'} />
+    control = <input {...common} autoComplete={props.autoComplete} className="input" defaultValue={props.defaultValue ?? ''} list={props.suggestions ? `${id}-list` : undefined} max={props.max} maxLength={props.maxLength} min={props.min} onChange={props.onChange ? (event) => props.onChange!(event.target.value) : undefined} placeholder={props.placeholder} readOnly={props.readOnly} type={props.type ?? 'text'} />
     if (props.suggestions) control = <>{control}<datalist id={`${id}-list`}>{props.suggestions.map((value) => <option key={value} value={value} />)}</datalist></>
   }
   return (

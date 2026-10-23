@@ -71,11 +71,13 @@ import {
   renewLoanSchema,
   updateBookSchema,
   updateLoanSchema,
+  createLanguageCheckSchema,
   createPracticeActivitySchema,
   createPracticeSessionSchema,
   createPracticeTestSchema,
   practiceRangeSchema,
   setupTrackSchema,
+  updateLanguageCheckSchema,
   updatePracticeActivitySchema,
   updatePracticeSessionSchema,
   updatePracticeTestSchema,
@@ -1065,6 +1067,9 @@ const server = createServer(async (request, response) => {
 
     const testService = { getAll: () => practiceService.getTests(), create: practiceService.createTest, update: practiceService.updateTest, delete: practiceService.deleteTest };
     if (await crudRoutes(request, response, url.pathname, 'practice/tests', testService, { create: createPracticeTestSchema, update: updatePracticeTestSchema }, 'Practice test not found')) return;
+
+    const checkService = { getAll: () => practiceService.getChecks(), create: practiceService.createCheck, update: practiceService.updateCheck, delete: practiceService.deleteCheck };
+    if (await crudRoutes(request, response, url.pathname, 'practice/checks', checkService, { create: createLanguageCheckSchema, update: updateLanguageCheckSchema }, 'Check not found')) return;
 
     if (url.pathname === '/api/practice/sessions' && request.method === 'GET') {
       const range = practiceRangeSchema.safeParse({ from: url.searchParams.get('from'), to: url.searchParams.get('to') });

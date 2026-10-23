@@ -3,11 +3,13 @@ import { randomUUID } from 'node:crypto';
 import { CEFR_LEVELS, ITU_TOMER_EXAM, LEVEL_WEEKS, PRACTICE_AREAS } from '@hop/domain';
 import type {
   CefrLevel,
+  CreateLanguageCheckInput,
   CreatePracticeActivityInput,
   CreatePracticeSessionInput,
   CreatePracticeTestInput,
   GoalWithDetails,
   Language,
+  LanguageCheck,
   LanguageTrack,
   Milestone,
   PracticeActivity,
@@ -17,6 +19,7 @@ import type {
   Resource,
   SetupTrackInput,
   Settings,
+  UpdateLanguageCheckInput,
   UpdatePracticeActivityInput,
   UpdatePracticeSessionInput,
   UpdatePracticeTestInput,
@@ -233,5 +236,39 @@ export const practiceService = {
 
   deleteTest(id: string): boolean {
     return practiceRepository.deleteTest(id);
+  },
+
+  /* ---- Skill checks ---------------------------------------------------------------------- */
+  getChecks(): LanguageCheck[] {
+    return practiceRepository.findChecks();
+  },
+
+  createCheck(input: CreateLanguageCheckInput): LanguageCheck {
+    const now = new Date().toISOString();
+    return practiceRepository.createCheck({
+      id: randomUUID(),
+      date: input.date,
+      area: input.area,
+      task: input.task ?? '',
+      metrics: input.metrics,
+      level: input.level ?? null,
+      judgedBy: input.judgedBy ?? null,
+      link: input.link ?? '',
+      note: input.note ?? '',
+      createdAt: now,
+      updatedAt: now,
+    });
+  },
+
+  updateCheck(id: string, input: UpdateLanguageCheckInput): LanguageCheck | undefined {
+    if (!practiceRepository.findCheck(id)) {
+      return undefined;
+    }
+
+    return practiceRepository.updateCheck(id, { ...input, updatedAt: new Date().toISOString() });
+  },
+
+  deleteCheck(id: string): boolean {
+    return practiceRepository.deleteCheck(id);
   },
 };

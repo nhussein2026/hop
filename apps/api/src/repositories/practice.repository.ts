@@ -1,9 +1,9 @@
 import { and, asc, between, eq, max } from 'drizzle-orm';
 
-import type { PracticeActivity, PracticeArea, PracticeSession, PracticeTest } from '@hop/domain';
+import type { LanguageCheck, PracticeActivity, PracticeArea, PracticeSession, PracticeTest } from '@hop/domain';
 
 import { db } from '../db/client.js';
-import { practiceActivities, practiceSessions, practiceTests } from '../db/schema/index.js';
+import { languageChecks, practiceActivities, practiceSessions, practiceTests } from '../db/schema/index.js';
 
 export const practiceRepository = {
   findActivities(): PracticeActivity[] {
@@ -85,5 +85,27 @@ export const practiceRepository = {
 
   deleteTest(id: string): boolean {
     return db.delete(practiceTests).where(eq(practiceTests.id, id)).run().changes > 0;
+  },
+
+  findChecks(): LanguageCheck[] {
+    return db.select().from(languageChecks).orderBy(asc(languageChecks.date), asc(languageChecks.createdAt)).all();
+  },
+
+  findCheck(id: string): LanguageCheck | undefined {
+    return db.select().from(languageChecks).where(eq(languageChecks.id, id)).get();
+  },
+
+  createCheck(check: LanguageCheck): LanguageCheck {
+    db.insert(languageChecks).values(check).run();
+    return check;
+  },
+
+  updateCheck(id: string, changes: Partial<LanguageCheck>): LanguageCheck | undefined {
+    db.update(languageChecks).set(changes).where(eq(languageChecks.id, id)).run();
+    return this.findCheck(id);
+  },
+
+  deleteCheck(id: string): boolean {
+    return db.delete(languageChecks).where(eq(languageChecks.id, id)).run().changes > 0;
   },
 };

@@ -1,9 +1,12 @@
 // Türkçe: the road to the C1 exam. Today is the plan to tick off, across the four skills and
-// words; Progress shows whether the skills stay in step, the level checkpoints and practice tests;
+// words; Progress shows measured skill checks, whether practice stays in step, the level checkpoints
+// and practice tests;
 // Plan is the daily routine and the track itself.
 import { LANGUAGE_SKILLS, PRACTICE_AREAS, PRACTICE_SLOTS } from '@hop/domain'
 import * as D from '../lib/dates.ts'
-import { CATCH_UP, LEVEL_FOCUS, PRACTICE_AREA, PRACTICE_SLOT_LABEL } from '../lib/labels.ts'
+import { areaSummaries, checkCounts, checkValues, formatValue } from '../lib/checks.ts'
+import type { AreaSummary } from '../lib/checks.ts'
+import { CATCH_UP, CHECK_AREA, CHECK_JUDGE, LEVEL_FOCUS, PRACTICE_AREA, PRACTICE_SLOT_LABEL } from '../lib/labels.ts'
 import { checkpoints, dayProgress, doneSession, minutesByWeekday, planFor, recentWeeks, sessionsOn, testDue, testResult, TEST_EVERY_DAYS, weekBalance, weeklyPlan } from '../lib/practice.ts'
 import { daysLabel, plural } from '../lib/rules.ts'
 import type { Route } from '../lib/router.ts'
@@ -40,7 +43,7 @@ export function Turkish({ route }: { route: Route }) {
   const weeksLeft = Math.max(0, Math.ceil(D.diffDays(track.examDate, today) / 7))
   const add = {
     today: [() => editors.logPractice(), 'Log practice'],
-    progress: [() => editors.practiceTest(), 'Add test result'],
+    progress: [() => editors.languageCheck(), 'Log check'],
     plan: [() => editors.practiceActivity(), 'Add activity'],
   }[tab] ?? [() => editors.logPractice(), 'Log practice']
 
@@ -274,6 +277,8 @@ function ProgressTab({ track }: { track: LanguageTrack }) {
           : <p className="small muted">No checkpoints. Add milestones to the goal to see them here.</p>}
       </section>
 
+      <SkillChecks />
+
       <section aria-labelledby="pt-h" className="section">
         <div className="section-head"><h2 id="pt-h">Practice tests</h2><button className="btn btn-sm" onClick={() => editors.practiceTest()} type="button"><Icon className="icon-sm" name="plus" />Add result</button></div>
         {due.due && <Banner icon="award" title={due.last ? `It’s been ${plural(D.diffDays(today, due.last.date), 'day')} since your last practice test.` : 'Time for a first practice test.'} tone="info">At {track.level}, take one every {plural(due.every!, 'day')}. Then move next week’s time toward the weakest section.</Banner>}
@@ -320,6 +325,85 @@ function ProgressTab({ track }: { track: LanguageTrack }) {
         </div>
       </section>
     </div>
+  )
+}
+
+/** Each area's latest measured result and how it moved: what you can do, not how long you practised. */
+function SkillChecks() {
+  const { data } = useHop()
+  const editors = useEditors()
+  const today = D.today()
+  const summaries = areaSummaries(data.languageChecks)
+  const history = [...data.languageChecks].sort((a, b) => b.date.localeCompare(a.date) || b.createdAt.localeCompare(a.createdAt))
+
+  return (
+    <section aria-labelledby="sc-h" className="section">
+      <div className="section-head"><h2 id="sc-h">Skill checks</h2><button className="btn btn-sm" onClick={() => editors.languageCheck()} type="button"><Icon className="icon-sm" name="plus" />Log check</button></div>
+      {!history.length && <p className="small muted">Measure what you can do, not just the minutes: a 2-minute recording, a timed text, a dictation. Log the counts here and the trend shows per area.</p>}
+      <div className="table-wrap">
+        <table className="table table-stack checks-table">
+          <thead><tr><th>Area</th><th>Latest</th><th>Trend</th><th>Checked</th></tr></thead>
+          <tbody>
+            {summaries.map((s) => (
+              <tr className={s.latest ? 'tr-link' : ''} key={s.area}>
+                <td><span className="balance-label"><Icon className="icon-sm" name={CHECK_AREA[s.area][0]} />{s.latest ? <button className="row-open" onClick={() => editors.languageCheck(s.latest)} type="button">{CHECK_AREA[s.area][1]}</button> : CHECK_AREA[s.area][1]}</span></td>
+                <td data-label="Latest:">{s.latest && s.headline
+                  ? <><strong className="num">{formatValue(s.headline)}</strong><span className="xs muted skill-cat">{checkValues(s.latest).slice(1).map(formatValue).join(' · ') || checkCounts(s.latest)}</span></>
+                  : <span className="faint">No check yet</span>}</td>
+                <td data-label="Trend:"><Trend summary={s} /></td>
+                <td className="small" data-label="Checked:">{s.latest ? D.diffDays(today, s.latest.date) > 31 ? <Badge tone="warning">{D.relative(s.latest.date)}</Badge> : <span className="muted">{D.relative(s.latest.date)}</span> : '–'}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {history.length > 0 && (
+        <details className="check-history">
+          <summary className="small">All checks <span className="count">{history.length}</span></summary>
+          <ul className="rows">
+            {history.map((c) => {
+              const headline = checkValues(c)[0]
+              return (
+                <li className="row row-link" key={c.id}>
+                  <div className="row-main">
+                    <button className="row-open" onClick={() => editors.languageCheck(c)} type="button">{CHECK_AREA[c.area][1]}{headline ? `: ${formatValue(headline)}` : ''}</button>
+                    <div className="row-meta"><span>{D.short(c.date)}</span><span>{c.task || checkCounts(c)}</span>{c.level && <span>{c.level}{c.judgedBy ? `, by ${CHECK_JUDGE[c.judgedBy].toLowerCase()}` : ''}</span>}</div>
+                  </div>
+                </li>
+              )
+            })}
+          </ul>
+        </details>
+      )}
+    </section>
+  )
+}
+
+/** The headline figure over the last checks, as a small line with the latest point marked. */
+function Trend({ summary }: { summary: AreaSummary }) {
+  const points = summary.trend
+  const unit = summary.headline
+  if (!unit || points.length < 2) return <span className="faint xs">{points.length ? 'One check so far' : '–'}</span>
+  const w = 96
+  const h = 28
+  const pad = 4
+  const values = points.map((p) => p.value)
+  const lo = Math.min(...values)
+  const hi = Math.max(...values)
+  const x = (i: number) => pad + (i * (w - 2 * pad)) / (points.length - 1)
+  const y = (v: number) => (hi === lo ? h / 2 : h - pad - ((v - lo) * (h - 2 * pad)) / (hi - lo))
+  const first = values[0]!
+  const last = values.at(-1)!
+  const improved = unit.better === 'higher' ? last > first : last < first
+  const label = `${unit.label}: ${points.map((p) => formatValue({ value: p.value, unit: unit.unit })).join(', ')}`
+  return (
+    <span className="trend">
+      <svg aria-label={label} className="sparkline" height={h} role="img" viewBox={`0 0 ${w} ${h}`} width={w}>
+        <polyline fill="none" points={points.map((p, i) => `${x(i)},${y(p.value)}`).join(' ')} />
+        {points.map((p, i) => <circle cx={x(i)} cy={y(p.value)} key={`${p.date}-${i}`} r={i === points.length - 1 ? 3.5 : 6} className={i === points.length - 1 ? 'is-last' : 'hit'}><title>{`${D.short(p.date)}: ${formatValue({ value: p.value, unit: unit.unit })}`}</title></circle>)}
+      </svg>
+      <span className="xs muted"><span className="num">{first} → {formatValue({ value: last, unit: unit.unit })}</span> since {D.short(points[0]!.date)}{last !== first && <>, {improved ? 'better' : 'worse'}</>}</span>
+    </span>
   )
 }
 

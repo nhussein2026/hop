@@ -13,8 +13,8 @@ How it works (details in [Development](DEVELOPMENT.md#versions-and-releases)):
 
 | Item | Type | Spec | Status |
 | --- | --- | --- | --- |
-| Skill checks: log measured Türkçe results (speaking, writing, listening, reading, vocabulary, grammar) and see the latest and the trend on Progress | feat | [Proposal A](proposals/2026-10-turkish-c1-measurement.md#a-skill-checks), without gates | In progress |
-| Renaming a level checkpoint no longer stops it from ticking its goal criterion | fix | [Limit 3](proposals/2026-10-turkish-c1-measurement.md#limits-found-while-planning) | In progress |
+| Skill checks: log measured Türkçe results (speaking, writing, listening, reading, vocabulary, grammar) and see the latest and the trend on Progress | feat | [Proposal A](proposals/2026-10-turkish-c1-measurement.md#a-skill-checks), without gates | Built, in review |
+| Renaming a level checkpoint no longer stops it from ticking its goal criterion | fix | [Limit 3](proposals/2026-10-turkish-c1-measurement.md#limits-found-while-planning) | Built, in review |
 
 Agreed scope for skill checks (2026-10-23):
 
@@ -52,4 +52,5 @@ Not assigned to a version. Each one needs a conversation before it moves up.
 | The new-course form saves a pre-filled Mon 09:30–12:30 class unless you delete it | fix | |
 | A brand-new habit shows "0% of the last 4 weeks" | fix | Count only the days since it was created. |
 | Weekly Türkçe review in Hop | feat | [Proposal E](proposals/2026-10-turkish-c1-measurement.md#e-weekly-türkçe-review). Done in chat on Sundays for now. |
+| Skill checks on a phone: each area takes four lines; a compact layout | fix | Found while testing v1.2.0. |
 | Offline write queue: tick habits, complete tasks and quick-add while the server is off, and sync later | feat | About two days of work. Full offline sync was advised against. |

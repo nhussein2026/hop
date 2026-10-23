@@ -120,6 +120,7 @@ The track itself (level, target, exam date, exam sections and pass mark) is `lan
 | `PATCH` / `DELETE` | `/api/practice/sessions/:id` | Change or remove logged practice. |
 | `GET` | `/api/practice/totals` | Minutes per area and days practised, over everything logged. |
 | `GET` / `POST` / `PATCH` / `DELETE` | `/api/practice/tests[/:id]` | Practice test results. Section maximums default to the track's exam; a score above its section's maximum is refused. |
+| `GET` / `POST` / `PATCH` / `DELETE` | `/api/practice/checks[/:id]` | Skill checks: measured results per area (`speaking`, `writing`, `listening`, `reading`, `words`, `grammar`). `metrics` holds only counts, in the shape of its area (for example `{ seconds, words, errors }` for speaking), and is sent together with `area`. Rates such as words per minute are worked out in the app. |
 
 ## University (İTÜ)
 

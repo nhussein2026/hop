@@ -205,3 +205,17 @@ Lower priority: the weekly review happens in chat on Sundays with the template f
 - **Automatic grading or AI inside Hop.** Corrections come from the teacher, a tutor or chat; Hop stores the counts.
 - **Streaks, badges or points.** The plan judges ability, not streaks.
 - **A plan generator.** Phases and gates are set once, in chat, and adjusted weekly by hand.
+
+## Implementation Notes (2026-10-23, v1.2.0)
+
+What was agreed or decided when skill checks were built.
+
+| Topic | Decision | Why |
+| --- | --- | --- |
+| Scope | v1.2.0 has checks only: no gates, no "Log check" on Today. Gates and score targets are planned for v1.4.0, the error log and minimum day for v1.3.0. | Baseline checks are needed this week; gates aren't used until the B1 gate in January, and the time cap is two sessions per build. |
+| Route | `/api/practice/checks`, not `/api/language-checks`. | It sits beside `/api/practice/tests` and the rest of the track. |
+| Deleting | Allowed, with Undo, and no confirmation. | The user chose it: checks are their own records, so a mistyped one should be easy to remove. |
+| Metrics | Only counts are stored and sent with their `area`; the server checks the shape per area (for example, correct ≤ total, and known needs sampled). | The figures stay comparable if a formula changes. |
+| `words` | Shown as **Vocabulary**. Its headline is retention when given, otherwise the share of the sample known, otherwise mature cards; the trend follows the latest check's headline. | A check may record only some of the three. |
+| Trend | The last 8 checks of the headline figure, as a line with "60 → 75 wpm since 20 Oct, better". | A line with no scale doesn't say how much. |
+| Limit 3 | A checkpoint finds its goal criterion by title, or else by level, so renaming either still works. | |
