@@ -6,6 +6,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Ver
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-10-23
+
 ### Added
 
 - Skill checks on Türkçe → Progress: log a measured result for speaking, writing, listening, reading, vocabulary or grammar (a 2-minute recording, a timed text, a dictation, a test). You enter the counts; Hop shows words per minute, errors per 100 words or % right as you type.
@@ -41,6 +43,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Ver
 
 - `deploy/update.sh` installs the newest release (the highest `vX.Y.Z` tag) instead of the newest commit on `master`. It refuses to take Hop back to an older release, and after the restart it checks that the new version is the one answering.
 
-[Unreleased]: https://github.com/nhussein2026/hop/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/nhussein2026/hop/compare/v1.2.0...HEAD
+[1.2.0]: https://github.com/nhussein2026/hop/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/nhussein2026/hop/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/nhussein2026/hop/releases/tag/v1.0.0
