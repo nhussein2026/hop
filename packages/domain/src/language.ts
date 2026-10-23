@@ -93,6 +93,56 @@ export interface PracticeTest {
   updatedAt: ISODateTime;
 }
 
+/**
+ * What a skill check measures: the four exam skills, plus vocabulary (`words`) and grammar, which
+ * are checked on their own even though practice counts grammar under words.
+ */
+export const CHECK_AREAS = ['speaking', 'writing', 'listening', 'reading', 'words', 'grammar'] as const;
+export type CheckArea = (typeof CHECK_AREAS)[number];
+
+/** Who judged the level or counted the errors. */
+export const CHECK_JUDGES = ['self', 'claude', 'teacher', 'tutor', 'exam'] as const;
+export type CheckJudge = (typeof CHECK_JUDGES)[number];
+
+export const LISTENING_MODES = ['dictation', 'questions'] as const;
+export type ListeningMode = (typeof LISTENING_MODES)[number];
+
+/**
+ * The counts a check records, by area. Rates and percentages (words per minute, errors per 100
+ * words, % right) are derived from them, never stored.
+ */
+export interface CheckMetricsByArea {
+  speaking: { seconds: number; words: number; errors: number };
+  writing: { minutes: number; words: number; errors: number; rubric?: number };
+  listening: { mode: ListeningMode; correct: number; total: number };
+  reading: { correct: number; total: number; minutes?: number };
+  /** Anki's true retention and mature cards, and a frequency-band sample: `known` of `sampled` words. */
+  words: { retention?: number; mature?: number; known?: number; sampled?: number };
+  grammar: { correct: number; total: number };
+}
+export type CheckMetrics = CheckMetricsByArea[CheckArea];
+
+/**
+ * A measured result: what you can do, not how long you practised. The plan's gates are judged on
+ * these. Recordings and texts stay where they are; `link` says where.
+ */
+export interface LanguageCheck {
+  id: EntityId;
+  date: ISODate;
+  area: CheckArea;
+  /** What was done: "2-min monologue: my neighbourhood". */
+  task: string;
+  metrics: CheckMetrics;
+  /** A level judgment, when someone gave one. */
+  level: CefrLevel | null;
+  judgedBy: CheckJudge | null;
+  /** Where the recording or text is: a file name or URL. */
+  link: string;
+  note: string;
+  createdAt: ISODateTime;
+  updatedAt: ISODateTime;
+}
+
 /** Minutes practised per area since the track started, and on how many days. */
 export interface PracticeTotals {
   minutes: Record<PracticeArea, number>;
@@ -110,3 +160,6 @@ export type UpdatePracticeSessionInput = Partial<Pick<PracticeSession, 'date' | 
 
 export type CreatePracticeTestInput = Pick<PracticeTest, 'date' | 'scores'> & Partial<Pick<PracticeTest, 'title' | 'max' | 'note'>>;
 export type UpdatePracticeTestInput = Partial<Omit<PracticeTest, 'id' | 'createdAt' | 'updatedAt'>>;
+
+export type CreateLanguageCheckInput = Pick<LanguageCheck, 'date' | 'area' | 'metrics'> & Partial<Pick<LanguageCheck, 'task' | 'level' | 'judgedBy' | 'link' | 'note'>>;
+export type UpdateLanguageCheckInput = Partial<Omit<LanguageCheck, 'id' | 'createdAt' | 'updatedAt'>>;

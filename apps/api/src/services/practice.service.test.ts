@@ -83,3 +83,17 @@ test('practice test scores stay within each section’s points', () => {
   assert.throws(() => practiceService.updateTest(result.id, { scores: { reading: 31 } }), InvalidInputError);
   assert.deepEqual(practiceService.updateTest(result.id, { scores: { reading: 24, listening: 15, writing: 17, speaking: 18 } })?.scores, { reading: 24, listening: 15, writing: 17, speaking: 18 });
 });
+
+test('a skill check keeps its counts and can be changed and deleted', () => {
+  const check = practiceService.createCheck({ date: '2026-10-24', area: 'listening', metrics: { mode: 'dictation', correct: 41, total: 52 } });
+  assert.equal(check.task, '');
+  assert.equal(check.level, null);
+
+  const judged = practiceService.updateCheck(check.id, { level: 'A2', judgedBy: 'teacher', note: 'Missed most suffixes' });
+  assert.equal(judged?.judgedBy, 'teacher');
+  assert.deepEqual(judged?.metrics, { mode: 'dictation', correct: 41, total: 52 });
+
+  assert.equal(practiceService.updateCheck('missing', { note: 'x' }), undefined);
+  assert.equal(practiceService.deleteCheck(check.id), true);
+  assert.equal(practiceService.getChecks().some((c) => c.id === check.id), false);
+});

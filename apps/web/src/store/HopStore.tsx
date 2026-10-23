@@ -45,6 +45,7 @@ const endpoints: Record<Collection, string> = {
   practiceActivities: '/api/practice/activities',
   practiceSessions: '',
   practiceTests: '/api/practice/tests',
+  languageChecks: '/api/practice/checks',
   accounts: '/api/accounts',
 }
 

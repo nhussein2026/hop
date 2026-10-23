@@ -1,7 +1,7 @@
 // One place to open any dialog, so screens and rows don't import each other's editors.
 import { useMemo } from 'react'
 import * as D from '../lib/dates.ts'
-import type { Account, Assessment, Book, BookLoan, Contact, PracticeActivity, PracticeArea, PracticeSession, PracticeTest, Course, Evidence, Goal, Habit, Idea, Opportunity, OpportunityStage, Pin, Program, Project, Resource, ResourceKind, Resume, Skill, Task, Term } from '../lib/types.ts'
+import type { Account, Assessment, Book, BookLoan, Contact, LanguageCheck, PracticeActivity, PracticeArea, PracticeSession, PracticeTest, Course, Evidence, Goal, Habit, Idea, Opportunity, OpportunityStage, Pin, Program, Project, Resource, ResourceKind, Resume, Skill, Task, Term } from '../lib/types.ts'
 import { CloseOpportunity, ContactDrawer, ContactEditor, LogActivity, OpportunityEditor, ResumeEditor } from './career.tsx'
 import { MoreSheet, Notifications, QuickAdd, ReflectionEditor, Search } from './global.tsx'
 import type { AddKind } from './global.tsx'
@@ -10,7 +10,7 @@ import type { EvidenceDefaults } from './growth.tsx'
 import { EventEditor, GoalEditor, HabitEditor, TaskEditor } from './planning.tsx'
 import { FindEditor } from './radar.tsx'
 import { AccountEditor, NoteEditor } from './notes.tsx'
-import { ActivityEditor, LogPractice, SessionEditor, SetupTrack, TestEditor, TrackEditor } from './practice.tsx'
+import { ActivityEditor, LogPractice, SessionEditor, CheckEditor, SetupTrack, TestEditor, TrackEditor } from './practice.tsx'
 import { BookDrawer, BookEditor, FinishBook, LoanEditor, LogPages, RenewLoan } from './reading.tsx'
 import { AdvisorPicker, AssessmentEditor, CompleteCourse, CourseEditor, IdeaDrawer, IdeaEditor, KeyDateEditor, MoveResource, NoteDrawer, PinEditor, PlaybookEditor, ResourceEditor, TermEditor, UniLinkEditor } from './uni.tsx'
 import { useDialogs } from '../components/ui-context.ts'
@@ -69,6 +69,7 @@ export function useEditors() {
       logPractice: (area?: PracticeArea) => open((close) => <LogPractice area={area} close={close} />),
       practiceSession: (session: PracticeSession, title: string) => open((close) => <SessionEditor close={close} session={session} title={title} />),
       practiceTest: (test?: PracticeTest | null) => open((close) => <TestEditor close={close} test={test} />),
+      languageCheck: (check?: LanguageCheck | null) => open((close) => <CheckEditor check={check} close={close} />),
       search: () => open((close) => <Search close={close} />),
       notifications: () => open((close) => <Notifications close={close} />),
       more: (counts: Record<string, number> = {}, extra?: 'itu' | 'turkish') => open((close) => <MoreSheet close={close} counts={counts} extra={extra} />),

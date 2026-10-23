@@ -823,3 +823,17 @@ dialog.search-dialog { width: min(640px, calc(100vw - 32px)); margin-top: 12vh; 
   .table-stack tr:has(.table-actions) { position: relative; padding-right: 52px; }
   .table-stack td.table-actions { position: absolute; top: var(--s-2); right: var(--s-2); width: auto; padding: 0; }
 }
+
+/* ---- Türkçe: skill checks ---------------------------------------------------------------- */
+.checks-table td { vertical-align: middle; }
+/* Above the row's click target, so each point's tooltip still shows on hover. */
+.trend { position: relative; z-index: 1; display: inline-flex; align-items: center; gap: 8px; }
+.sparkline { display: block; overflow: visible; }
+.sparkline polyline { stroke: var(--primary); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.sparkline circle.hit { fill: transparent; }
+.sparkline circle.is-last { fill: var(--primary); stroke: var(--surface); stroke-width: 2; }
+.check-preview { margin: 0; font-variant-numeric: tabular-nums; }
+.check-metrics { grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); align-items: start; }
+.check-history { margin-top: 12px; }
+.check-history summary { cursor: pointer; color: var(--text-muted); }
+.check-history .rows { margin-top: 8px; }

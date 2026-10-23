@@ -2,11 +2,13 @@
 // Like actions.ts: cheap changes happen at once with Undo; the screens confirm deletes first.
 import { useMemo } from 'react'
 import * as D from '../lib/dates.ts'
-import { adjustTotals, checkpointLevel, nextLevel } from '../lib/practice.ts'
-import type { Goal, HopData, LanguageTrack, Milestone, PracticeActivity, PracticeArea, PracticeSession, PracticeTest, Resource, Settings } from '../lib/types.ts'
+import { adjustTotals, checkpointCriterion, checkpointLevel, nextLevel } from '../lib/practice.ts'
+import type { Goal, HopData, LanguageCheck, LanguageTrack, Milestone, PracticeActivity, PracticeArea, PracticeSession, PracticeTest, Resource, Settings } from '../lib/types.ts'
 import { api, upsert, useHop, without } from './store.ts'
 
 type Setup = { settings: Settings; goal: Goal; milestones: Milestone[]; activities: PracticeActivity[]; note: Resource | null }
+
+export type CheckFields = Pick<LanguageCheck, 'date' | 'area' | 'task' | 'metrics' | 'level' | 'judgedBy' | 'link' | 'note'>
 
 export type ActivityFields = Pick<PracticeActivity, 'area' | 'title' | 'detail' | 'minutes' | 'slot' | 'days'>
 
@@ -54,7 +56,7 @@ export function usePracticeActions() {
       finishLevel(t: LanguageTrack, checkpoint: Milestone) {
         const level = checkpointLevel(checkpoint)
         const goal = data.goals.find((g) => g.id === t.goalId)
-        const criterion = goal?.criteria.find((c) => c.text === checkpoint.title && !c.done)
+        const criterion = checkpointCriterion(goal, checkpoint)
         const moveTo = level && level !== t.target ? nextLevel(level) : null
         return commit(moveTo ? `${level} done. On to ${moveTo}.` : 'Checkpoint reached', async () => {
           const milestone = await api.patch<Milestone>(`/api/milestones/${checkpoint.id}`, { done: true })
@@ -131,6 +133,22 @@ export function usePracticeActions() {
       },
     }
 
-    return { track, activities, sessions, tests }
+    const checks = {
+      add(fields: CheckFields) {
+        return commit('Check saved', () => api.post<LanguageCheck>('/api/practice/checks', fields), (saved, current) => upsert(current, 'languageChecks', saved))
+      },
+      update(c: LanguageCheck, changes: Partial<CheckFields>) {
+        return commit('Check updated', () => api.patch<LanguageCheck>(`/api/practice/checks/${c.id}`, changes), (saved, current) => upsert(current, 'languageChecks', saved))
+      },
+      /** Undo saves it again as a new check with the same fields. */
+      remove(c: LanguageCheck) {
+        const { date, area, task, metrics, level, judgedBy, link, note } = c
+        return commit('Check deleted', () => api.delete(`/api/practice/checks/${c.id}`), (_, current) => without(current, 'languageChecks', c.id), {
+          undo: () => void commit('Undone', () => api.post<LanguageCheck>('/api/practice/checks', { date, area, task, metrics, level, judgedBy, link, note }), (saved, current) => upsert(current, 'languageChecks', saved)),
+        })
+      },
+    }
+
+    return { track, activities, sessions, tests, checks }
   }, [commit, data])
 }

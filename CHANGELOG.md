@@ -6,6 +6,15 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Ver
 
 ## [Unreleased]
 
+### Added
+
+- Skill checks on Türkçe → Progress: log a measured result for speaking, writing, listening, reading, vocabulary or grammar (a 2-minute recording, a timed text, a dictation, a test). You enter the counts; Hop shows words per minute, errors per 100 words or % right as you type.
+- Each area shows its latest result, its last eight checks as a small trend, and when it was last checked. Every check can be opened from "All checks" to edit or delete, with Undo.
+
+### Fixed
+
+- Renaming a level checkpoint no longer stops "Finished it" from ticking the goal's matching criterion.
+
 ## [1.1.0] - 2026-10-23
 
 ### Added

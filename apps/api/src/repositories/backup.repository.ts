@@ -17,6 +17,7 @@ import {
   finds,
   ideas,
   keyDates,
+  languageChecks,
   pins,
   practiceActivities,
   practiceSessions,
@@ -87,6 +88,7 @@ const tables = {
   practiceActivities,
   practiceSessions,
   practiceTests,
+  languageChecks,
   accounts,
   settings,
 } satisfies Record<BackupTable, unknown>;

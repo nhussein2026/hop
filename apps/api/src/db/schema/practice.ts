@@ -1,7 +1,7 @@
-import { integer, sqliteTable, text, unique } from 'drizzle-orm/sqlite-core';
+import { index, integer, sqliteTable, text, unique } from 'drizzle-orm/sqlite-core';
 
-import { PRACTICE_AREAS, PRACTICE_SLOTS } from '@hop/domain';
-import type { LanguageSkill } from '@hop/domain';
+import { CEFR_LEVELS, CHECK_AREAS, CHECK_JUDGES, PRACTICE_AREAS, PRACTICE_SLOTS } from '@hop/domain';
+import type { CheckMetrics, LanguageSkill } from '@hop/domain';
 
 export const practiceActivities = sqliteTable('practice_activities', {
   id: text('id').primaryKey(),
@@ -40,3 +40,17 @@ export const practiceTests = sqliteTable('practice_tests', {
   createdAt: text('created_at').notNull(),
   updatedAt: text('updated_at').notNull(),
 });
+
+export const languageChecks = sqliteTable('language_checks', {
+  id: text('id').primaryKey(),
+  date: text('date').notNull(),
+  area: text('area', { enum: CHECK_AREAS }).notNull(),
+  task: text('task').notNull().default(''),
+  metrics: text('metrics', { mode: 'json' }).$type<CheckMetrics>().notNull(),
+  level: text('level', { enum: CEFR_LEVELS }),
+  judgedBy: text('judged_by', { enum: CHECK_JUDGES }),
+  link: text('link').notNull().default(''),
+  note: text('note').notNull().default(''),
+  createdAt: text('created_at').notNull(),
+  updatedAt: text('updated_at').notNull(),
+}, (table) => [index('language_checks_area_date_idx').on(table.area, table.date)]);

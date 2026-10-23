@@ -8,6 +8,9 @@ import {
   CURRENCIES,
   BOOK_FORMATS,
   BOOK_STATUSES,
+  CEFR_LEVELS,
+  CHECK_AREAS,
+  CHECK_JUDGES,
   CONTACT_KINDS,
   COURSE_STATUSES,
   FIND_KINDS,
@@ -198,6 +201,10 @@ const accountRow = z.object({
 }).strict();
 const sectionPoints = z.record(z.string(), z.number());
 const practiceTestRow = z.object({ id, date: text, title: text, scores: sectionPoints, max: sectionPoints, note: text, ...timestamps }).strict();
+const languageCheckRow = z.object({
+  id, date: text, area: z.enum(CHECK_AREAS), task: text, metrics: z.record(z.string(), z.unknown()), level: z.enum(CEFR_LEVELS).nullable(),
+  judgedBy: z.enum(CHECK_JUDGES).nullable(), link: text, note: text, ...timestamps,
+}).strict();
 const settingsRow = z.object({ id: z.number().int(), data: z.record(z.string(), z.unknown()), updatedAt: text }).strict();
 
 function uniqueBy<T>(rows: T[], key: (row: T) => string) {
@@ -254,6 +261,7 @@ export const backupSnapshotSchema = z.object({
     'Contains more than one session for the same activity and date',
   ).default([]),
   practiceTests: rows(practiceTestRow).default([]),
+  languageChecks: rows(languageCheckRow).default([]),
   accounts: rows(accountRow).default([]),
   readingLog: rows(readingEntryRow).refine((items) => uniqueBy(items, (item) => `${item.bookId}|${item.date}`), 'Contains more than one reading entry for the same book and date').default([]),
   monthlyReviews: rows(monthlyReviewRow).refine((items) => uniqueBy(items, (item) => item.monthStart), 'Contains more than one review for the same month').default([]),
@@ -266,7 +274,7 @@ export const BACKUP_TABLES = [
   'goalCriteria', 'goalProgress', 'milestones', 'opportunityPrep', 'opportunityActivities', 'contacts', 'interactions', 'resumes',
   'resumeFiles', 'reflections', 'monthlyReviews', 'terms', 'courses', 'assessments', 'keyDates', 'pins', 'uniLinks',
   'resources', 'resourceFiles', 'ideas', 'finds', 'books', 'bookLoans', 'readingLog',
-  'practiceActivities', 'practiceSessions', 'practiceTests', 'accounts', 'settings',
+  'practiceActivities', 'practiceSessions', 'practiceTests', 'languageChecks', 'accounts', 'settings',
 ] as const;
 export type BackupTable = (typeof BACKUP_TABLES)[number];
 

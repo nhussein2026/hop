@@ -12,6 +12,7 @@ import type {
   Idea,
   Interaction,
   KeyDate,
+  LanguageCheck,
   Milestone,
   MonthlyReview,
   OpportunityWithDetails,
@@ -38,7 +39,13 @@ export type {
   BillingCycle,
   Currency,
   CefrLevel,
+  CheckArea,
+  CheckJudge,
+  CheckMetrics,
+  CheckMetricsByArea,
+  LanguageCheck,
   LanguageExam,
+  ListeningMode,
   LanguageSkill,
   LanguageTrack,
   PracticeActivity,
@@ -143,6 +150,7 @@ export type HopData = {
   /** The last PRACTICE_HISTORY_DAYS days. */
   practiceSessions: PracticeSession[]
   practiceTests: PracticeTest[]
+  languageChecks: LanguageCheck[]
   /** Totals over everything ever logged, kept in step as sessions change. */
   practiceTotals: PracticeTotals
   accounts: Account[]

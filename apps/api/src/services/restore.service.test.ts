@@ -154,19 +154,22 @@ test('books, their loans and their reading log survive a backup and restore', ()
   assert.deepEqual(restored?.log.map((entry) => entry.page), [24]);
 });
 
-test('the language track’s plan, practice and tests survive a backup and restore', () => {
+test('the language track’s plan, practice, tests and checks survive a backup and restore', () => {
   const activity = practiceService.createActivity({ area: 'listening', title: 'Podcast', minutes: 25, days: [1, 2, 3] });
   const session = practiceService.logSession({ date: '2026-10-19', minutes: 25, activityId: activity.id });
   const result = practiceService.createTest({ date: '2026-10-20', scores: { reading: 22 }, max: { listening: 25, reading: 25, writing: 25, speaking: 25 } });
+  const check = practiceService.createCheck({ date: '2026-10-23', area: 'speaking', task: 'Monologue: my neighbourhood', metrics: { seconds: 120, words: 150, errors: 9 } });
   const snapshot = exportSnapshot();
 
   practiceService.deleteActivity(activity.id);
   practiceService.deleteTest(result.id);
+  practiceService.deleteCheck(check.id);
   restoreService.restore(snapshot);
 
   assert.deepEqual(practiceService.getActivities().find((a) => a.id === activity.id)?.days, [1, 2, 3]);
   assert.equal(practiceService.getSessions('2026-10-19', '2026-10-19').find((s) => s.id === session.id)?.activityId, activity.id);
   assert.deepEqual(practiceService.getTests().find((t) => t.id === result.id)?.max.reading, 25);
+  assert.deepEqual(practiceService.getChecks().find((c) => c.id === check.id)?.metrics, { seconds: 120, words: 150, errors: 9 });
 });
 
 test('accounts and pinned notes survive a backup and restore', () => {
