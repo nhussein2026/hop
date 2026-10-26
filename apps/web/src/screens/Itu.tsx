@@ -74,7 +74,7 @@ function ThisTerm() {
   const due = upcoming(data.courses, today, 21)
   const late = unsubmitted(data.courses, today)
   const weekStart = D.startOfWeek(today, data.settings.weekStart)
-  const days = [0, 1, 2, 3, 4, 5, 6].map((i) => D.addDays(weekStart, i)).filter((ymd) => classesOn(data.courses, ymd).length)
+  const days = [0, 1, 2, 3, 4, 5, 6].map((i) => D.addDays(weekStart, i)).filter((ymd) => classesOn(data, ymd).length)
   const keyDates = data.keyDates.filter((k) => k.date >= today && D.diffDays(k.date, today) <= 60).slice(0, 4)
   const recent = [...data.resources].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 3)
 
@@ -100,7 +100,7 @@ function ThisTerm() {
             {days.length
               ? (
                 <ol className="mini-agenda">
-                  {days.flatMap((ymd) => classesOn(data.courses, ymd).map(({ course, slot }) => (
+                  {days.flatMap((ymd) => classesOn(data, ymd).map(({ course, slot }) => (
                     <li className={`${ymd === today ? 'is-today' : ''}${ymd < today ? ' is-past' : ''}`} key={`${ymd}-${course.id}-${slot.start}`}>
                       <DateChip date={ymd} />
                       <span className="mini-main"><a className="mini-title" href={`#/itu/courses/${course.id}`}>{course.code} {course.name}</a><span className="xs muted">{slot.start}–{slot.end}{slot.room ? `, ${slot.room}` : ''}{ymd === today ? ' (today)' : ''}</span></span>

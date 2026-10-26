@@ -63,6 +63,7 @@ export type {
   Assessment,
   AssessmentType,
   ClassSlot,
+  TimeSlot,
   CourseStatus,
   CourseWithDetails as Course,
   Find,

@@ -24,9 +24,27 @@ test('courseService.create stores the syllabus grading in order', () => {
 });
 
 test('course codes follow the SIS format and syllabus weights add up to 100', () => {
-  assert.equal(createCourseSchema.parse({ code: 'blg   527e', name: 'ML' }).code, 'BLG 527E');
+  assert.equal(createCourseSchema.safeParse({ code: 'blg   527e', name: 'ML' }).success, true);
+  assert.equal(courseService.create({ code: 'blg   527e', name: 'ML' }).code, 'BLG 527E');
   assert.equal(createCourseSchema.safeParse({ code: 'Machine learning', name: 'ML' }).success, false);
   assert.equal(createCourseSchema.safeParse({ code: 'BLG 527E', name: 'ML', grading: [{ title: 'Final', type: 'final', weight: 60 }] }).success, false);
+});
+
+test('a course from another provider takes any short code, and its own dates', () => {
+  assert.equal(createCourseSchema.safeParse({ code: 'TÖMER A2', name: 'Turkish A2', provider: 'TÖMER', startDate: '2026-11-30', endDate: '2027-01-15' }).success, true);
+  assert.equal(createCourseSchema.safeParse({ code: 'A2', name: 'Turkish', provider: 'TÖMER', startDate: '2027-01-15', endDate: '2026-11-30' }).success, false);
+
+  const course = courseService.create({ code: 'Practicum', name: 'BrewHaus practicum', provider: 'BrewHaus', endDate: '2026-12-31' });
+  assert.deepEqual([course.code, course.provider, course.startDate, course.endDate], ['Practicum', 'BrewHaus', null, '2026-12-31']);
+  assert.equal(courseService.create({ code: 'BLG 527E', name: 'ML' }).provider, 'İTÜ');
+});
+
+test('an edit can’t leave an İTÜ course without a SIS code, or end its classes before they start', () => {
+  const course = courseService.create({ code: 'Practicum', name: 'BrewHaus practicum', provider: 'BrewHaus', startDate: '2026-10-01' });
+
+  assert.throws(() => courseService.update(course.id, { provider: 'İTÜ' }), InvalidInputError);
+  assert.throws(() => courseService.update(course.id, { endDate: '2026-09-30' }), InvalidInputError);
+  assert.equal(courseService.update(course.id, { provider: 'İTÜ', code: 'blg 101e' })?.code, 'BLG 101E');
 });
 
 test('a course’s weights can never pass 100%', () => {

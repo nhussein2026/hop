@@ -12,9 +12,9 @@ Everything lives in one SQLite database on a server you control. There are no ac
 | --- | --- |
 | **Today** | One next action, today's priorities, habits, classes, deadlines that need attention, what's coming up, and a short reflection. |
 | **Plan** | Agenda, all tasks, and habits with four-week consistency (missing a day never resets a streak). |
-| **Calendar** | Month and week views of events, tasks, deadlines, and classes. |
+| **Calendar** | Month and week views of events, tasks, deadlines, and the weekly classes of the courses you're taking, between their first and last class and never on a holiday. |
 | **Türkçe** | The road to a language exam, set up for the İTÜ TÖMER C1 certificate: a daily plan across listening, reading, writing, speaking and words, ticked off in a tap; a weekly balance that flags the skill falling behind; level checkpoints up to the exam; practice test results scored like the exam. On phones it takes İTÜ's place in the tab bar. |
-| **İTÜ** | This term at a glance, courses with grade tracking, target averages and the VF (final eligibility) attendance limit, a file library, thesis and research ideas, and a handbook of key dates and links. |
+| **İTÜ** | This term at a glance, courses (from İTÜ or anyone else, like TÖMER or a practicum) with grade tracking, target averages and the VF (final eligibility) attendance limit, a file library, thesis and research ideas, and a handbook of key dates and links. |
 | **Goals** | Outcomes with success criteria, milestones, progress history, and health signals. |
 | **Career** | Opportunity pipeline with follow-ups, interview prep, activity timeline, people and interactions, resumes with files, and analytics. |
 | **Growth** | Skills whose level is earned from evidence (Claimed, Practised, Verified, Top-tier), with a warning when a skill you list publicly has no proof and when proof is about to expire; projects, evidence, milestones, **Reading**: books for your field with who suggested them and why, pages read each day, pace, and library loans counted down to their due date, and **Radar**: an inbox for interesting finds (repos, papers, books, models, sites, events) where each find gets one decision, plus a **To explore** shelf for things you're only curious about, which never goes stale. |

@@ -283,6 +283,7 @@ export function EventEditor({ date: initialDate, close }: { date?: string; close
             <Field id="ev-opp" label="Opportunity" name="opportunityId" options={opportunities} type="select" />
           </div>
           <Field defaultValue={draft.description ?? ''} id="ev-notes" label="Notes" name="notes" optional type="textarea" />
+          <p className="xs muted">A class that repeats every week? <a data-close href="#/itu/courses">Add it as a course</a>, and its classes show on the calendar.</p>
         </div>
       </div>
     </Dialog>

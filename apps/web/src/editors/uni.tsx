@@ -1,5 +1,6 @@
 // İTÜ dialogs: terms, courses, graded items, instructors, the library, ideas and the handbook.
 import { useState } from 'react'
+import { ITU_PROVIDER } from '@hop/domain'
 import * as D from '../lib/dates.ts'
 import { currentTerm, parseGrading, splitList, standing, taking } from '../lib/uni.ts'
 import { courseProof, provesSomething } from '../lib/skills.ts'
@@ -56,6 +57,9 @@ const WEEKDAYS: [string, string][] = [1, 2, 3, 4, 5, 6].map((day) => [String(day
 const STATUS_OPTIONS: [Course['status'], string][] = [['taking', 'Taking this term'], ['planned', 'Planned'], ['interested', 'Interested'], ['completed', 'Completed']]
 const GRADING_HINT = 'One per line: name and weight. e.g.\nHomework 20\nMidterm 30\nFinal 50'
 
+/** The next class starts the day after the last one, at the same time and place: Mon–Thu takes three clicks. */
+const nextSlot = (last?: ClassSlot): ClassSlot => (last ? { ...last, day: (last.day + 1) % 7 } : { day: 1, start: '09:30', end: '12:30', room: '' })
+
 function SlotRows({ slots, onChange }: { slots: ClassSlot[]; onChange: (slots: ClassSlot[]) => void }) {
   const set = (index: number, change: Partial<ClassSlot>) => onChange(slots.map((slot, i) => (i === index ? { ...slot, ...change } : slot)))
   return (
@@ -69,7 +73,7 @@ function SlotRows({ slots, onChange }: { slots: ClassSlot[]; onChange: (slots: C
           <button aria-label={`Remove the ${D.DAYS[slot.day]} class`} className="icon-btn" onClick={() => onChange(slots.filter((_, i) => i !== index))} type="button"><Icon name="trash" /></button>
         </div>
       ))}
-      {slots.length < 4 && <button className="btn btn-sm" onClick={() => onChange([...slots, { day: slots.at(-1)?.day ?? 1, start: '09:30', end: '12:30', room: '' }])} style={{ justifySelf: 'start' }} type="button"><Icon className="icon-sm" name="plus" />{slots.length ? 'Add another class' : 'Add a weekly class'}</button>}
+      {slots.length < 7 && <button className="btn btn-sm" onClick={() => onChange([...slots, nextSlot(slots.at(-1))])} style={{ justifySelf: 'start' }} type="button"><Icon className="icon-sm" name="plus" />{slots.length ? 'Add another class' : 'Add a weekly class'}</button>}
     </div>
   )
 }
@@ -78,24 +82,32 @@ export function CourseEditor({ course, close }: { course?: Course | null; close:
   const { data } = useHop()
   const actions = useUniActions()
   const [errors, setErrors] = useState<Errors>({})
-  const [slots, setSlots] = useState<ClassSlot[]>(course?.schedule ?? [{ day: 1, start: '09:30', end: '12:30', room: '' }])
+  const [slots, setSlots] = useState<ClassSlot[]>(course?.schedule ?? [])
+  const [provider, setProvider] = useState(course?.provider ?? ITU_PROVIDER)
+  const itu = provider.trim() === ITU_PROVIDER
+  const providers = [...new Set([ITU_PROVIDER, ...data.courses.map((c) => c.provider)])]
   const [instructor, setInstructor] = useState(course?.instructorId ?? '')
   const instructors: [string, string][] = [['', 'Not set'], ...data.contacts.filter((c) => c.kind === 'instructor' || c.id === course?.instructorId).map((c): [string, string] => [c.id, c.name]), ['__new', 'Someone new…']]
   const termId = course ? course.termId ?? '' : currentTerm(data.terms, D.today())?.id ?? ''
 
   async function submit(form: HTMLFormElement) {
     const fd = new FormData(form)
-    const code = formText(form, 'code').toUpperCase().replace(/\s+/g, ' ')
+    const code = itu ? formText(form, 'code').toUpperCase().replace(/\s+/g, ' ') : formText(form, 'code').replace(/\s+/g, ' ')
     const name = formText(form, 'name')
+    const startDate = formText(form, 'startDate') || null
+    const endDate = formText(form, 'endDate') || null
     const newInstructor = instructor === '__new' ? formText(form, 'newInstructor') : ''
     const ninovaUrl = formText(form, 'ninovaUrl')
     const minInTerm = numberOrNull(formText(form, 'minInTerm'))
     const maxAbsences = numberOrNull(formText(form, 'maxAbsences'))
     const vfRule = formText(form, 'vfRule')
     const next: Errors = {}
-    if (!code) next.code = 'Add the course code.'
-    else if (!/^[A-ZÇĞİÖŞÜ]{2,4} ?\d{3}[A-Z]?$/.test(code)) next.code = 'Use the SIS format, like “BLG 527E”.'
+    if (!provider.trim()) next.provider = 'Say who runs the course, like İTÜ or TÖMER.'
+    if (!code) next.code = itu ? 'Add the course code.' : 'Add a short code, like “TÖMER A2”.'
+    else if (itu && !/^[A-ZÇĞİÖŞÜ]{2,4} ?\d{3}[A-Z]?$/.test(code)) next.code = 'Use the SIS format, like “BLG 527E”.'
+    else if (code.length > 20) next.code = 'Keep the code to 20 characters.'
     if (!name) next.name = 'Add the course name.'
+    if (startDate && endDate && endDate < startDate) next.endDate = 'The last class can’t be before the first.'
     if (instructor === '__new' && !newInstructor) next.newInstructor = 'Add the instructor’s name.'
     if (ninovaUrl && !isLink(ninovaUrl)) next.ninovaUrl = 'Use a full link starting with https://'
     if (minInTerm !== null && (Number.isNaN(minInTerm) || minInTerm < 0 || minInTerm > 100)) next.minInTerm = 'Use 0 to 100.'
@@ -113,12 +125,15 @@ export function CourseEditor({ course, close }: { course?: Course | null; close:
     const fields: CourseFields = {
       code,
       name,
+      provider: provider.trim(),
+      startDate,
+      endDate,
       crn: formText(form, 'crn') || null,
       status: fd.get('status') as Course['status'],
       termId: String(fd.get('termId') || '') || null,
       instructorId: instructor && instructor !== '__new' ? instructor : null,
       schedule: slots.map((slot) => ({ ...slot, room: slot.room.trim() })),
-      ninovaUrl: ninovaUrl || null,
+      ninovaUrl: itu ? ninovaUrl || null : course?.ninovaUrl ?? null,
       why: formText(form, 'why') || null,
       vf: minInTerm === null && maxAbsences === null && !vfRule ? null : { rule: vfRule || 'From the syllabus', minInTerm, maxAbsences },
     }
@@ -132,9 +147,10 @@ export function CourseEditor({ course, close }: { course?: Course | null; close:
     <Dialog foot={<><button className="btn" data-close type="button">Cancel</button><SubmitButton>{course ? 'Save changes' : 'Add course'}</SubmitButton></>} onClose={close} onSubmit={submit} title={course ? 'Edit course' : 'Add course'}>
       <div className="form-grid">
         <div className="form-row">
-          <Field defaultValue={course?.code} error={errors.code} label="Course code" name="code" placeholder="BLG 527E" required />
-          <Field defaultValue={course?.crn} label="CRN" name="crn" optional />
+          <Field defaultValue={provider} error={errors.provider} label="Given by" name="provider" onChange={setProvider} placeholder="İTÜ, TÖMER, a practicum…" required suggestions={providers} />
+          <Field defaultValue={course?.code} error={errors.code} label={itu ? 'Course code' : 'Short code'} name="code" placeholder={itu ? 'BLG 527E' : 'TÖMER A2'} required />
         </div>
+        {itu && <Field defaultValue={course?.crn} label="CRN" name="crn" optional />}
         <Field defaultValue={course?.name} error={errors.name} label="Course name" name="name" placeholder="Machine Learning" required />
         <div className="form-row">
           <Field defaultValue={course?.status ?? 'taking'} label="Status" name="status" options={STATUS_OPTIONS} type="select" />
@@ -149,7 +165,14 @@ export function CourseEditor({ course, close }: { course?: Course | null; close:
           <SlotRows onChange={setSlots} slots={slots} />
           <FieldError error={errors.slots} />
         </fieldset>
-        <Field defaultValue={course?.ninovaUrl ?? 'https://ninova.itu.edu.tr'} error={errors.ninovaUrl} label="Ninova page" name="ninovaUrl" optional type="url" />
+        <div className="field">
+          <div className="form-row">
+            <Field defaultValue={course?.startDate ?? ''} label="First class" name="startDate" optional type="date" />
+            <Field defaultValue={course?.endDate ?? ''} error={errors.endDate} label="Last class" name="endDate" optional type="date" />
+          </div>
+          <span className="field-hint">Classes show on your calendar between these dates. Leave them empty to use the term’s.</span>
+        </div>
+        {itu && <Field defaultValue={course?.ninovaUrl ?? 'https://ninova.itu.edu.tr'} error={errors.ninovaUrl} label="Ninova page" name="ninovaUrl" optional type="url" />}
         <details className="disclosure" open={Boolean(course?.vf) || undefined}>
           <summary>Final eligibility (VF)</summary>
           <div className="form-grid" style={{ marginTop: 'var(--s-3)' }}>

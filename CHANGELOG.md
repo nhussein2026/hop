@@ -11,6 +11,18 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Ver
 - Radar: every find can be edited (title, link, type, source, why, topics, language, date), from its "…" menu.
 - Radar → **To explore**: a shelf for things you're curious about but aren't sure deserve a try. Put a find there when saving it, or with "Curious: to explore" in the inbox. It never shows as stale; look through it at your January and August reviews.
 - A **Website** type for finds. Pasting a bare address like `https://note.com` picks it for you.
+- Classes on the Calendar: the weekly classes of every course you're taking show on the days they happen, with their time and room, and there's a **Classes** filter. Classes run between the course's first and last class (or its term's dates) and skip holidays from the İTÜ calendar.
+- Courses from anyone, not only İTÜ: set who gives the course (TÖMER, a practicum…) and use any short code. Only İTÜ courses need a SIS code.
+- A course can have its own first and last class date. A course with classes but no dates and no term says so on its page.
+- The New event dialog points to courses for a class that repeats every week.
+
+### Changed
+
+- Today's "Classes today" now appears whenever a class is coming this week, not only during an İTÜ term, and follows the course's dates and holidays.
+
+### Fixed
+
+- A new course no longer saves a Monday 09:30–12:30 class you didn't add.
 
 ## [1.2.0] - 2026-10-23
 
