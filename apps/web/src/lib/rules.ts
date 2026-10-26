@@ -4,7 +4,7 @@ import * as D from './dates.ts'
 import { GOAL_AREAS } from '@hop/domain'
 import type { Account, Book, Course, Goal, Habit, HabitCompletion, HopData, KeyDate, MonthFacts, MonthlyReview, Opportunity, OpportunityStage, Task, WeekFacts } from './types.ts'
 import { dueTime, eligibility, isPending, isExam, satInClass, taking, unsubmitted, upcoming, whenWord } from './uni.ts'
-import { AGENDA_META, BOOK_STATUS_LABEL, FIND_KINDS, IDEA_STAGE_LABEL, RESOURCE_KINDS } from './labels.ts'
+import { AGENDA_META, BOOK_STATUS_LABEL, FIND_KINDS, FIND_STATUS_LABEL, IDEA_STAGE_LABEL, RESOURCE_KINDS } from './labels.ts'
 import { LOAN_NOTICE_DAYS, loanState, openLoan } from './books.ts'
 import { money, nextRenewal, renewingSoon } from './accounts.ts'
 import { PROOF_LABEL, proofLevel } from './skills.ts'
@@ -594,7 +594,7 @@ export function search(s: HopData, query: string): SearchResult[] {
   for (const a of s.accounts) if (has(a.name, a.login, a.purpose)) out.push({ group: 'Accounts', icon: 'key', title: a.name, meta: a.login ?? a.purpose, href: `#/notes/accounts?account=${a.id}` })
   for (const i of s.ideas) if (has(i.title, i.question)) out.push({ group: 'Ideas', icon: 'bulb', title: i.title, meta: IDEA_STAGE_LABEL[i.stage], href: `#/itu/research?idea=${i.id}` })
   for (const b of s.books) if (has(b.title, b.author, b.why, b.suggestedBy, b.topics.join(' '), b.takeaways.join(' '))) out.push({ group: 'Reading', icon: 'library', title: b.title, meta: [b.author, BOOK_STATUS_LABEL[b.status]].filter(Boolean).join(', '), href: `#/growth/reading?book=${b.id}` })
-  for (const f of s.finds) if (has(f.title, f.why, f.topics.join(' '))) out.push({ group: 'Radar', icon: FIND_KINDS[f.kind][0], title: f.title, meta: f.status === 'inbox' ? 'In the inbox' : capitalize(f.status), href: `#/growth/radar?status=${f.status}` })
+  for (const f of s.finds) if (has(f.title, f.why, f.topics.join(' '))) out.push({ group: 'Radar', icon: FIND_KINDS[f.kind][0], title: f.title, meta: f.status === 'inbox' ? 'In the inbox' : FIND_STATUS_LABEL[f.status], href: `#/growth/radar?status=${f.status}` })
   return out.slice(0, 50)
 }
 

@@ -1,7 +1,7 @@
 // One place to open any dialog, so screens and rows don't import each other's editors.
 import { useMemo } from 'react'
 import * as D from '../lib/dates.ts'
-import type { Account, Assessment, Book, BookLoan, Contact, LanguageCheck, PracticeActivity, PracticeArea, PracticeSession, PracticeTest, Course, Evidence, Goal, Habit, Idea, Opportunity, OpportunityStage, Pin, Program, Project, Resource, ResourceKind, Resume, Skill, Task, Term } from '../lib/types.ts'
+import type { Account, Assessment, Book, BookLoan, Contact, Find, LanguageCheck, PracticeActivity, PracticeArea, PracticeSession, PracticeTest, Course, Evidence, Goal, Habit, Idea, Opportunity, OpportunityStage, Pin, Program, Project, Resource, ResourceKind, Resume, Skill, Task, Term } from '../lib/types.ts'
 import { CloseOpportunity, ContactDrawer, ContactEditor, LogActivity, OpportunityEditor, ResumeEditor } from './career.tsx'
 import { MoreSheet, Notifications, QuickAdd, ReflectionEditor, Search } from './global.tsx'
 import type { AddKind } from './global.tsx'
@@ -53,7 +53,7 @@ export function useEditors() {
       keyDate: () => open((close) => <KeyDateEditor close={close} />),
       pin: (pin?: Pin | null) => open((close) => <PinEditor close={close} pin={pin} />),
       uniLink: () => open((close) => <UniLinkEditor close={close} />),
-      find: () => open((close) => <FindEditor close={close} />),
+      find: (find?: Find | null) => open((close) => <FindEditor close={close} find={find} />),
       book: (defaults: Partial<Book> = {}) => open((close) => <BookEditor close={close} defaults={defaults} />),
       editBook: (book: Book) => open((close) => <BookEditor book={book} close={close} />),
       bookDrawer: (book: Book) => open((close) => <BookDrawer book={book} close={close} />),

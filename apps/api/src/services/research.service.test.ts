@@ -22,6 +22,23 @@ test('the same link cannot be saved twice, even with a trailing slash', () => {
   assert.doesNotThrow(() => findService.create({ kind: 'event', title: 'Another seminar', why: 'Also without a link' }));
 });
 
+test('a find can go straight onto the To explore shelf, but nowhere else', () => {
+  const find = findService.create({ kind: 'site', title: 'note.com', why: 'Heard about it; curious', url: 'https://note.com/', status: 'explore' });
+
+  assert.equal(find.status, 'explore');
+  assert.equal(createFindSchema.safeParse({ kind: 'site', title: 'x', why: 'y', status: 'kept' }).success, false);
+});
+
+test('a find can be edited, but not to a link already on the radar', () => {
+  findService.create({ kind: 'opportunity', title: 'Trendyol careers', why: 'Jobs at Trendyol', url: 'https://careers.trendyol.com' });
+  const find = findService.create({ kind: 'opportunity', title: 'Microsoft Careef Platform', why: 'Jobs at Microsoft', url: 'https://careers.microsoft.com' });
+
+  const renamed = findService.update(find.id, { title: 'Microsoft Careers', url: 'https://careers.microsoft.com/' })!;
+  assert.equal(renamed.title, 'Microsoft Careers');
+  assert.throws(() => findService.update(find.id, { url: 'https://careers.trendyol.com/' }), ConflictError);
+  assert.equal(findService.getAll().find((f) => f.id === find.id)?.url, 'https://careers.microsoft.com/');
+});
+
 test('every find needs one line on why it matters', () => {
   assert.equal(createFindSchema.safeParse({ kind: 'repo', title: 'x', why: '   ' }).success, false);
   assert.equal(createFindSchema.safeParse({ kind: 'repo', title: 'x', why: 'Because', url: 'not a link' }).success, false);

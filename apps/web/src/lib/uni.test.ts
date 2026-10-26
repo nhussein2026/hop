@@ -93,9 +93,15 @@ test('links from GitHub, Hugging Face, arXiv and İTÜ are recognised', () => {
   assert.equal(detectLink('not a link'), null)
 })
 
+test('a bare address is a website; a page on it is an article', () => {
+  assert.deepEqual(detectLink('https://note.com/'), { kind: 'site', source: 'note.com', title: 'note.com' })
+  assert.deepEqual(detectLink('https://www.note.com'), { kind: 'site', source: 'note.com', title: 'note.com' })
+  assert.equal(detectLink('https://note.com/some/post')?.kind, 'article')
+})
+
 test('inbox finds older than 30 days are stale', () => {
   const find = (id: string, createdAt: string, status: Find['status'] = 'inbox') => ({ id, createdAt, status }) as Find
-  assert.deepEqual(staleFinds([find('new', '2026-10-01T10:00:00Z'), find('old', '2026-09-01T10:00:00Z'), find('kept', '2026-08-01T10:00:00Z', 'kept')], '2026-10-08').map((f) => f.id), ['old'])
+  assert.deepEqual(staleFinds([find('new', '2026-10-01T10:00:00Z'), find('old', '2026-09-01T10:00:00Z'), find('kept', '2026-08-01T10:00:00Z', 'kept'), find('curious', '2026-06-01T10:00:00Z', 'explore')], '2026-10-08').map((f) => f.id), ['old'])
   assert.equal(whenWord('2026-10-09', '2026-10-08'), 'tomorrow')
   assert.equal(whenWord('2026-10-20', '2026-10-08'), 'Tue 20 Oct')
 })
