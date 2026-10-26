@@ -9,7 +9,7 @@ import { useEditors } from '../editors/editors.tsx'
 import { Icon, Pad } from '../components/Icon.tsx'
 import { AttentionList, HabitRow, InlineAdd, TaskRow } from '../components/rows.tsx'
 import { DateChip, Empty, ProgressBar } from '../components/ui.tsx'
-import { classesOn, currentTerm, nextClass, taking } from '../lib/uni.ts'
+import { classesOn, nextClass } from '../lib/uni.ts'
 import { loanLabel, loanState, openLoan, progress } from '../lib/books.ts'
 import { dayProgress, doneSession, planFor } from '../lib/practice.ts'
 import { PracticeRow } from './Turkish.tsx'
@@ -266,17 +266,17 @@ function ReadingNow() {
   )
 }
 
-/** Classes today, from the İTÜ course schedule. Hidden outside term. */
+/** Classes today, from the schedule of the courses being taken. Hidden when none is coming this week. */
 function ClassesToday() {
   const { data } = useHop()
   const today = D.today()
-  if (!currentTerm(data.terms, today) || !taking(data.courses).some((c) => c.schedule.length)) return null
-  const list = classesOn(data.courses, today)
-  const next = list.length ? null : nextClass(data.courses, today)
+  const list = classesOn(data, today)
+  const next = list.length ? null : nextClass(data, today)
+  if (!list.length && !next) return null
   const now = D.timeOf(new Date().toISOString())
   return (
     <section aria-labelledby="cls-h" className="section">
-      <div className="section-head"><h2 id="cls-h">Classes today</h2><a className="small" href="#/itu">İTÜ</a></div>
+      <div className="section-head"><h2 id="cls-h">Classes today</h2><a className="small" href="#/itu/courses">Courses</a></div>
       {list.length
         ? (
           <ol className="mini-agenda">

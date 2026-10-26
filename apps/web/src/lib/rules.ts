@@ -3,7 +3,7 @@
 import * as D from './dates.ts'
 import { GOAL_AREAS } from '@hop/domain'
 import type { Account, Book, Course, Goal, Habit, HabitCompletion, HopData, KeyDate, MonthFacts, MonthlyReview, Opportunity, OpportunityStage, Task, WeekFacts } from './types.ts'
-import { dueTime, eligibility, isPending, isExam, satInClass, taking, unsubmitted, upcoming, whenWord } from './uni.ts'
+import { classesBetween, dueTime, eligibility, isPending, isExam, satInClass, taking, unsubmitted, upcoming, whenWord } from './uni.ts'
 import { AGENDA_META, BOOK_STATUS_LABEL, FIND_KINDS, FIND_STATUS_LABEL, IDEA_STAGE_LABEL, RESOURCE_KINDS } from './labels.ts'
 import { LOAN_NOTICE_DAYS, loanState, openLoan } from './books.ts'
 import { money, nextRenewal, renewingSoon } from './accounts.ts'
@@ -350,15 +350,16 @@ export type AgendaItem =
   | { kind: 'keyDate'; type: 'uni'; date: string; time: null; title: string; ref: KeyDate }
   | { kind: 'loan'; type: 'loan'; date: string; time: null; title: string; ref: Book }
   | { kind: 'renewal'; type: 'renewal'; date: string; time: null; title: string; ref: Account }
+  | { kind: 'class'; type: 'class'; date: string; time: string; end: string; room: string; title: string; ref: Course }
 
 export type AgendaGroup = { date: string; items: AgendaItem[] }
 
 /**
  * Everything dated between two days (inclusive), in time order: events, tasks, application
  * deadlines, scheduled opportunity steps and goal milestones. The calendar also asks for
- * completed tasks, so past days show what was done.
+ * completed tasks, so past days show what was done, and for classes, which Today shows on its own.
  */
-export function agendaItems(s: HopData, from: string, to: string, { includeDone = false } = {}): AgendaItem[] {
+export function agendaItems(s: HopData, from: string, to: string, { includeDone = false, includeClasses = false } = {}): AgendaItem[] {
   const inRange = (d: string | null): d is string => Boolean(d) && d! >= from && d! <= to
   const items: AgendaItem[] = []
   for (const e of s.events) if (inRange(e.date)) items.push({ kind: 'event', type: e.type === 'other' || e.type === 'meeting' || e.type === 'personal' ? 'event' : e.type, date: e.date, time: e.startTime, title: e.title, ref: e })
@@ -395,7 +396,10 @@ export function agendaItems(s: HopData, from: string, to: string, { includeDone 
     const date = nextRenewal(a, from)
     if (date && inRange(date)) items.push({ kind: 'renewal', type: 'renewal', date, time: null, title: a.status === 'trial' ? `${a.name} trial ends` : `${a.name} renews`, ref: a })
   }
-  const kindOrder = { event: 0, assessment: 1, oppEvent: 2, deadline: 3, keyDate: 4, loan: 5, renewal: 6, milestone: 7, task: 8 }
+  if (includeClasses) {
+    for (const { course: c, slot, date } of classesBetween(s, from, to)) items.push({ kind: 'class', type: 'class', date, time: slot.start, end: slot.end, room: slot.room, title: `${c.code} ${c.name}`, ref: c })
+  }
+  const kindOrder = { class: 0, event: 1, assessment: 2, oppEvent: 3, deadline: 4, keyDate: 5, loan: 6, renewal: 7, milestone: 8, task: 9 }
   return items.sort((a, b) => a.date.localeCompare(b.date) || (a.time || '99').localeCompare(b.time || '99') || kindOrder[a.kind] - kindOrder[b.kind])
 }
 
@@ -403,7 +407,7 @@ export function agendaItems(s: HopData, from: string, to: string, { includeDone 
 export function agendaHref(item: AgendaItem) {
   if (item.kind === 'event') return item.ref.opportunityId ? `#/career/${item.ref.opportunityId}` : item.type === 'review' ? '#/review' : ''
   if (item.kind === 'milestone') return `#/goals/${item.ref.id}`
-  if (item.kind === 'assessment') return `#/itu/courses/${item.ref.id}`
+  if (item.kind === 'assessment' || item.kind === 'class') return `#/itu/courses/${item.ref.id}`
   if (item.kind === 'keyDate') return '#/itu/handbook'
   if (item.kind === 'loan') return `#/growth/reading?book=${item.ref.id}`
   if (item.kind === 'renewal') return `#/notes/accounts?account=${item.ref.id}`

@@ -226,6 +226,7 @@ export function AgendaRow({ item }: { item: AgendaItem }) {
       <div className="row-main">
         {href ? <button className="row-open" onClick={() => navigate(href)} type="button">{item.title}</button> : <span className="row-title">{item.title}</span>}
         {item.kind === 'event' && item.ref.description && <span className="row-meta">{item.ref.description}</span>}
+        {item.kind === 'class' && <span className="row-meta">{item.time}–{item.end}{item.room ? `, ${item.room}` : ''}</span>}
       </div>
       <Badge icon={icon} tone={tone}>{agendaLabel(item)}</Badge>
     </div>

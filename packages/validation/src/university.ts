@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { ASSESSMENT_TYPES, COURSE_STATUSES, IDEA_KINDS, IDEA_STAGES, KEY_DATE_KINDS, LETTER_GRADES, PIN_KINDS, RESOURCE_KINDS, THESIS_STEPS } from '@hop/domain';
+import { ASSESSMENT_TYPES, COURSE_STATUSES, IDEA_KINDS, ITU_PROVIDER, IDEA_STAGES, KEY_DATE_KINDS, LETTER_GRADES, PIN_KINDS, RESOURCE_KINDS, THESIS_STEPS } from '@hop/domain';
 
 import { dateSchema as date, entityIdSchema as id } from './common.js';
 
@@ -23,8 +23,25 @@ export const updateTermSchema = z.object(termFields).partial().strict().superRef
 
 /* ---- Courses --------------------------------------------------------------------------- */
 /** SIS course codes: a 2–4 letter subject, an optional space, three digits and an optional letter. */
-const courseCodeSchema = z.string().trim().toUpperCase().transform((value) => value.replace(/\s+/g, ' '))
-  .refine((value) => /^[A-ZÇĞİÖŞÜ]{2,4} ?\d{3}[A-Z]?$/.test(value), 'Use the SIS format, like “BLG 527E”');
+export const isSisCode = (code: string) => /^[A-ZÇĞİÖŞÜ]{2,4} ?\d{3}[A-Z]?$/.test(code.trim().replace(/\s+/g, ' ').toUpperCase());
+
+/** İTÜ courses are written the SIS way ("BLG 527E"); other providers keep the code as typed. */
+export const normalizeCourseCode = (code: string, provider: string) => {
+  const spaced = code.trim().replace(/\s+/g, ' ');
+  return provider === ITU_PROVIDER ? spaced.toUpperCase() : spaced;
+};
+
+const courseCodeSchema = required('Course code', 20);
+
+/** The rules that need several fields: SIS codes for İTÜ, and classes that end after they start. */
+export function checkCourse(value: { code?: string | undefined; provider?: string | undefined; startDate?: string | null | undefined; endDate?: string | null | undefined }, ctx: z.RefinementCtx) {
+  if (value.code !== undefined && (value.provider ?? ITU_PROVIDER) === ITU_PROVIDER && !isSisCode(value.code)) {
+    ctx.addIssue({ code: 'custom', path: ['code'], message: 'Use the SIS format, like “BLG 527E”' });
+  }
+  if (value.startDate && value.endDate && value.endDate < value.startDate) {
+    ctx.addIssue({ code: 'custom', path: ['endDate'], message: 'Classes cannot end before they start' });
+  }
+}
 
 const classSlot = z.object({
   day: z.number().int().min(0).max(6),
@@ -45,7 +62,10 @@ const weight = z.number().int('Use a whole number').min(1, 'Use the weight from 
 const courseFields = {
   code: courseCodeSchema,
   name: required('Course name', 160),
+  provider: required('Provider', 60),
   termId: id.nullable(),
+  startDate: date.nullable(),
+  endDate: date.nullable(),
   status: z.enum(COURSE_STATUSES),
   crn: text('CRN', 20).nullable(),
   instructorId: id.nullable(),
@@ -70,9 +90,13 @@ export const createCourseSchema = z.object({
 }).strict().refine((value) => !value.grading?.length || value.grading.reduce((sum, item) => sum + item.weight, 0) === 100, {
   message: 'Grading weights should add up to 100%',
   path: ['grading'],
-});
+}).superRefine(checkCourse);
 
-export const updateCourseSchema = z.object(courseFields).partial().strict();
+/** Only the fields sent are checked here; the service checks them against the stored course. */
+export const updateCourseSchema = z.object(courseFields).partial().strict().superRefine((value, ctx) => {
+  if (value.provider !== undefined) checkCourse(value, ctx);
+  else checkCourse({ startDate: value.startDate, endDate: value.endDate }, ctx);
+});
 
 const assessmentFields = {
   title: required('Title', 120),

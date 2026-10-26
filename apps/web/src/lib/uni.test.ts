@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { setTimezone } from './dates.ts'
-import { classesOn, currentTerm, detectLink, eligibility, nextClass, parseGrading, standing, staleFinds, termWeek, unsubmitted, upcoming, whenWord } from './uni.ts'
-import type { Assessment, Course, Find } from './types.ts'
+import { classesBetween, classesOn, classesUndated, courseDates, currentTerm, detectLink, scheduleLabel, eligibility, nextClass, parseGrading, standing, staleFinds, termWeek, unsubmitted, upcoming, whenWord } from './uni.ts'
+import type { Assessment, Course, Find, KeyDate } from './types.ts'
 
 setTimezone('UTC')
 
@@ -14,7 +14,7 @@ const item = (fields: Partial<Assessment>): Assessment => ({
 })
 
 const course = (fields: Partial<Course>): Course => ({
-  id: 'c', code: 'BLG 527E', name: 'Machine Learning', termId: null, status: 'taking', crn: null, instructorId: null, credits: 3, ects: 7.5,
+  id: 'c', code: 'BLG 527E', name: 'Machine Learning', provider: 'İTÜ', termId: null, startDate: null, endDate: null, status: 'taking', crn: null, instructorId: null, credits: 3, ects: 7.5,
   ninovaUrl: null, schedule: [], vf: null, absences: 0, target: null, grade: null, why: null, createdAt: stamp, updatedAt: stamp, grading: [], ...fields,
 })
 
@@ -33,9 +33,37 @@ test('classes come from the weekly schedule of courses being taken, in time orde
     course({ id: 'early', schedule: [{ day: 4, start: '09:30', end: '12:30', room: 'EEB 5302' }] }),
     course({ id: 'old', status: 'completed', schedule: [{ day: 4, start: '08:00', end: '09:00', room: '' }] }),
   ]
+  const data = { courses, terms: [], keyDates: [] }
   // 2026-10-08 is a Thursday (day 4).
-  assert.deepEqual(classesOn(courses, '2026-10-08').map((m) => m.course.id), ['early', 'late'])
-  assert.equal(nextClass(courses, '2026-10-08')?.date, '2026-10-15')
+  assert.deepEqual(classesOn(data, '2026-10-08').map((m) => m.course.id), ['early', 'late'])
+  assert.equal(nextClass(data, '2026-10-08')?.date, '2026-10-15')
+})
+
+test('classes run between the course’s own dates, or its term’s, and not on holidays', () => {
+  const tomer = course({ id: 'tomer', code: 'TÖMER A2', provider: 'TÖMER', startDate: '2026-11-30', endDate: '2027-01-15', schedule: [1, 2, 3, 4].map((day) => ({ day, start: '09:15', end: '12:45', room: '' })) })
+  const ml = course({ id: 'ml', termId: 'fall', schedule: [{ day: 2, start: '13:30', end: '16:30', room: '' }] })
+  const terms = [{ id: 'fall', name: 'Fall', start: '2026-09-21', end: '2027-01-15', createdAt: stamp, updatedAt: stamp }]
+  const holiday: KeyDate = { id: 'h', title: 'New Year', date: '2027-01-01', kind: 'holiday', note: null, createdAt: stamp, updatedAt: stamp }
+  const data = { courses: [tomer, ml], terms, keyDates: [holiday] }
+
+  // 23 Nov – 6 Dec 2026: TÖMER only from Monday 30 Nov; ML every Tuesday of the term.
+  assert.deepEqual(classesBetween(data, '2026-11-23', '2026-12-06').map((m) => `${m.course.id} ${m.date}`), [
+    'ml 2026-11-24', 'tomer 2026-11-30', 'tomer 2026-12-01', 'ml 2026-12-01', 'tomer 2026-12-02', 'tomer 2026-12-03',
+  ])
+  // Friday 1 Jan 2027 is a holiday; Thursday 31 Dec still has class, and nothing runs after 15 Jan.
+  assert.deepEqual(classesBetween(data, '2026-12-31', '2027-01-01').map((m) => m.date), ['2026-12-31'])
+  assert.deepEqual(classesBetween(data, '2027-01-16', '2027-01-31'), [])
+  assert.deepEqual(courseDates(ml, terms), { from: '2026-09-21', until: '2027-01-15' })
+  assert.equal(classesUndated(course({ schedule: [{ day: 1, start: '09:00', end: '10:00', room: '' }] })), true)
+  assert.equal(classesUndated(tomer), false)
+})
+
+test('a schedule reads as day ranges with their times', () => {
+  const slot = (day: number, start = '09:15', end = '12:45', room = '') => ({ day, start, end, room })
+  assert.equal(scheduleLabel({ schedule: [1, 2, 3, 4].map((d) => slot(d)) }), 'Mon–Thu 09:15–12:45')
+  assert.equal(scheduleLabel({ schedule: [slot(1), slot(3)] }), 'Mon, Wed 09:15–12:45')
+  assert.equal(scheduleLabel({ schedule: [slot(6), slot(0), slot(5)] }), 'Fri–Sun 09:15–12:45')
+  assert.equal(scheduleLabel({ schedule: [slot(2, '13:30', '16:30', 'EEB 5302'), slot(4, '09:30', '12:30')] }), 'Tue 13:30–16:30, EEB 5302; Thu 09:30–12:30')
 })
 
 test('upcoming deadlines skip graded and submitted items; unsubmitted only flags hand-ins', () => {

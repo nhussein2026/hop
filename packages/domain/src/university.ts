@@ -39,12 +39,20 @@ export interface FinalEligibility {
   maxAbsences: number | null;
 }
 
+/** Courses from İTÜ use SIS codes and the İTÜ terms. Any other provider takes a free short code. */
+export const ITU_PROVIDER = 'İTÜ';
+
 export interface Course {
   id: EntityId;
-  /** SIS format, such as "BLG 527E". */
+  /** SIS format, such as "BLG 527E", for İTÜ courses; any short code otherwise ("TÖMER A2"). */
   code: string;
   name: string;
+  /** Who runs it: "İTÜ" unless set, or "TÖMER", "BrewHaus"… */
+  provider: string;
   termId: EntityId | null;
+  /** When classes run, for a course outside an İTÜ term. Without them, the term's dates are used. */
+  startDate: ISODate | null;
+  endDate: ISODate | null;
   status: CourseStatus;
   crn: string | null;
   instructorId: EntityId | null;

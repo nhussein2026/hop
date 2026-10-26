@@ -12,6 +12,8 @@ import type {
   UpdateCourseInput,
   UpdateTermInput,
 } from '@hop/domain';
+import { ITU_PROVIDER } from '@hop/domain';
+import { isSisCode, normalizeCourseCode } from '@hop/validation';
 
 import { InvalidInputError } from '../errors.js';
 import { courseRepository, termRepository } from '../repositories/course.repository.js';
@@ -22,6 +24,16 @@ function checkWeights(course: CourseWithDetails, weight: number, replacing?: str
 
   if (others + weight > 100) {
     throw new InvalidInputError(`${course.code} weights would add up to ${others + weight}%. Check the syllabus or edit another item.`);
+  }
+}
+
+/** The checks the update schema can't make alone, because they depend on the stored course. */
+function checkMergedCourse(course: { code: string; provider: string; startDate: string | null; endDate: string | null }) {
+  if (course.provider === ITU_PROVIDER && !isSisCode(course.code)) {
+    throw new InvalidInputError('Use the SIS format, like “BLG 527E”, for an İTÜ course.');
+  }
+  if (course.startDate && course.endDate && course.endDate < course.startDate) {
+    throw new InvalidInputError('Classes cannot end before they start.');
   }
 }
 
@@ -77,11 +89,15 @@ export const courseService = {
       updatedAt: now,
     }));
 
+    const provider = input.provider ?? ITU_PROVIDER;
     return courseRepository.create({
       id,
-      code: input.code,
+      code: normalizeCourseCode(input.code, provider),
       name: input.name,
+      provider,
       termId: input.termId ?? null,
+      startDate: input.startDate ?? null,
+      endDate: input.endDate ?? null,
       status: input.status ?? 'taking',
       crn: input.crn ?? null,
       instructorId: input.instructorId ?? null,
@@ -100,11 +116,15 @@ export const courseService = {
   },
 
   update(id: string, input: UpdateCourseInput): CourseWithDetails | undefined {
-    if (!courseRepository.findById(id)) {
+    const existing = courseRepository.findById(id);
+    if (!existing) {
       return undefined;
     }
 
-    return courseRepository.update(id, { ...input, updatedAt: new Date().toISOString() });
+    const merged = { ...existing, ...input };
+    checkMergedCourse(merged);
+    const code = input.code !== undefined || input.provider !== undefined ? { code: normalizeCourseCode(merged.code, merged.provider) } : {};
+    return courseRepository.update(id, { ...input, ...code, updatedAt: new Date().toISOString() });
   },
 
   /** Record the final letter grade. The graded items and their scores stay as history. */

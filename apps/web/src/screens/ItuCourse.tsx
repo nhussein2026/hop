@@ -1,9 +1,10 @@
 // A course page: deadlines and grades (type a score when it comes back), what you need on the
 // rest to reach a target, final eligibility, the instructor playbook, materials and ideas.
 import { useState } from 'react'
+import { ITU_PROVIDER } from '@hop/domain'
 import * as D from '../lib/dates.ts'
 import { isOpen, plural } from '../lib/rules.ts'
-import { eligibility, isExam, isPending, satInClass, scheduleLabel, standing, whenWord } from '../lib/uni.ts'
+import { classDates, classesUndated, eligibility, isExam, isPending, satInClass, scheduleLabel, standing, whenWord } from '../lib/uni.ts'
 import type { Standing } from '../lib/uni.ts'
 import type { Assessment, Contact, Course, Resource } from '../lib/types.ts'
 import { ASSESSMENT_LABEL, COURSE_STATUS, IDEA_STAGE_LABEL } from '../lib/labels.ts'
@@ -100,9 +101,9 @@ export function CourseDetail({ id }: { id: string }) {
     <div className="page">
       <header className="page-head detail-head">
         <div className="page-head-text">
-          <div className="detail-kicker"><span className="code">{c.code}</span><Badge tone={statusTone}>{statusLabel}</Badge>{term && <span className="xs muted">{term.name}</span>}</div>
+          <div className="detail-kicker"><span className="code">{c.code}</span><Badge tone={statusTone}>{statusLabel}</Badge>{c.provider !== ITU_PROVIDER && <span className="xs muted">{c.provider}</span>}{term && <span className="xs muted">{term.name}</span>}</div>
           <h1 tabIndex={-1}>{c.name}</h1>
-          <p>{[instructor?.name, c.schedule.length ? scheduleLabel(c) : 'No schedule set'].filter(Boolean).join('. ')}</p>
+          <p>{[instructor?.name, c.schedule.length ? scheduleLabel(c) : 'No schedule set', classDates(c)].filter(Boolean).join('. ')}</p>
         </div>
         <div className="page-head-actions">
           {c.ninovaUrl && <a className="btn" href={c.ninovaUrl} rel="noopener noreferrer" target="_blank"><Icon className="icon-sm" name="external" />Ninova</a>}
@@ -114,6 +115,7 @@ export function CourseDetail({ id }: { id: string }) {
       {later && <Banner icon="bulb" title={c.status === 'planned' ? `Planned for ${term?.name ?? 'a later term'}.` : 'A course you’re curious about.'} tone="info">{c.why || 'Save anything useful here now; it will be waiting when the course starts.'} {plural(materials.length, 'resource')} saved so far.</Banner>}
       {isTaking && v?.atRisk && <Banner icon="alert" title={!v.gradeOk ? 'In-term average below the VF limit' : v.left !== null && v.left <= 0 ? 'No absences left' : 'One absence left before VF'} tone="warning">{c.vf!.rule}.</Banner>}
       {c.status === 'completed' && <Completed course={c} />}
+      {isTaking && classesUndated(c) && <Banner action={<button className="btn btn-sm" onClick={() => editors.course(c)} type="button">Add dates</button>} icon="calendar" title="Add the dates so classes stop when the course ends." tone="info">Without a first and last class, or a term, these classes repeat on your calendar every week.</Banner>}
 
       <div className="split">
         <div className="stack">

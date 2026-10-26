@@ -22,6 +22,9 @@ const ok = () => undefined
 export type CourseFields = {
   code: string
   name: string
+  provider: string
+  startDate: string | null
+  endDate: string | null
   crn: string | null
   status: Course['status']
   termId: string | null

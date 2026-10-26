@@ -1,5 +1,5 @@
-// Calendar: Hop's own data laid out by day. A month or week at a glance (events, tasks open and
-// done, application deadlines, opportunity steps, milestones), and the chosen day in full beside
+// Calendar: Hop's own data laid out by day. A month or week at a glance (events, classes, tasks open
+// and done, application deadlines, opportunity steps, milestones), and the chosen day in full beside
 // it, with that day's habits. Routes: #/calendar[/month|week[/YYYY-MM-DD]].
 import { useEffect, useRef } from 'react'
 import type { KeyboardEvent } from 'react'
@@ -49,9 +49,10 @@ export function Calendar({ route }: { route: Route }) {
   const days = Array.from({ length: weeks * 7 }, (_, i) => D.addDays(first, i))
 
   const byDay = new Map<string, AgendaItem[]>()
-  for (const item of agendaItems(data, first, last, { includeDone: true })) {
+  for (const item of agendaItems(data, first, last, { includeDone: true, includeClasses: true })) {
     if (filter === 'tasks' && item.kind !== 'task') continue
-    if (filter === 'dated' && item.kind === 'task') continue
+    if (filter === 'dated' && (item.kind === 'task' || item.kind === 'class')) continue
+    if (filter === 'classes' && item.kind !== 'class') continue
     byDay.set(item.date, [...(byDay.get(item.date) ?? []), item])
   }
 
@@ -67,7 +68,7 @@ export function Calendar({ route }: { route: Route }) {
   return (
     <div className="page">
       <header className="page-head">
-        <div className="page-head-text"><h1 tabIndex={-1}>Calendar</h1><p>Your events, tasks, deadlines and milestones, day by day.</p></div>
+        <div className="page-head-text"><h1 tabIndex={-1}>Calendar</h1><p>Your events, classes, tasks, deadlines and milestones, day by day.</p></div>
         <div className="page-head-actions">
           <button className="btn" onClick={() => editors.event(selected)} type="button"><Icon className="icon-sm" name="calendar" />New event</button>
           <button className="btn btn-primary" onClick={() => editors.task(null, { scheduledDate: selected })} type="button"><Icon className="icon-sm" name="plus" />New task</button>
@@ -83,7 +84,7 @@ export function Calendar({ route }: { route: Route }) {
         </div>
         <Segmented label={<span className="visually-hidden">View</span>} name="cal-view" onChange={(value) => navigate(href(value as View, selected))} options={[['month', 'Month'], ['week', 'Week']]} small value={view} />
       </div>
-      <div aria-label="Show" className="chips" role="group">{chip('all', 'Everything')}{chip('dated', 'Events and deadlines')}{chip('tasks', 'Tasks')}</div>
+      <div aria-label="Show" className="chips" role="group">{chip('all', 'Everything')}{chip('dated', 'Events and deadlines')}{chip('classes', 'Classes')}{chip('tasks', 'Tasks')}</div>
 
       <div className="cal-layout">
         <CalendarGrid byDay={byDay} days={days} month={view === 'month' ? selected.slice(0, 7) : null} onSelect={(date) => navigate(href(view, date))} selected={selected} today={today} />

@@ -2,7 +2,8 @@
 // eligibility, and link recognition. Like rules.ts, raw facts are stored and all of this is derived.
 import { EXAM_TYPES, FIND_STALE_DAYS } from '@hop/domain'
 import * as D from './dates.ts'
-import type { Assessment, AssessmentType, ClassSlot, Course, Find, FindKind, Term } from './types.ts'
+import { occurrences } from './schedule.ts'
+import type { Assessment, AssessmentType, ClassSlot, Course, Find, FindKind, KeyDate, Term } from './types.ts'
 
 /* ---- Terms and classes --------------------------------------------------------- */
 export const currentTerm = (terms: Term[], today: string) => terms.find((t) => t.start <= today && t.end >= today) ?? null
@@ -12,27 +13,69 @@ export const termWeek = (term: Term, today: string, weeks: number) => Math.min(w
 
 export const taking = (courses: Course[]) => courses.filter((c) => c.status === 'taking')
 
-type ClassMeeting = { course: Course; slot: ClassSlot }
+type ClassMeeting = { course: Course; slot: ClassSlot; date: string }
 
-export function classesOn(courses: Course[], ymd: string): ClassMeeting[] {
-  const day = D.weekday(ymd)
-  return taking(courses)
-    .flatMap((course) => course.schedule.filter((slot) => slot.day === day).map((slot) => ({ course, slot })))
-    .sort((a, b) => a.slot.start.localeCompare(b.slot.start))
+/** What deciding a class day needs: the courses, their terms, and the holidays. */
+export type ClassData = { courses: Course[]; terms: Term[]; keyDates: KeyDate[] }
+
+/**
+ * When a course's classes run: its own dates when it has them, else its term's. Null ends mean
+ * open-ended, which is how a course without either has always behaved.
+ */
+export function courseDates(course: Course, terms: Term[]): { from: string | null; until: string | null } {
+  if (course.startDate || course.endDate) return { from: course.startDate, until: course.endDate }
+  const term = course.termId ? terms.find((t) => t.id === course.termId) : undefined
+  return term ? { from: term.start, until: term.end } : { from: null, until: null }
 }
+
+/** Every class of the courses being taken between two dates (inclusive), except on holidays. */
+export function classesBetween(s: ClassData, from: string, to: string): ClassMeeting[] {
+  const holidays = s.keyDates.filter((k) => k.kind === 'holiday').map((k) => k.date)
+  return taking(s.courses)
+    .flatMap((course) => {
+      const dates = courseDates(course, s.terms)
+      return occurrences(course.schedule.map((slot) => ({ ...slot, ...dates })), from, to, holidays)
+        .map(({ date, slot }) => ({ course, slot, date }))
+    })
+    .sort((a, b) => a.date.localeCompare(b.date) || a.slot.start.localeCompare(b.slot.start))
+}
+
+export const classesOn = (s: ClassData, ymd: string): ClassMeeting[] => classesBetween(s, ymd, ymd)
 
 /** The first class in the coming week, after today. */
-export function nextClass(courses: Course[], today: string): (ClassMeeting & { date: string }) | null {
-  for (let i = 1; i <= 7; i++) {
-    const date = D.addDays(today, i)
-    const first = classesOn(courses, date)[0]
-    if (first) return { ...first, date }
-  }
-  return null
+export const nextClass = (s: ClassData, today: string): ClassMeeting | null => classesBetween(s, D.addDays(today, 1), D.addDays(today, 7))[0] ?? null
+
+/** "Classes 30 Nov – 15 Jan", from the course's own dates. Empty when it follows its term. */
+export function classDates(c: Course) {
+  if (c.startDate && c.endDate) return `Classes ${D.short(c.startDate)} – ${D.short(c.endDate)}`
+  if (c.startDate) return `Classes from ${D.short(c.startDate)}`
+  return c.endDate ? `Classes until ${D.short(c.endDate)}` : ''
 }
 
-const slotLabel = (slot: ClassSlot) => `${D.DAYS[slot.day]} ${slot.start}–${slot.end}${slot.room ? `, ${slot.room}` : ''}`
-export const scheduleLabel = (course: Course) => course.schedule.map(slotLabel).join('; ')
+/** A course with classes but no dates of its own and no term shows its classes every week, with no end. */
+export const classesUndated = (course: Course) => course.schedule.length > 0 && !course.startDate && !course.endDate && !course.termId
+
+/** "Mon–Thu", "Mon, Wed", "Fri": runs of three or more days read as a range, Monday first. */
+function dayRange(days: number[]) {
+  const order = [1, 2, 3, 4, 5, 6, 0].filter((d) => days.includes(d))
+  const runs: number[][] = []
+  for (const day of order) {
+    const run = runs.at(-1)
+    if (run && [1, 2, 3, 4, 5, 6, 0].indexOf(day) === [1, 2, 3, 4, 5, 6, 0].indexOf(run.at(-1)!) + 1) run.push(day)
+    else runs.push([day])
+  }
+  return runs.map((run) => (run.length >= 3 ? `${D.DAYS[run[0]!]}–${D.DAYS[run.at(-1)!]}` : run.map((d) => D.DAYS[d]).join(', '))).join(', ')
+}
+
+/** Classes at the same time and place on several days read as one: "Mon–Thu 09:15–12:45". */
+export function scheduleLabel(course: Pick<Course, 'schedule'>) {
+  const byTime = new Map<string, number[]>()
+  for (const slot of course.schedule) {
+    const time = `${slot.start}–${slot.end}${slot.room ? `, ${slot.room}` : ''}`
+    byTime.set(time, [...(byTime.get(time) ?? []), slot.day])
+  }
+  return [...byTime].map(([time, days]) => `${dayRange(days)} ${time}`).join('; ')
+}
 
 /* ---- Graded items ------------------------------------------------------------------ */
 export const isExam = (a: Pick<Assessment, 'type'>) => EXAM_TYPES.includes(a.type)

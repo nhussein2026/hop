@@ -126,7 +126,7 @@ The track itself (level, target, exam date, exam sections and pass mark) is `lan
 
 | Method | Path | Description |
 | --- | --- | --- |
-| `GET` / `POST` | `/api/courses` | List (with grading items) or create courses. |
+| `GET` / `POST` | `/api/courses` | List (with grading items) or create courses. `provider` defaults to `"İTÜ"`, whose courses need a SIS code (`BLG 527E`); any other provider takes a free short code. Optional `startDate` / `endDate` bound the weekly classes; without them the term's dates are used. |
 | `PATCH` / `DELETE` | `/api/courses/:id` | Update or delete a course. |
 | `POST` | `/api/courses/:id/complete` | Mark a course completed. |
 | `POST` | `/api/courses/:id/assessments` | Add a graded item. Weights may not exceed 100%. |

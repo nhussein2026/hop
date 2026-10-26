@@ -153,7 +153,8 @@ const monthlyReviewRow = z.object({
 const optionalNumber = z.number().nullable();
 const termRow = z.object({ id, name: text, start: text, end: text, ...timestamps }).strict();
 const courseRow = z.object({
-  id, code: text, name: text, termId: optionalText, status: z.enum(COURSE_STATUSES), crn: optionalText, instructorId: optionalText,
+  id, code: text, name: text, provider: text.default('İTÜ'), termId: optionalText, startDate: optionalText.default(null), endDate: optionalText.default(null),
+  status: z.enum(COURSE_STATUSES), crn: optionalText, instructorId: optionalText,
   credits: optionalNumber, ects: optionalNumber, ninovaUrl: optionalText,
   schedule: z.array(z.object({ day: z.number().int().min(0).max(6), start: text, end: text, room: text }).strict()),
   vf: z.object({ rule: text, minInTerm: optionalNumber, maxAbsences: optionalInteger }).strict().nullable(),
