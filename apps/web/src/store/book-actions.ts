@@ -81,22 +81,25 @@ export function useBookActions() {
         const read = Math.max(0, page - (b.log.filter((entry) => entry.date < date).at(-1)?.page ?? 0))
         const label = b.pages && page >= b.pages ? 'Last page reached. Mark the book finished when you’re ready.' : read ? `${read} page${read === 1 ? '' : 's'} logged. On page ${page}.` : `On page ${page}.`
         let ticked: HabitCompletion | null = null
+        // `tick` is the linked habit's completion for the day after the log: new, or with more pages.
+        const withTick = (completions: HabitCompletion[], tick: HabitCompletion | null) => (tick ? [...completions.filter((c) => c.id !== tick.id), tick] : completions)
         return commit(label, async () => {
-          const result = await api.post<{ book: Book; completion: HabitCompletion | null }>(`${path(b)}/log`, { date, page })
+          const result = await api.post<{ book: Book; completion: HabitCompletion | null; tick: HabitCompletion | null }>(`${path(b)}/log`, { date, page })
           ticked = result.completion
           return result
-        }, ({ book, completion }, current) => ({
+        }, ({ book, tick }, current) => ({
           ...applyBook(book, current),
-          completions: completion ? [...current.completions.filter((c) => c.id !== completion.id), completion] : current.completions,
+          completions: withTick(current.completions, tick),
         }), {
           undo: () => void commit('Undone', async () => {
-            let restored = previous ? (await api.post<{ book: Book }>(`${path(b)}/log`, { date, page: previous.page })).book : await api.delete<Book>(`${path(b)}/log/${date}`)
+            const again = previous ? await api.post<{ book: Book; tick: HabitCompletion | null }>(`${path(b)}/log`, { date, page: previous.page }) : null
+            let restored = again ? again.book : await api.delete<Book>(`${path(b)}/log/${date}`)
             if (restored.status !== b.status || restored.startedOn !== b.startedOn) restored = await api.patch<Book>(path(b), { status: b.status, startedOn: b.startedOn })
             if (ticked) await api.delete(`/api/habits/${ticked.habitId}/completions/${date}`)
-            return { restored, ticked }
-          }, ({ restored, ticked: undone }, current) => ({
+            return { restored, ticked, tick: ticked ? null : again?.tick ?? null }
+          }, ({ restored, ticked: undone, tick }, current) => ({
             ...applyBook(restored, current),
-            completions: undone ? current.completions.filter((c) => c.id !== undone.id) : current.completions,
+            completions: withTick(undone ? current.completions.filter((c) => c.id !== undone.id) : current.completions, tick),
           })),
         })
       },

@@ -220,6 +220,7 @@ a.find-title:hover { text-decoration: underline; }
 .week-bar { position: relative; display: block; width: 10px; height: 48px; border-radius: 5px; background: var(--surface-3); overflow: hidden; }
 .week-bar span { position: absolute; inset: auto 0 0; border-radius: 5px; background: var(--primary); }
 .week-strip li.is-missed .week-bar { outline: 1px dashed var(--border-strong); }
+.week-strip .week-kept { color: var(--success); }
 .focus-list { display: grid; gap: 6px; margin: 0; padding-left: 1.2em; line-height: var(--lh-read); }
 .balance { display: grid; gap: var(--s-2); }
 .balance-row { display: grid; grid-template-columns: minmax(110px, 160px) minmax(0, 1fr) minmax(80px, auto); align-items: center; gap: var(--s-3); }

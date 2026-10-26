@@ -15,10 +15,17 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Ver
 - Courses from anyone, not only İTÜ: set who gives the course (TÖMER, a practicum…) and use any short code. Only İTÜ courses need a SIS code.
 - A course can have its own first and last class date. A course with classes but no dates and no term says so on its page.
 - The New event dialog points to courses for a class that repeats every week.
+- Habits are counted in minutes, pages or times, with a target and an optional minimum for bad days. Today shows the target next to each habit; tap it to log part of it ("5 of 10 pages") or more than the target. One tap on the circle still logs the whole target.
+- A habit logged below its target shows a half-filled circle and a half-filled day square. Reaching the minimum keeps the day.
+- Never zero twice: when a habit was missed last time and nothing is logged yet today, Today's "Needs attention" asks for at least its minimum.
+- Each of the last seven days under a habit has its weekday letter, with today's in bold.
+- A habit counted in pages and linked to a book takes the pages read that day from the book's log.
+- Türkçe → Minimum day: each plan activity has a tier (Minimum, Standard or Extended). The minimum is listed first on Today and the Türkçe page, says "Minimum done" once every minimum activity is ticked, and the week shows "Minimum kept: 6 of 7 days". Extended activities sit under "If you have time" and never count against the day or the week.
 
 ### Changed
 
 - Today's "Classes today" now appears whenever a class is coming this week, not only during an İTÜ term, and follows the course's dates and holidays.
+- A habit's four-week consistency counts the days kept, at the target or the minimum ("18 of 24 days kept"); learning time counts what was logged, not the full target. A brand-new habit says "New" instead of 0%.
 
 ### Fixed
 

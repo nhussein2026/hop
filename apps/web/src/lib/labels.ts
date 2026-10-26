@@ -1,6 +1,6 @@
 // Display labels and small lookups shared by screens and dialogs.
 import { EVIDENCE_VALID_MONTHS } from '@hop/domain'
-import type { AccountStatus, AssessmentType, BillingCycle, BookFormat, BookStatus, CefrLevel, CheckArea, CheckJudge, CourseStatus, EvidenceKind, FindKind, FindStatus, IdeaKind, IdeaStage, KeyDateKind, Language, OpportunityActivityType, OpportunityType, PinKind, PracticeArea, PracticeSlot, ResourceKind, SkillFocus, SkillLevel, SkillType } from './types.ts'
+import type { AccountStatus, AssessmentType, BillingCycle, BookFormat, BookStatus, CefrLevel, CheckArea, CheckJudge, CourseStatus, EvidenceKind, FindKind, FindStatus, IdeaKind, IdeaStage, KeyDateKind, Language, OpportunityActivityType, OpportunityType, PinKind, PracticeArea, PracticeSlot, PracticeTier, ResourceKind, SkillFocus, SkillLevel, SkillType } from './types.ts'
 
 export const OPPORTUNITY_TYPES: [OpportunityType, string][] = [
   ['job', 'Job'], ['internship', 'Internship'], ['program', 'Program'], ['scholarship', 'Scholarship'], ['fellowship', 'Fellowship'],
@@ -147,6 +147,11 @@ export const CHECK_AREA: Record<CheckArea, [string, string]> = {
 export const CHECK_JUDGE: Record<CheckJudge, string> = { self: 'Me', claude: 'Claude', teacher: 'Teacher', tutor: 'Tutor', exam: 'Exam' }
 
 export const PRACTICE_SLOT_LABEL: Record<PracticeSlot, string> = { commute: 'On the way', any: 'Any time', home: 'At home' }
+export const PRACTICE_TIER_LABEL: Record<PracticeTier, [string, string]> = {
+  minimum: ['Minimum', 'Done every day, even a bad one'],
+  standard: ['Standard', 'The normal plan'],
+  extended: ['Extended', 'If you have time; never counts against the week'],
+}
 
 /** What to do today when a skill falls behind: one small, concrete catch-up. */
 export const CATCH_UP: Record<PracticeArea, string> = {

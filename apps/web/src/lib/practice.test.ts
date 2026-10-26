@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { setTimezone } from './dates.ts'
-import { adjustTotals, checkpointCriterion, checkpointLevel, checkpoints, dayProgress, minutesByWeekday, planFor, recentWeeks, testDue, testResult, weekBalance, weeklyPlan } from './practice.ts'
+import { adjustTotals, checkpointCriterion, checkpointLevel, checkpoints, dayProgress, minimumOn, minimumWeek, minutesByWeekday, planFor, recentWeeks, testDue, testResult, weekBalance, weeklyPlan } from './practice.ts'
 import type { LanguageTrack, Milestone, PracticeActivity, PracticeArea, PracticeSession, PracticeTest } from './types.ts'
 
 setTimezone('UTC')
@@ -10,7 +10,7 @@ const stamp = '2026-10-01T00:00:00.000Z'
 const ITU = { listening: 20, reading: 30, writing: 25, speaking: 25 }
 
 const activity = (id: string, area: PracticeArea, minutes: number, fields: Partial<PracticeActivity> = {}): PracticeActivity => ({
-  id, area, title: id, detail: '', minutes, slot: 'any', days: [0, 1, 2, 3, 4, 5, 6], position: 0, active: true, createdAt: stamp, updatedAt: stamp, ...fields,
+  id, area, tier: 'standard', title: id, detail: '', minutes, slot: 'any', days: [0, 1, 2, 3, 4, 5, 6], position: 0, active: true, createdAt: stamp, updatedAt: stamp, ...fields,
 })
 
 const session = (date: string, area: PracticeArea, minutes: number, activityId: string | null = null): PracticeSession => ({ id: `${date}-${area}-${minutes}-${activityId}`, date, area, minutes, activityId, note: '', createdAt: stamp })
@@ -101,4 +101,32 @@ test('a renamed checkpoint still finds its goal criterion by level', () => {
   assert.equal(checkpointCriterion(goal, { title: 'Finish A2' }), undefined)
   assert.equal(checkpointCriterion(goal, { title: 'Mid-term check' }), undefined)
   assert.equal(checkpointCriterion(undefined, { title: 'Finish B1' }), undefined)
+})
+
+test('the minimum is kept once its activities are done, whatever the minutes, and extended never counts against the day', () => {
+  // 2026-10-19 is a Monday.
+  const plan = [
+    activity('anki', 'words', 20, { tier: 'minimum' }),
+    activity('listen', 'listening', 20, { tier: 'minimum' }),
+    activity('record', 'speaking', 10, { tier: 'minimum' }),
+    activity('book', 'reading', 30),
+    activity('mock', 'reading', 45, { tier: 'extended' }),
+  ]
+  const minimumDone = [session('2026-10-19', 'words', 15, 'anki'), session('2026-10-19', 'listening', 20, 'listen'), session('2026-10-19', 'speaking', 10, 'record')]
+
+  assert.deepEqual(minimumOn(plan, minimumDone, '2026-10-19'), { planned: 3, done: 3, kept: true })
+  assert.deepEqual(minimumOn(plan, minimumDone.slice(1), '2026-10-19'), { planned: 3, done: 2, kept: false })
+  assert.equal(minimumOn([activity('book', 'reading', 30)], [], '2026-10-19'), null)
+
+  // The bar shows the true share of the plan: 45 of 80 planned minutes; the 45-minute extended mock isn't planned.
+  const day = dayProgress(plan, minimumDone, '2026-10-19')
+  assert.deepEqual([day.done, day.planned, day.pct], [45, 80, 56])
+  assert.equal(weekBalance(plan, [], '2026-10-19', '2026-10-21').rows.find((row) => row.area === 'reading')?.plannedSoFar, 60)
+})
+
+test('the week counts days the minimum was kept; today only once it is', () => {
+  const plan = [activity('anki', 'words', 20, { tier: 'minimum' })]
+  const sessions = [session('2026-10-19', 'words', 20, 'anki'), session('2026-10-21', 'words', 20, 'anki')]
+  assert.deepEqual(minimumWeek(plan, sessions, '2026-10-19', '2026-10-21'), { kept: 2, days: 3 })
+  assert.deepEqual(minimumWeek(plan, sessions.slice(0, 1), '2026-10-19', '2026-10-21'), { kept: 1, days: 2 })
 })

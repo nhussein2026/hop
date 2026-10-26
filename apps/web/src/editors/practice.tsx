@@ -1,11 +1,11 @@
 // Language track dialogs: setting the track up, editing the daily plan, logging practice outside
 // the plan, practice test results, skill checks, and the track itself (level, exam date, exam sections).
 import { useState } from 'react'
-import { CEFR_LEVELS, CHECK_AREAS, CHECK_JUDGES, ITU_TOMER_EXAM, LANGUAGE_SKILLS, PRACTICE_AREAS, PRACTICE_SLOTS } from '@hop/domain'
+import { CEFR_LEVELS, CHECK_AREAS, CHECK_JUDGES, ITU_TOMER_EXAM, LANGUAGE_SKILLS, PRACTICE_AREAS, PRACTICE_SLOTS, PRACTICE_TIERS } from '@hop/domain'
 import * as D from '../lib/dates.ts'
 import { checkValues, formatValue } from '../lib/checks.ts'
-import { CHECK_AREA, CHECK_JUDGE, PRACTICE_AREA, PRACTICE_SLOT_LABEL } from '../lib/labels.ts'
-import type { CefrLevel, CheckArea, CheckJudge, CheckMetrics, LanguageCheck, LanguageSkill, ListeningMode, PracticeActivity, PracticeArea, PracticeSession, PracticeSlot, PracticeTest } from '../lib/types.ts'
+import { CHECK_AREA, CHECK_JUDGE, PRACTICE_AREA, PRACTICE_SLOT_LABEL, PRACTICE_TIER_LABEL } from '../lib/labels.ts'
+import type { CefrLevel, CheckArea, CheckJudge, CheckMetrics, LanguageCheck, LanguageSkill, ListeningMode, PracticeActivity, PracticeArea, PracticeSession, PracticeSlot, PracticeTest, PracticeTier } from '../lib/types.ts'
 import { usePracticeActions } from '../store/practice-actions.ts'
 import { useHop } from '../store/store.ts'
 import { Icon } from '../components/Icon.tsx'
@@ -19,6 +19,7 @@ const WEEK_ORDER = [1, 2, 3, 4, 5, 6, 0]
 const LEVEL_OPTIONS = CEFR_LEVELS.map((level): [string, string] => [level, level])
 const AREA_OPTIONS = PRACTICE_AREAS.map((area): [string, string] => [area, PRACTICE_AREA[area][1]])
 const SLOT_OPTIONS = PRACTICE_SLOTS.map((slot): [string, string] => [slot, PRACTICE_SLOT_LABEL[slot]])
+const TIER_OPTIONS = PRACTICE_TIERS.map((tier): [string, string] => [tier, `${PRACTICE_TIER_LABEL[tier][0]}: ${PRACTICE_TIER_LABEL[tier][1].toLowerCase()}`])
 
 /** A whole number from a form field, or null when it's empty. */
 function formNumber(form: HTMLFormElement, name: string) {
@@ -136,7 +137,7 @@ export function ActivityEditor({ activity, close }: { activity?: PracticeActivit
     if (!days.length) next.days = 'Pick at least one day.'
     setErrors(next)
     if (Object.keys(next).length) return focusFirstInvalid(form)
-    const fields = { title, area: formText(form, 'area') as PracticeArea, minutes: minutes!, slot: formText(form, 'slot') as PracticeSlot, days, detail: formText(form, 'detail') }
+    const fields = { title, area: formText(form, 'area') as PracticeArea, minutes: minutes!, slot: formText(form, 'slot') as PracticeSlot, tier: formText(form, 'tier') as PracticeTier, days, detail: formText(form, 'detail') }
     const saved = activity ? await actions.activities.update(activity, fields, 'Plan updated') : await actions.activities.add(fields)
     if (saved) closeDialog(form)
   }
@@ -166,6 +167,7 @@ export function ActivityEditor({ activity, close }: { activity?: PracticeActivit
           <Field defaultValue={activity?.minutes ?? 20} error={errors.minutes} label="Minutes" max={240} min={1} name="minutes" type="number" />
           <Field defaultValue={activity?.slot ?? 'any'} label="When" name="slot" options={SLOT_OPTIONS} type="select" />
         </div>
+        <Field defaultValue={activity?.tier ?? 'standard'} hint="The minimum is about 50 minutes that still count on a bad day." label="Tier" name="tier" options={TIER_OPTIONS} type="select" />
         <fieldset className="field day-picker">
           <legend className="field-label">Days</legend>
           <div className="day-boxes">{WEEK_ORDER.map((day) => <label className="day-box" key={day}><input defaultChecked={days.includes(day)} name="days" type="checkbox" value={day} /><span>{D.DAYS[day]}</span></label>)}</div>

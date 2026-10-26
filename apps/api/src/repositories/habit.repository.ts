@@ -36,8 +36,11 @@ export const habitRepository = {
     return db.delete(habitCompletions).where(and(eq(habitCompletions.habitId, habitId), eq(habitCompletions.date, date))).run().changes > 0;
   },
 
+  /** One completion per habit and date: logging the same date again replaces its amount. */
   complete(completion: HabitCompletion): HabitCompletion {
-    db.insert(habitCompletions).values(completion).onConflictDoNothing().run();
+    db.insert(habitCompletions).values(completion)
+      .onConflictDoUpdate({ target: [habitCompletions.habitId, habitCompletions.date], set: { amount: completion.amount } })
+      .run();
     return this.findCompletion(completion.habitId, completion.date) ?? completion;
   },
 };

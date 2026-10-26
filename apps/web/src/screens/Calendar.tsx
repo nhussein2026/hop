@@ -4,7 +4,7 @@
 import { useEffect, useRef } from 'react'
 import type { KeyboardEvent } from 'react'
 import * as D from '../lib/dates.ts'
-import { agendaItems, habitDone, habitDue } from '../lib/rules.ts'
+import { agendaItems, habitAmount, habitDue, habitState, habitUnits } from '../lib/rules.ts'
 import type { AgendaItem } from '../lib/rules.ts'
 import type { Route } from '../lib/router.ts'
 import { navigate } from '../lib/router.ts'
@@ -185,12 +185,14 @@ function DayPanel({ date, items, today }: { date: string; items: AgendaItem[]; t
               <ul className="cal-habits">
                 {habits.map((h) => {
                   const known = n < 0 && -n <= HABIT_HISTORY_DAYS
-                  const hit = known && habitDone(h, data.completions, date)
+                  const state = known ? habitState(h, data.completions, date) : 'none'
+                  const amount = habitAmount(h, data.completions, date)
+                  const hit = state === 'done' || state === 'minimum'
                   return (
                     <li key={h.id}>
-                      <Icon className={`icon-sm${hit ? ' is-done' : ''}`} name={n > 0 ? 'clock' : hit ? 'check' : known ? 'x' : 'clock'} />
+                      <Icon className={`icon-sm${hit ? ' is-done' : ''}`} name={n > 0 ? 'clock' : hit ? 'check' : state === 'some' ? 'minus' : known ? 'x' : 'clock'} />
                       <span>{h.name}</span>
-                      <span className="xs muted">{n > 0 ? `${h.minutes} min` : hit ? 'Done' : known ? 'Not done' : 'Scheduled'}</span>
+                      <span className="xs muted">{n > 0 ? habitUnits(h, h.target) : state === 'done' ? 'Done' : state === 'minimum' ? `Minimum: ${habitUnits(h, amount)}` : state === 'some' ? habitUnits(h, amount) : known ? 'Not done' : 'Scheduled'}</span>
                     </li>
                   )
                 })}

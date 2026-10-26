@@ -112,33 +112,84 @@ export function goalHealth(g: Goal, s: Pick<HopData, 'tasks' | 'settings' | 'pra
 
 /* ---- Habits ------------------------------------------------------------------ */
 export const habitDue = (h: Habit, ymd: string) => h.active && h.days.includes(D.weekday(ymd))
-export const habitDone = (h: Pick<Habit, 'id'>, completions: HabitCompletion[], ymd: string) => completions.some((c) => c.habitId === h.id && c.date === ymd)
+
+type HabitTarget = Pick<Habit, 'id' | 'target' | 'minimum'>
+
+/** How much was logged on a day. A tick without an amount (one tap, or from before amounts) is the whole target. */
+export function habitAmount(h: HabitTarget, completions: HabitCompletion[], ymd: string) {
+  const c = completions.find((x) => x.habitId === h.id && x.date === ymd)
+  return c ? c.amount ?? h.target : 0
+}
+
+/** Done: the target. Minimum: at least the minimum. Some: anything less. None: nothing logged. */
+export type HabitState = 'done' | 'minimum' | 'some' | 'none'
+
+export function habitState(h: HabitTarget, completions: HabitCompletion[], ymd: string): HabitState {
+  const amount = habitAmount(h, completions, ymd)
+  if (!amount) return 'none'
+  if (amount >= h.target) return 'done'
+  return h.minimum !== null && amount >= h.minimum ? 'minimum' : 'some'
+}
+
+/** Kept means the target or at least the minimum. With no minimum set, only the target keeps it. */
+export function habitKept(h: HabitTarget, completions: HabitCompletion[], ymd: string) {
+  const state = habitState(h, completions, ymd)
+  return state === 'done' || state === 'minimum'
+}
+
+const UNIT_LABEL: Record<Habit['unit'], [string, string]> = { minutes: ['minute', 'minutes'], pages: ['page', 'pages'], times: ['time', 'times'] }
+/** "10 pages", "1 time", "1 h 30 min". */
+export const habitUnits = (h: Pick<Habit, 'unit'>, n: number) => (h.unit === 'minutes' ? D.minutes(n) : `${n} ${UNIT_LABEL[h.unit][n === 1 ? 0 : 1]}`)
 
 /**
  * Whether a day counts toward a habit's consistency. Days before the habit existed don't count,
- * unless something was completed on them (imported history), and today only counts once it's done.
+ * unless something was logged on them (imported history), and today only counts once it's kept.
  */
 function habitCounts(h: Habit, completions: HabitCompletion[], ymd: string, today: string) {
-  const done = habitDone(h, completions, ymd)
-  const counts = h.days.includes(D.weekday(ymd)) && (done || (ymd >= D.ymdOf(h.createdAt) && ymd < today))
-  return { done, counts }
+  const state = habitState(h, completions, ymd)
+  const kept = state === 'done' || state === 'minimum'
+  const counts = h.days.includes(D.weekday(ymd)) && (kept || (state === 'some' && ymd < today) || (ymd >= D.ymdOf(h.createdAt) && ymd < today))
+  return { kept, minimum: state === 'minimum', counts }
 }
 
-/** Consistency over the last four weeks of scheduled days: missing a day never resets anything. */
+/**
+ * The last seven days square by square, and consistency over the last four weeks of scheduled
+ * days: kept days out of scheduled ones. Missing a day never resets anything. `scheduled` is 0
+ * for a habit too new to have a finished day.
+ */
 export function habitWeek(h: Habit, completions: HabitCompletion[], today: string) {
   const days = []
   for (let i = 6; i >= 0; i--) {
     const ymd = D.addDays(today, -i)
     const due = h.days.includes(D.weekday(ymd)) && ymd >= D.ymdOf(h.createdAt)
-    days.push({ date: ymd, due, done: habitDone(h, completions, ymd), isToday: i === 0 })
+    days.push({ date: ymd, due, state: habitState(h, completions, ymd), isToday: i === 0 })
   }
-  const past: boolean[] = []
+  let kept = 0
+  let minimum = 0
+  let scheduled = 0
   for (let i = 0; i < 28; i++) {
     const day = habitCounts(h, completions, D.addDays(today, -i), today)
-    if (day.counts) past.push(day.done)
+    if (!day.counts) continue
+    scheduled++
+    if (day.kept) kept++
+    if (day.minimum) minimum++
   }
-  const done = past.filter(Boolean).length
-  return { days, rate: past.length ? Math.round((done / past.length) * 100) : 0, done, scheduled: past.length }
+  return { days, rate: scheduled ? Math.round((kept / scheduled) * 100) : 0, done: kept, minimum, scheduled }
+}
+
+/**
+ * Never zero twice: a habit due today, with nothing logged yet, whose last scheduled day (in the
+ * past two weeks, since it existed) had nothing either. Today is the second chance in a row.
+ */
+export function zeroLastTime(h: Habit, completions: HabitCompletion[], today: string) {
+  if (!habitDue(h, today) || habitAmount(h, completions, today)) return false
+  const created = D.ymdOf(h.createdAt)
+  for (let i = 1; i <= 14; i++) {
+    const ymd = D.addDays(today, -i)
+    if (ymd < created) return false
+    if (h.days.includes(D.weekday(ymd))) return !habitAmount(h, completions, ymd)
+  }
+  return false
 }
 
 export function daysLabel(days: number[]) {
@@ -262,6 +313,17 @@ export function attention(s: HopData, today: string): AttentionItem[] {
     })
   }
 
+  // Never zero twice: the second miss in a row is the one to prevent.
+  for (const h of s.habits) {
+    if (!zeroLastTime(h, s.completions, today)) continue
+    items.push({
+      level: 'important',
+      icon: 'leaf',
+      title: `${h.name}: missed last time`,
+      detail: h.minimum !== null ? `Do at least the minimum today: ${habitUnits(h, h.minimum)}. Never zero twice.` : 'Do some of it today, even a little. Never zero twice.',
+      href: '#/plan/habits',
+    })
+  }
   items.push(...courseAttention(s, today))
   items.push(...loanAttention(s.books, today))
 
@@ -432,6 +494,12 @@ export function agenda(s: HopData, from: string, span: number): AgendaGroup[] {
 }
 
 /* ---- Review facts ---------------------------------------------------------------- */
+/** Time a logged habit took: the minutes logged, or for pages and times, its minutes in proportion to the target. */
+export function habitMinutes(h: Pick<Habit, 'unit' | 'target' | 'minutes'>, c: Pick<HabitCompletion, 'amount'>) {
+  const amount = c.amount ?? h.target
+  return h.unit === 'minutes' ? amount : Math.round(h.minutes * (amount / h.target))
+}
+
 const RESPONSE_TYPES = ['email_received', 'call', 'interview_scheduled', 'assessment_received']
 
 /** What Hop recorded between two dates (inclusive). Habits only count days up to today. */
@@ -445,7 +513,7 @@ function periodFacts(s: HopData, from: string, to: string, today: string): WeekF
       const day = habitCounts(h, s.completions, ymd, today)
       if (!day.counts) continue
       due++
-      if (day.done) hit++
+      if (day.kept) hit++
     }
   }
   const learningGoals = new Set(s.goals.filter((g) => g.area === 'Learning').map((g) => g.id))
@@ -453,7 +521,7 @@ function periodFacts(s: HopData, from: string, to: string, today: string): WeekF
     done.filter((t) => t.goalId && learningGoals.has(t.goalId)).reduce((total, t) => total + (t.estimatedMinutes || 0), 0) +
     s.completions.filter((c) => within(c.date)).reduce((total, c) => {
       const h = s.habits.find((x) => x.id === c.habitId)
-      return total + (h && h.goalId && learningGoals.has(h.goalId) ? h.minutes : 0)
+      return total + (h && h.goalId && learningGoals.has(h.goalId) ? habitMinutes(h, c) : 0)
     }, 0) +
     // Language practice is learning time too.
     s.practiceSessions.filter((p) => within(p.date)).reduce((total, p) => total + p.minutes, 0)

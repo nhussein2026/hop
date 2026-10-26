@@ -842,7 +842,7 @@ const server = createServer(async (request, response) => {
         return;
       }
 
-      const completion = habitService.complete(habitId, result.data.date);
+      const completion = habitService.complete(habitId, result.data.date, result.data.amount ?? null);
 
       if (!completion) {
         sendJson(response, 404, { error: 'Habit not found' });

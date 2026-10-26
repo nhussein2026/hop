@@ -3,9 +3,9 @@ import { useState } from 'react'
 import * as D from '../lib/dates.ts'
 import { readInvite } from '../lib/invite.ts'
 import type { InviteEvent } from '../lib/invite.ts'
-import { criteriaLines, isClosed, orgOf } from '../lib/rules.ts'
+import { criteriaLines, habitAmount, habitUnits, isClosed, orgOf } from '../lib/rules.ts'
 import { navigate } from '../lib/router.ts'
-import type { Event, Goal, GoalArea, Habit, Task, TaskPriority } from '../lib/types.ts'
+import type { Event, Goal, GoalArea, Habit, HabitUnit, Task, TaskPriority } from '../lib/types.ts'
 import { useActions } from '../store/actions.ts'
 import type { TaskFields } from '../store/actions.ts'
 import { Icon } from '../components/Icon.tsx'
@@ -98,10 +98,15 @@ export function TaskEditor({ task, defaults, close }: { task?: Task | null; defa
 /* ---- Habit -------------------------------------------------------------------------------- */
 const WEEK_ORDER = [1, 2, 3, 4, 5, 6, 0]
 
+const UNIT_OPTIONS: [HabitUnit, string][] = [['minutes', 'Minutes'], ['pages', 'Pages'], ['times', 'Times']]
+const TARGET_LABEL: Record<HabitUnit, string> = { minutes: 'Minutes each time', pages: 'Pages each time', times: 'Times each day' }
+const wholeNumber = (value: string) => (value && /^\d+$/.test(value) ? Number(value) : null)
+
 export function HabitEditor({ habit, close }: { habit?: Habit | null; close: () => void }) {
   const { data } = useHop()
   const actions = useActions()
   const [errors, setErrors] = useState<Errors>({})
+  const [unit, setUnit] = useState<HabitUnit>(habit?.unit ?? 'minutes')
   const days = habit?.days ?? [1, 2, 3, 4, 5]
   const goals: [string, string][] = [['', 'No goal'], ...data.goals.filter((g) => g.status === 'active' || g.id === habit?.goalId).map((g): [string, string] => [g.id, g.name])]
 
@@ -109,14 +114,20 @@ export function HabitEditor({ habit, close }: { habit?: Habit | null; close: () 
     const fd = new FormData(form)
     const name = formText(form, 'name')
     const picked = fd.getAll('days').map(Number)
-    const minutes = Number(fd.get('minutes')) || 30
+    const target = wholeNumber(formText(form, 'target'))
+    const minimum = wholeNumber(formText(form, 'minimum'))
+    const minutes = unit === 'minutes' ? undefined : wholeNumber(formText(form, 'minutes'))
     const next: Errors = {}
     if (!name) next.name = 'Name the habit.'
     if (!picked.length) next.days = 'Pick at least one day.'
-    if (minutes < 5 || minutes > 240) next.minutes = 'Use 5 to 240 minutes.'
+    if (!target || target > 1000) next.target = unit === 'minutes' ? 'Use whole minutes, 1 to 1000.' : 'Use a whole number, 1 to 1000.'
+    if (formText(form, 'minimum') && !minimum) next.minimum = 'Use a whole number, or leave it empty.'
+    else if (minimum && target && minimum > target) next.minimum = 'The minimum can’t be more than the target.'
+    if (unit !== 'minutes' && (!minutes || minutes < 5 || minutes > 240)) next.minutes = 'Use 5 to 240 minutes.'
     setErrors(next)
     if (Object.keys(next).length) return focusFirstInvalid(form)
-    const saved = await actions.habits.save(habit ?? null, { name, days: picked, minutes, goalId: String(fd.get('goalId') || '') || null })
+    const fields = { name, days: picked, unit, target: target!, minimum, goalId: String(fd.get('goalId') || '') || null }
+    const saved = await actions.habits.save(habit ?? null, minutes ? { ...fields, minutes } : fields)
     if (saved) closeDialog(form)
   }
 
@@ -132,9 +143,47 @@ export function HabitEditor({ habit, close }: { habit?: Habit | null; close: () 
           <FieldError error={errors.days} />
         </fieldset>
         <div className="form-row">
-          <Field defaultValue={habit?.minutes ?? 30} error={errors.minutes} label="Minutes each time" max={240} min={5} name="minutes" type="number" />
-          <Field defaultValue={habit?.goalId ?? ''} label="Supports goal" name="goalId" options={goals} type="select" />
+          <Field defaultValue={unit} label="Counted in" name="unit" onChange={(value) => setUnit(value as HabitUnit)} options={UNIT_OPTIONS} type="select" />
+          <Field defaultValue={habit?.target ?? 30} error={errors.target} label={TARGET_LABEL[unit]} max={1000} min={1} name="target" type="number" />
         </div>
+        <div className="form-row">
+          <Field defaultValue={habit?.minimum ?? ''} error={errors.minimum} hint="For a bad day. Never zero twice." label="Minimum" max={1000} min={1} name="minimum" optional type="number" />
+          {unit !== 'minutes' && <Field defaultValue={habit?.minutes ?? 20} error={errors.minutes} hint="For your learning time." label="About how many minutes?" max={240} min={5} name="minutes" type="number" />}
+        </div>
+        <Field defaultValue={habit?.goalId ?? ''} label="Supports goal" name="goalId" options={goals} type="select" />
+      </div>
+    </Dialog>
+  )
+}
+
+/** Log part of a habit, or more than its target, for today. */
+export function LogHabit({ habit, close }: { habit: Habit; close: () => void }) {
+  const { data } = useHop()
+  const actions = useActions()
+  const [error, setError] = useState('')
+  const today = D.today()
+  const current = habitAmount(habit, data.completions, today)
+
+  async function save(form: HTMLFormElement | null, amount: number | null) {
+    if (!amount || amount > 1000) return setError('Use a whole number, 1 to 1000.')
+    if (await actions.habits.log(habit, amount, today) && form) closeDialog(form)
+  }
+
+  return (
+    <Dialog
+      className="dialog-sm"
+      desc={`Target ${habitUnits(habit, habit.target)}${habit.minimum !== null && habit.minimum < habit.target ? `, minimum ${habitUnits(habit, habit.minimum)}` : ''}. Less still counts; never zero twice.`}
+      foot={<><button className="btn" data-close type="button">Cancel</button><SubmitButton>Save</SubmitButton></>}
+      onClose={close}
+      onSubmit={(form) => save(form, wholeNumber(formText(form, 'amount')))}
+      title={`How much today: ${habit.name}?`}
+    >
+      <div className="form-grid">
+        <div className="btn-row">
+          {habit.minimum !== null && habit.minimum < habit.target && <button className="btn btn-sm" onClick={(event) => void save(event.currentTarget.form, habit.minimum)} type="button">Minimum: {habitUnits(habit, habit.minimum)}</button>}
+          <button className="btn btn-sm" onClick={(event) => void save(event.currentTarget.form, habit.target)} type="button">Target: {habitUnits(habit, habit.target)}</button>
+        </div>
+        <Field defaultValue={current || ''} error={error} label={`${UNIT_OPTIONS.find(([value]) => value === habit.unit)![1]} today`} max={1000} min={1} name="amount" type="number" />
       </div>
     </Dialog>
   )

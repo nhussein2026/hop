@@ -73,7 +73,7 @@ test('migrateDatabase creates every table in a new database and is idempotent', 
     'uni_links',
     'weekly_reviews',
   ]);
-  assert.equal(appliedMigrations(sqlite).length, 12);
+  assert.equal(appliedMigrations(sqlite).length, 13);
 });
 
 test('migrateDatabase baselines a pre-migration database without touching its data', () => {
@@ -84,7 +84,7 @@ test('migrateDatabase baselines a pre-migration database without touching its da
   migrateDatabase(sqlite, migrationsFolder);
 
   // The initial migration is recorded without running; later migrations still apply.
-  assert.deepEqual(appliedMigrations(sqlite).map((name) => String(name).slice(15)), ['initial', 'auth', 'features', 'resume_files_goal_criteria', 'monthly_reviews', 'university_and_radar', 'reading_shelf', 'language_track', 'notes_and_accounts', 'proven_skills', 'language_checks', 'course_provider_and_dates']);
+  assert.deepEqual(appliedMigrations(sqlite).map((name) => String(name).slice(15)), ['initial', 'auth', 'features', 'resume_files_goal_criteria', 'monthly_reviews', 'university_and_radar', 'reading_shelf', 'language_track', 'notes_and_accounts', 'proven_skills', 'language_checks', 'course_provider_and_dates', 'habit_amounts_and_tiers']);
   assert.deepEqual(sqlite.prepare('SELECT name FROM goals').all().map((row) => row.name), ['Kept goal']);
 });
 
@@ -118,6 +118,30 @@ test('the proven-skills migration keeps old ratings and marks books read as lear
     // Skills added from now on have no self-assessed level.
     sqlite.exec("INSERT INTO skills (id, name, created_at, updated_at) VALUES ('s2', 'Rust', '2026-10-22', '2026-10-22')");
     assert.equal(sqlite.prepare("SELECT level FROM skills WHERE id = 's2'").get()?.level, null);
+  } finally {
+    sqlite.close();
+    rmSync(earlier, { recursive: true, force: true });
+  }
+});
+
+test('the habit-amounts migration gives every habit its minutes as its target, and keeps old ticks whole', () => {
+  const earlier = mkdtempSync(join(tmpdir(), 'hop-migrations-'));
+  const sqlite = new DatabaseSync(':memory:');
+
+  try {
+    for (const name of readdirSync(migrationsFolder).filter((name) => !name.endsWith('_habit_amounts_and_tiers'))) {
+      cpSync(join(migrationsFolder, name), join(earlier, name), { recursive: true });
+    }
+    migrateDatabase(sqlite, earlier);
+    sqlite.exec("INSERT INTO habits (id, name, minutes, created_at, updated_at) VALUES ('h1', 'Mawaheb', 50, '2026-10-01', '2026-10-01')");
+    sqlite.exec("INSERT INTO habit_completions (id, habit_id, date, completed_at) VALUES ('c1', 'h1', '2026-10-20', '2026-10-20T20:00:00.000Z')");
+    sqlite.exec("INSERT INTO practice_activities (id, area, title, minutes, created_at, updated_at) VALUES ('a1', 'words', 'Anki', 20, '2026-10-01', '2026-10-01')");
+
+    migrateDatabase(sqlite, migrationsFolder);
+
+    assert.deepEqual({ ...sqlite.prepare('SELECT unit, target, minimum, minutes FROM habits').get() }, { unit: 'minutes', target: 50, minimum: null, minutes: 50 });
+    assert.equal(sqlite.prepare('SELECT amount FROM habit_completions').get()?.amount, null);
+    assert.equal(sqlite.prepare('SELECT tier FROM practice_activities').get()?.tier, 'standard');
   } finally {
     sqlite.close();
     rmSync(earlier, { recursive: true, force: true });

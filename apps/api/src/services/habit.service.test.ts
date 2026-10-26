@@ -1,6 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
+import { createHabitSchema, habitCompletionSchema } from '@hop/validation';
+
+import { InvalidInputError } from '../errors.js';
+import { bookService } from './book.service.js';
 import { habitService } from './habit.service.js';
 
 test('habitService.create assigns frequency defaults', () => {
@@ -34,4 +38,40 @@ test('habitService.getCompletions returns completions within an inclusive date r
   const dates = habitService.getCompletions('2026-09-10', '2026-09-14').filter((item) => item.habitId === habit.id).map((item) => item.date).sort();
 
   assert.deepEqual(dates, ['2026-09-10', '2026-09-14']);
+});
+
+test('a habit is counted in a unit, with a target and an optional minimum', () => {
+  const reading = habitService.create({ name: 'Read the Arabic book', unit: 'pages', target: 10, minimum: 2, minutes: 20 });
+  assert.deepEqual([reading.unit, reading.target, reading.minimum, reading.minutes], ['pages', 10, 2, 20]);
+
+  // Counted in minutes, the target and the minutes are one number.
+  const study = habitService.create({ name: 'Fundamentals', minutes: 30 });
+  assert.deepEqual([study.unit, study.target, study.minutes, study.minimum], ['minutes', 30, 30, null]);
+  assert.deepEqual([habitService.update(study.id, { target: 45 })?.minutes, habitService.update(study.id, { minutes: 20 })?.target], [45, 20]);
+
+  assert.equal(createHabitSchema.safeParse({ name: 'x', unit: 'pages', target: 5, minimum: 6 }).success, false);
+  assert.throws(() => habitService.update(reading.id, { target: 1 }), InvalidInputError);
+});
+
+test('logging an amount records it, and logging the same day again replaces it', () => {
+  const habit = habitService.create({ name: 'Read', unit: 'pages', target: 10, minimum: 2 });
+
+  assert.equal(habitService.complete(habit.id, '2026-10-20', 5)?.amount, 5);
+  assert.equal(habitService.complete(habit.id, '2026-10-20', 12)?.amount, 12);
+  assert.equal(habitService.complete(habit.id, '2026-10-21')?.amount, null);
+  assert.equal(habitService.getCompletions('2026-10-20', '2026-10-21').filter((item) => item.habitId === habit.id).length, 2);
+  assert.equal(habitCompletionSchema.safeParse({ date: '2026-10-20', amount: 0 }).success, false);
+});
+
+test('a habit counted in pages takes the pages read from its book', () => {
+  const habit = habitService.create({ name: 'Read 10 pages', unit: 'pages', target: 10, minimum: 2 });
+  const book = bookService.create({ title: 'Kitab', habitId: habit.id });
+  bookService.log(book.id, { date: '2026-10-19', page: 30 });
+
+  const first = bookService.log(book.id, { date: '2026-10-20', page: 35 })!;
+  assert.deepEqual([first.completion?.amount, first.tick?.amount], [5, 5]);
+
+  // Reading on later the same day updates the amount; there is no new tick to undo.
+  const later = bookService.log(book.id, { date: '2026-10-20', page: 42 })!;
+  assert.deepEqual([later.completion, later.tick?.amount], [null, 12]);
 });

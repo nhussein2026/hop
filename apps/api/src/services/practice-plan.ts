@@ -8,7 +8,7 @@ const EVERY_DAY = [0, 1, 2, 3, 4, 5, 6];
 const MON_SAT = [1, 2, 3, 4, 5, 6];
 const MON_FRI = [1, 2, 3, 4, 5];
 
-export const STARTER_PLAN: Required<Omit<CreatePracticeActivityInput, 'position' | 'active'>>[] = [
+export const STARTER_PLAN: Required<Omit<CreatePracticeActivityInput, 'position' | 'active' | 'tier'>>[] = [
   {
     area: 'words', title: 'Anki: reviews, then new words', minutes: 20, slot: 'commute', days: EVERY_DAY,
     detail: 'Finish all reviews first, then add 10 to 15 new cards. Start from a deck of the most frequent Turkish words and add words from class and from your book. Many Turkish words come from Arabic (kitap, fikir, hayat): link each one to the Arabic you already know.',

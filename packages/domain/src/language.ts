@@ -50,10 +50,18 @@ export interface LanguageTrack {
   startedOn: ISODate;
 }
 
+/**
+ * How essential a plan step is. The minimum is done every day, even a bad one; standard is the
+ * normal plan; extended is for a day with time to spare and never counts against the week.
+ */
+export const PRACTICE_TIERS = ['minimum', 'standard', 'extended'] as const;
+export type PracticeTier = (typeof PRACTICE_TIERS)[number];
+
 /** A step of the daily plan, done on the listed weekdays. Doing it records a session. */
 export interface PracticeActivity {
   id: EntityId;
   area: PracticeArea;
+  tier: PracticeTier;
   title: string;
   /** How to do it well, and what changes with your level. */
   detail: string;
@@ -152,7 +160,7 @@ export interface PracticeTotals {
 export type SetupTrackInput = Pick<LanguageTrack, 'level' | 'target' | 'examDate'> & Partial<Pick<LanguageTrack, 'language' | 'exam'>>;
 export type UpdateTrackInput = Partial<Omit<LanguageTrack, 'language' | 'startedOn'>>;
 
-export type CreatePracticeActivityInput = Pick<PracticeActivity, 'area' | 'title' | 'minutes'> & Partial<Pick<PracticeActivity, 'detail' | 'slot' | 'days' | 'position' | 'active'>>;
+export type CreatePracticeActivityInput = Pick<PracticeActivity, 'area' | 'title' | 'minutes'> & Partial<Pick<PracticeActivity, 'detail' | 'slot' | 'days' | 'position' | 'active' | 'tier'>>;
 export type UpdatePracticeActivityInput = Partial<Omit<PracticeActivity, 'id' | 'createdAt' | 'updatedAt'>>;
 
 export type CreatePracticeSessionInput = Pick<PracticeSession, 'date' | 'minutes'> & Partial<Pick<PracticeSession, 'area' | 'activityId' | 'note'>>;

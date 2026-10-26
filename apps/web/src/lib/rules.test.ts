@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { setTimezone } from './dates.ts'
-import { goalHealth, habitWeek, monthEnd, monthFacts, nextForGoal, reviewMonth, todayPlan } from './rules.ts'
+import { goalHealth, habitMinutes, habitState, habitWeek, monthEnd, zeroLastTime, monthFacts, nextForGoal, reviewMonth, todayPlan } from './rules.ts'
 import type { Goal, Habit, HopData, Task } from './types.ts'
 
 setTimezone('UTC')
@@ -44,14 +44,14 @@ test('reviewMonth offers last month during the first week until it is reviewed',
 
 test('monthFacts counts meaningful days once, however much happened that day', () => {
   const data = empty()
-  const habit = { id: 'h', name: 'Study', frequency: 'daily', targetPerWeek: 7, goalId: null, days: [0, 1, 2, 3, 4, 5, 6], minutes: 30, active: true, createdAt: stamp, updatedAt: stamp } as Habit
+  const habit = { id: 'h', name: 'Study', frequency: 'daily', targetPerWeek: 7, goalId: null, days: [0, 1, 2, 3, 4, 5, 6], minutes: 30, unit: 'minutes', target: 30, minimum: null, active: true, createdAt: stamp, updatedAt: stamp } as Habit
   data.habits = [habit]
   data.tasks = [
     task({ id: 'a', completedAt: '2026-09-03T10:00:00.000Z' }),
     task({ id: 'b', completedAt: '2026-09-03T15:00:00.000Z' }),
     task({ id: 'c', completedAt: '2026-08-31T10:00:00.000Z' }),
   ]
-  data.completions = [{ id: 'c1', habitId: 'h', date: '2026-09-03', completedAt: stamp }, { id: 'c2', habitId: 'h', date: '2026-09-10', completedAt: stamp }]
+  data.completions = [{ id: 'c1', habitId: 'h', date: '2026-09-03', amount: null, completedAt: stamp }, { id: 'c2', habitId: 'h', date: '2026-09-10', amount: null, completedAt: stamp }]
 
   const facts = monthFacts(data, '2026-09-01', '2026-10-03')
   assert.equal(facts.tasks, 2)
@@ -74,23 +74,23 @@ test('monthFacts reports goal movement and areas with no activity', () => {
 })
 
 test('habitWeek ignores days before the habit existed and counts today once it is done', () => {
-  const habit = { id: 'h', name: 'Study', frequency: 'daily', targetPerWeek: 7, goalId: null, days: [0, 1, 2, 3, 4, 5, 6], minutes: 30, active: true, createdAt: '2026-10-09T09:00:00.000Z', updatedAt: stamp } as Habit
+  const habit = { id: 'h', name: 'Study', frequency: 'daily', targetPerWeek: 7, goalId: null, days: [0, 1, 2, 3, 4, 5, 6], minutes: 30, unit: 'minutes', target: 30, minimum: null, active: true, createdAt: '2026-10-09T09:00:00.000Z', updatedAt: stamp } as Habit
 
   const fresh = habitWeek(habit, [], '2026-10-09')
   assert.equal(fresh.scheduled, 0)
   assert.equal(fresh.days.filter((d) => d.due).length, 1)
 
-  const doneToday = habitWeek(habit, [{ id: 'c1', habitId: 'h', date: '2026-10-09', completedAt: stamp }], '2026-10-09')
+  const doneToday = habitWeek(habit, [{ id: 'c1', habitId: 'h', date: '2026-10-09', amount: null, completedAt: stamp }], '2026-10-09')
   assert.equal(doneToday.rate, 100)
 
-  const twoDaysIn = habitWeek(habit, [{ id: 'c1', habitId: 'h', date: '2026-10-09', completedAt: stamp }], '2026-10-11')
+  const twoDaysIn = habitWeek(habit, [{ id: 'c1', habitId: 'h', date: '2026-10-09', amount: null, completedAt: stamp }], '2026-10-11')
   assert.equal(twoDaysIn.scheduled, 2)
   assert.equal(twoDaysIn.rate, 50)
 })
 
 test('habitWeek still counts completions recorded before the habit’s creation date', () => {
-  const habit = { id: 'h', name: 'Study', frequency: 'daily', targetPerWeek: 7, goalId: null, days: [0, 1, 2, 3, 4, 5, 6], minutes: 30, active: true, createdAt: '2026-10-09T09:00:00.000Z', updatedAt: stamp } as Habit
-  const week = habitWeek(habit, [{ id: 'c1', habitId: 'h', date: '2026-10-05', completedAt: stamp }], '2026-10-10')
+  const habit = { id: 'h', name: 'Study', frequency: 'daily', targetPerWeek: 7, goalId: null, days: [0, 1, 2, 3, 4, 5, 6], minutes: 30, unit: 'minutes', target: 30, minimum: null, active: true, createdAt: '2026-10-09T09:00:00.000Z', updatedAt: stamp } as Habit
+  const week = habitWeek(habit, [{ id: 'c1', habitId: 'h', date: '2026-10-05', amount: null, completedAt: stamp }], '2026-10-10')
   assert.equal(week.scheduled, 2)
   assert.equal(week.done, 1)
 })
@@ -101,7 +101,7 @@ test('the language track’s goal is moved by its daily plan, not only by tasks'
   assert.equal(goalHealth(g, data, '2026-10-19').label, 'No next action')
 
   data.settings = { languageTrack: { goalId: 'tr' } } as HopData['settings']
-  data.practiceActivities = [{ id: 'a', area: 'listening', title: 'Podcast', detail: '', minutes: 25, slot: 'commute', days: [1], position: 0, active: true, createdAt: stamp, updatedAt: stamp }]
+  data.practiceActivities = [{ id: 'a', area: 'listening', tier: 'standard', title: 'Podcast', detail: '', minutes: 25, slot: 'commute', days: [1], position: 0, active: true, createdAt: stamp, updatedAt: stamp }]
   // Untouched since September and no practice logged: quiet.
   assert.equal(goalHealth(g, data, '2026-10-19').label, 'Quiet for 48 days')
 
@@ -130,4 +130,42 @@ test('nextForGoal picks the goal’s highest-priority open task, then the earlie
 test('undated tasks stay out of Today’s plan', () => {
   const tasks = [task({ id: 'undated', status: 'todo', priority: 'high', goalId: 'g' }), task({ id: 'today', status: 'todo', scheduledDate: '2026-10-22' })]
   assert.deepEqual(todayPlan(tasks, '2026-10-22').all.map((t) => t.id), ['today'])
+})
+
+const reading = (fields: Partial<Habit> = {}) => ({ id: 'r', name: 'Read 10 pages', frequency: 'daily', targetPerWeek: 7, goalId: null, days: [0, 1, 2, 3, 4, 5, 6], minutes: 20, unit: 'pages', target: 10, minimum: 2, active: true, createdAt: '2026-10-01T09:00:00.000Z', updatedAt: stamp, ...fields }) as Habit
+const logged = (date: string, amount: number | null) => ({ id: `c-${date}`, habitId: 'r', date, amount, completedAt: stamp })
+
+test('a day is done at the target, kept at the minimum, and anything less still shows', () => {
+  const h = reading()
+  assert.equal(habitState(h, [logged('2026-10-20', 12)], '2026-10-20'), 'done')
+  assert.equal(habitState(h, [logged('2026-10-20', null)], '2026-10-20'), 'done')
+  assert.equal(habitState(h, [logged('2026-10-20', 5)], '2026-10-20'), 'minimum')
+  assert.equal(habitState(h, [logged('2026-10-20', 1)], '2026-10-20'), 'some')
+  assert.equal(habitState(h, [], '2026-10-20'), 'none')
+  // With no minimum, anything below the target is only "some".
+  assert.equal(habitState(reading({ minimum: null }), [logged('2026-10-20', 5)], '2026-10-20'), 'some')
+})
+
+test('consistency counts kept days, minimum days among them, and a habit with no finished day is new', () => {
+  const h = reading()
+  const week = habitWeek(h, [logged('2026-10-18', 10), logged('2026-10-19', 3), logged('2026-10-20', 1)], '2026-10-21')
+  assert.deepEqual([week.done, week.minimum, week.scheduled], [2, 1, 20])
+  assert.deepEqual(week.days.slice(-4).map((d) => d.state), ['done', 'minimum', 'some', 'none'])
+  assert.equal(habitWeek(reading({ createdAt: '2026-10-21T08:00:00.000Z' }), [], '2026-10-21').scheduled, 0)
+})
+
+test('never zero twice: today warns only after a scheduled day with nothing logged', () => {
+  const weekdays = reading({ days: [1, 2, 3, 4, 5] })
+  // Monday 19 Oct: nothing on Friday 16 Oct, the last scheduled day (the weekend doesn't count).
+  assert.equal(zeroLastTime(weekdays, [], '2026-10-19'), true)
+  assert.equal(zeroLastTime(weekdays, [logged('2026-10-16', 1)], '2026-10-19'), false)
+  // Something logged today clears it; a brand-new habit has no "last time".
+  assert.equal(zeroLastTime(weekdays, [logged('2026-10-19', 1)], '2026-10-19'), false)
+  assert.equal(zeroLastTime(reading({ createdAt: '2026-10-19T08:00:00.000Z' }), [], '2026-10-19'), false)
+})
+
+test('learning minutes follow what was done', () => {
+  assert.equal(habitMinutes(reading(), { amount: 5 }), 10)
+  assert.equal(habitMinutes(reading(), { amount: null }), 20)
+  assert.equal(habitMinutes(reading({ unit: 'minutes', target: 30, minutes: 30 }), { amount: 17 }), 17)
 })
