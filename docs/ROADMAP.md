@@ -9,22 +9,16 @@ How it works (details in [Development](DEVELOPMENT.md#versions-and-releases)):
 - Ideas that come up while a version is being built go to the Backlog, unless we agree to pull them into Next.
 - After a release, its items leave this file and the first version under Later becomes Next.
 
-## Next: v1.3.0 (built, in review)
+## Next: v1.4.0 (before 30 Nov, when the week changes phase)
 
 | Item | Type | Spec | Status |
 | --- | --- | --- | --- |
-| Radar: edit a find, a "To explore" shelf, a Website kind | feat | [Hop proposal B](proposals/2026-10-hop-improvements.md#b-radar-edit-to-explore-website) | Built 2026-10-26 on `feat/radar-edit-explore` |
-| Classes on Calendar and Today; any course, not only İTÜ. Live before TÖMER starts on 30 Nov | feat | [Hop proposal C](proposals/2026-10-hop-improvements.md#c-classes-on-the-calendar) | Built 2026-10-26 on `feat/classes-on-calendar` |
-| Habit amounts and minimums: log 5 of 10 pages, a minimum per habit, a "never zero twice" warning, a clearer done state | feat | [Hop proposal A](proposals/2026-10-hop-improvements.md#a-habit-amounts-and-minimums) | Built 2026-10-26 on `feat/habit-amounts` |
-| Minimum day: a tier on each plan activity, built together with the habit minimums | feat | [Türkçe proposal C](proposals/2026-10-turkish-c1-measurement.md#c-minimum-day) | Built 2026-10-26 on `feat/habit-amounts` |
-
-The three branches are stacked in that order, because two of them add migrations: merge them in that order. Released as soon as they're reviewed (decided 2026-10-26), not at the end of November.
+| Week plan: timed habits, repeating work tasks with a tick per day, repeating events, Today → Your day, Calendar → Timetable | feat | [Week plan proposal](proposals/2026-10-week-plan.md) | Agreed 2026-10-26. Builds on the weekly time-slot helper (`apps/web/src/lib/schedule.ts`) and the habit targets shipped in v1.3.0. |
 
 ## Later
 
 | Version | Item | Type | Spec |
 | --- | --- | --- | --- |
-| v1.4.0 (before 30 Nov, when the week changes phase) | Week plan: timed habits, repeating work tasks with a tick per day, repeating events, Today → Your day, Calendar → Timetable | feat | [Week plan proposal](proposals/2026-10-week-plan.md) |
 | v1.5.0 (by mid-Dec, before the B1 gate on 4 Jan) | Gates: each checkpoint's targets with ✓/✗, and a confirmation before passing with unmet targets | feat | [Türkçe proposal A](proposals/2026-10-turkish-c1-measurement.md#gates) |
 | v1.5.0 | Score targets for mock exams | feat | [Türkçe proposal D](proposals/2026-10-turkish-c1-measurement.md#d-score-targets) |
 | v1.5.0 | Error log: mistakes by category, recurring ones on Today, Anki export (moved from v1.3.0 on 2026-10-24) | feat | [Türkçe proposal B](proposals/2026-10-turkish-c1-measurement.md#b-error-log) |
@@ -56,3 +50,7 @@ Not assigned to a version. Each one needs a conversation before it moves up.
 | Decide: should "New task" pre-fill "Do on" with today? | fix | It does on every Plan filter, "No date" included. 13 tasks meant to be undated were scheduled for today without anyone noticing. Either leave it empty, or make the pre-fill obvious. |
 | Decide: should a Must due tomorrow come before a High task for today in "Next up"? | fix | Today put a 20-minute GitHub cleanup ahead of a practicum assignment due the next day. |
 | Citations and references, in your own method (not Zotero) | feat | [Hop proposal G](proposals/2026-10-hop-improvements.md#g-citations-and-references). Needs a conversation about your method first; the questions are in the proposal. |
+| Long dialogs scroll in two places, so buttons move under the pointer | fix | Seen in Save a find and Add course while testing v1.3.0; the evidence editor item above is the same problem. One scrollbar for every dialog. |
+| "Next: Practicum sunday at 13:00" on Today's Classes today | fix | Should read "on Sunday at 13:00". Found testing v1.3.0. |
+| Course form: hide İTÜ-only parts (final eligibility, VF) for other providers, and fix the clock icon overlapping the end time in class rows | fix | Found testing v1.3.0. |
+| Courses from TÖMER or a practicum live under İTÜ → Courses, labelled "This term" | fix | Decide where non-İTÜ courses belong. Found testing v1.3.0. |
