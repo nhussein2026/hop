@@ -176,6 +176,7 @@ export function detectLink(raw: string): DetectedLink | null {
   if (host === 'itu.edu.tr' || host.endsWith('.itu.edu.tr')) return { kind: 'event', source: 'İTÜ', title: '' }
   if (/(^|\.)youtube\.com$|^youtu\.be$/.test(host)) return { kind: 'article', source: 'YouTube', title: '' }
   if (/(^|\.)kaggle\.com$/.test(host)) return { kind: 'dataset', source: 'Kaggle', title: '' }
+  if (!parts.length) return { kind: 'site', source: host, title: host }
   return { kind: 'article', source: host, title: '' }
 }
 

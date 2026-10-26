@@ -6,6 +6,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Ver
 
 ## [Unreleased]
 
+### Added
+
+- Radar: every find can be edited (title, link, type, source, why, topics, language, date), from its "…" menu.
+- Radar → **To explore**: a shelf for things you're curious about but aren't sure deserve a try. Put a find there when saving it, or with "Curious: to explore" in the inbox. It never shows as stale; look through it at your January and August reviews.
+- A **Website** type for finds. Pasting a bare address like `https://note.com` picks it for you.
+
 ## [1.2.0] - 2026-10-23
 
 ### Added

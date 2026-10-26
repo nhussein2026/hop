@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { FIND_KINDS, FIND_STATUSES, LANGUAGES } from '@hop/domain';
+import { FIND_KINDS, FIND_STATUSES, LANGUAGES, NEW_FIND_STATUSES } from '@hop/domain';
 
 import { dateSchema as date, entityIdSchema as id } from './common.js';
 
@@ -32,6 +32,7 @@ export const createFindSchema = z.object({
   topics: findFields.topics.optional(),
   eventDate: findFields.eventDate.optional(),
   language: findFields.language.optional(),
+  status: z.enum(NEW_FIND_STATUSES).optional(),
 }).strict();
 
 export const updateFindSchema = z.object(findFields).partial().strict();

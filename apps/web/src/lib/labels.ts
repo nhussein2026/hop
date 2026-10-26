@@ -90,11 +90,11 @@ export const RESOURCE_KINDS: Record<ResourceKind, [string, string]> = {
 
 /** Icon and label for each kind of Radar find. */
 export const FIND_KINDS: Record<FindKind, [string, string]> = {
-  repo: ['code', 'Repository'], model: ['sparkle', 'Model'], paper: ['book', 'Paper'], tool: ['sliders', 'Tool'],
+  repo: ['code', 'Repository'], model: ['sparkle', 'Model'], paper: ['book', 'Paper'], tool: ['sliders', 'Tool'], site: ['globe', 'Website'],
   dataset: ['database', 'Dataset'], article: ['file', 'Article'], book: ['library', 'Book'], opportunity: ['career', 'Opportunity'], event: ['calendar', 'Event'],
 }
 
-export const FIND_STATUS_LABEL: Record<FindStatus, string> = { inbox: 'Inbox', try: 'To try', read: 'To read', kept: 'Kept', converted: 'Turned into something', dismissed: 'Dismissed' }
+export const FIND_STATUS_LABEL: Record<FindStatus, string> = { inbox: 'Inbox', explore: 'To explore', try: 'To try', read: 'To read', kept: 'Kept', converted: 'Turned into something', dismissed: 'Dismissed' }
 
 export const IDEA_KINDS: [IdeaKind, string][] = [['thesis', 'Thesis'], ['paper', 'Paper'], ['project', 'Project']]
 export const IDEA_STAGES: IdeaStage[] = ['spark', 'exploring', 'validated', 'proposed', 'active']

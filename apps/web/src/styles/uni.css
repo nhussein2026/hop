@@ -37,7 +37,7 @@ a.code:hover { background: color-mix(in srgb, var(--primary) 22%, transparent); 
 .type-note, .type-find-article { background: var(--warning-soft); color: var(--warning); }
 .type-past-exam { background: var(--danger-soft); color: var(--danger); }
 .type-paper, .type-book, .type-find-paper, .type-find-book { background: var(--info-soft); color: var(--info); }
-.type-repo, .type-find-repo, .type-find-tool { background: var(--surface-3); color: var(--text); }
+.type-repo, .type-find-repo, .type-find-tool, .type-find-site { background: var(--surface-3); color: var(--text); }
 .type-find-model, .type-find-dataset { background: var(--primary-soft); color: var(--primary); }
 .type-find-opportunity, .type-find-event { background: var(--success-soft); color: var(--success); }
 

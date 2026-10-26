@@ -62,11 +62,7 @@ export const findService = {
   /** A link already on the radar is refused, wherever it ended up, so the inbox has no duplicates. */
   create(input: CreateFindInput): Find {
     const url = input.url ?? null;
-    const duplicate = url ? findRepository.findAll().find((find) => find.url && sameUrl(find.url, url)) : undefined;
-
-    if (duplicate) {
-      throw new ConflictError(`Already on your radar: “${duplicate.title}”`);
-    }
+    refuseDuplicate(url);
 
     const now = new Date().toISOString();
     return findRepository.create({
@@ -77,7 +73,7 @@ export const findService = {
       source: input.source || 'Web',
       why: input.why,
       topics: input.topics ?? [],
-      status: 'inbox',
+      status: input.status ?? 'inbox',
       language: input.language ?? null,
       eventDate: input.eventDate ?? null,
       taskId: null,
@@ -91,11 +87,13 @@ export const findService = {
     });
   },
 
+  /** Changing a find's link to one already on the radar is refused, like saving it twice. */
   update(id: string, input: UpdateFindInput): Find | undefined {
     if (!findRepository.findById(id)) {
       return undefined;
     }
 
+    if (input.url) refuseDuplicate(input.url, id);
     return findRepository.update(id, { ...input, updatedAt: new Date().toISOString() });
   },
 
@@ -103,3 +101,11 @@ export const findService = {
     return findRepository.delete(id);
   },
 };
+
+function refuseDuplicate(url: string | null, exceptId?: string) {
+  const duplicate = url ? findRepository.findAll().find((find) => find.id !== exceptId && find.url && sameUrl(find.url, url)) : undefined;
+
+  if (duplicate) {
+    throw new ConflictError(`Already on your radar: “${duplicate.title}”`);
+  }
+}

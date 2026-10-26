@@ -1,6 +1,7 @@
-// Radar: things you find in your field (repos, models, papers, tools, chances, department events)
-// and a triage step that turns each one into something: a task, a reading item, an idea, an
-// opportunity, a library entry, a book on the reading list, or nothing. Lives in Growth → Radar.
+// Radar: things you find in your field (repos, models, papers, tools, sites, chances, department
+// events) and a triage step that turns each one into something: a task, a reading item, an idea, an
+// opportunity, a library entry, a book on the reading list, or nothing. Things you're only curious
+// about wait in To explore, which never goes stale. Lives in Growth → Radar.
 import { useState } from 'react'
 import type { ReactNode } from 'react'
 import * as D from '../lib/dates.ts'
@@ -16,7 +17,7 @@ import { useHop } from '../store/store.ts'
 import { useUniActions } from '../store/uni-actions.ts'
 import { useBookActions } from '../store/book-actions.ts'
 
-const STATUSES: FindStatus[] = ['inbox', 'try', 'read', 'kept', 'converted', 'dismissed']
+const STATUSES: FindStatus[] = ['inbox', 'explore', 'try', 'read', 'kept', 'converted', 'dismissed']
 const READING = (f: Find) => f.kind === 'paper' || f.kind === 'article'
 
 export function Radar({ status: initialStatus }: { status?: string }) {
@@ -36,7 +37,9 @@ export function Radar({ status: initialStatus }: { status?: string }) {
 
   return (
     <>
-      <p className="small muted">Save it in seconds, decide later. Everything in the inbox gets one decision: try it, read it, keep it, turn it into an idea or opportunity, or let it go.</p>
+      <p className="small muted">{status === 'explore'
+        ? 'Things you’re curious about but aren’t sure deserve a try. They wait here without going stale; look through them at your January and August reviews.'
+        : 'Save it in seconds, decide later. Everything in the inbox gets one decision: try it, read it, keep it, turn it into an idea or opportunity, or let it go.'}</p>
       <div className="toolbar">
         <div aria-label="Status" className="chips" role="group">
           {STATUSES.map((s) => <button aria-pressed={status === s} className="chip" key={s} onClick={() => setStatus(s)} type="button">{FIND_STATUS_LABEL[s]} <span className={`count${s === 'inbox' && count(s) ? ' count-attention' : ''}`}>{count(s)}</span></button>)}
@@ -55,7 +58,7 @@ export function Radar({ status: initialStatus }: { status?: string }) {
       )}
       {list.length
         ? <div className="find-list">{list.map((f) => <FindCard find={f} key={f.id} />)}</div>
-        : <p className="small muted">{status === 'inbox' ? 'Inbox zero. New finds land here.' : `Nothing here${topic ? ' for this topic' : ''}.`}</p>}
+        : <p className="small muted">{status === 'inbox' ? 'Inbox zero. New finds land here.' : status === 'explore' && !topic ? 'Nothing to explore yet. Put a find here when you’re curious but not sure it deserves a try.' : `Nothing here${topic ? ' for this topic' : ''}.`}</p>}
     </>
   )
 }
@@ -80,8 +83,9 @@ function FindCard({ find: f }: { find: Find }) {
   else if (f.eventId) outcome = <a className="small" href="#/calendar"><Icon className="icon-sm" name="calendar" /> On your calendar</a>
   else if (task) outcome = <span className="small"><Icon className="icon-sm" name={task.status === 'completed' ? 'check' : 'calendar'} /> Task: {task.title}{task.status === 'completed' ? ' (done)' : task.scheduledDate ? `, ${D.relative(task.scheduledDate, today).toLowerCase()}` : ''}</span>
 
-  let buttons: ReactNode = null
-  if (f.status === 'inbox') {
+  const edit: MenuItem = { label: 'Edit', icon: 'edit', onSelect: () => editors.find(f) }
+  let buttons: ReactNode
+  if (f.status === 'inbox' || f.status === 'explore') {
     const primary = f.kind === 'opportunity'
       ? <button className="btn btn-sm btn-primary" onClick={() => void actions.radar.trackAsOpportunity(f)} type="button"><Icon className="icon-sm" name="career" />Track as opportunity</button>
       : f.kind === 'book'
@@ -92,6 +96,8 @@ function FindCard({ find: f }: { find: Find }) {
           ? <button className="btn btn-sm btn-primary" onClick={() => void actions.radar.update(f, { status: 'read' }, 'Added to “To read”')} type="button"><Icon className="icon-sm" name="book" />Read later</button>
           : <button className="btn btn-sm btn-primary" onClick={() => void actions.radar.tryIt(f)} type="button"><Icon className="icon-sm" name="play" />Try it</button>
     const more: MenuItem[] = [
+      edit,
+      ...(f.status === 'inbox' ? [{ label: 'Curious: to explore', icon: 'eye', onSelect: () => void actions.radar.update(f, { status: 'explore' }, 'Moved to “To explore”') }] : []),
       ...(!READING(f) ? [{ label: 'Read later', icon: 'book', onSelect: () => void actions.radar.update(f, { status: 'read' }, 'Added to “To read”') }] : []),
       ...(['opportunity', 'event', 'paper', 'article'].includes(f.kind) ? [{ label: 'Try it (as a task)', icon: 'play', onSelect: () => void actions.radar.tryIt(f) }] : []),
       ...(f.kind !== 'opportunity' ? [{ label: 'Track as opportunity', icon: 'career', onSelect: () => void actions.radar.trackAsOpportunity(f) }] : []),
@@ -113,6 +119,7 @@ function FindCard({ find: f }: { find: Find }) {
         <button className="btn btn-sm btn-primary" onClick={() => void actions.radar.keep(f)} type="button"><Icon className="icon-sm" name="check" />{f.status === 'try' ? 'Tried it: keep' : 'Read it: keep'}</button>
         <button className="btn btn-sm" onClick={idea} type="button"><Icon className="icon-sm" name="bulb" />It sparked an idea</button>
         <button className="btn btn-sm btn-ghost" onClick={() => void actions.radar.update(f, { status: 'dismissed' }, 'Dismissed. It’s in Dismissed if you change your mind.')} type="button">Not useful</button>
+        <Menu items={[edit]} label={`More for ${f.title}`} />
       </>
     )
   } else if (f.status === 'dismissed') {
@@ -120,8 +127,11 @@ function FindCard({ find: f }: { find: Find }) {
       <>
         <button className="btn btn-sm" onClick={() => void actions.radar.update(f, { status: 'inbox' }, 'Back in the inbox')} type="button"><Icon className="icon-sm" name="refresh" />Back to inbox</button>
         <button className="btn btn-sm btn-ghost" onClick={() => void actions.radar.remove(f)} type="button">Delete for good</button>
+        <Menu items={[edit]} label={`More for ${f.title}`} />
       </>
     )
+  } else {
+    buttons = <Menu items={[edit]} label={`More for ${f.title}`} />
   }
 
   return (

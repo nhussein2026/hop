@@ -302,8 +302,8 @@ export function useUniActions() {
     }
 
     const radar = {
-      add(fields: { kind: Find['kind']; title: string; url: string; source: string; why: string; topics: string[]; eventDate: string | null; language: Find['language'] }) {
-        return commit('Saved to your Radar inbox', () => api.post<Find>('/api/finds', createBody(fields)), applyItem('finds'))
+      add(fields: { kind: Find['kind']; title: string; url: string; source: string; why: string; topics: string[]; eventDate: string | null; language: Find['language']; status: 'inbox' | 'explore' }) {
+        return commit(fields.status === 'explore' ? 'Saved to “To explore”' : 'Saved to your Radar inbox', () => api.post<Find>('/api/finds', createBody(fields)), applyItem('finds'))
       },
       update(f: Find, changes: Partial<Find>, label: string, undo = true) {
         const before = Object.fromEntries(Object.keys(changes).map((key) => [key, f[key as keyof Find]])) as Partial<Find>
