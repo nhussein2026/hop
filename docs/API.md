@@ -42,10 +42,10 @@ All routes live in `apps/api/src/server.ts`. Request bodies are validated by the
 | --- | --- | --- |
 | `GET` / `POST` | `/api/tasks` | List or create tasks. |
 | `PATCH` / `DELETE` | `/api/tasks/:id` | Update or delete a task. Setting `status` to `completed` records `completedAt`. |
-| `GET` / `POST` | `/api/habits` | List or create habits. |
+| `GET` / `POST` | `/api/habits` | List or create habits. A habit has a `unit` (`minutes`, `pages` or `times`), a `target` and an optional `minimum` (not above the target). For `minutes`, `minutes` and `target` are kept equal. |
 | `PATCH` | `/api/habits/:id` | Update a habit. |
 | `GET` | `/api/habits/completions?from=&to=` | Completions in a date range, or `?date=` for one day. |
-| `POST` | `/api/habits/:id/completions` | Mark a habit done for a date. |
+| `POST` | `/api/habits/:id/completions` | Log a habit for a date: `{ date, amount? }`. No amount means the whole target. Logging the same date again replaces the amount. |
 | `DELETE` | `/api/habits/:id/completions/:date` | Undo a completion. |
 | `GET` / `POST` | `/api/events` | List or create calendar events. |
 | `PATCH` | `/api/events/:id` | Update an event. |
@@ -93,7 +93,7 @@ All routes live in `apps/api/src/server.ts`. Request bodies are validated by the
 | `PATCH` | `/api/evidence/:id` | Update evidence. The same rule applies to the result of the change. |
 | `GET` / `POST` / `PATCH` / `DELETE` | `/api/finds[/:id]` | Radar finds. `POST` takes `status: "inbox"` (the default) or `"explore"`. A link already on the radar is refused with `409`, also when a `PATCH` changes a find's link. |
 | `GET` / `POST` / `PATCH` / `DELETE` | `/api/books[/:id]` | Reading list. Each book comes with its `loans` and reading `log`. |
-| `POST` | `/api/books/:id/log` | Record the page reached on a day (`{ date, page }`); the same day again replaces it. Returns `{ book, completion }`, where `completion` is the linked habit's tick if this call made it. |
+| `POST` | `/api/books/:id/log` | Record the page reached on a day (`{ date, page }`); the same day again replaces it. Returns `{ book, completion, tick }`: `completion` is the linked habit's tick if this call made it (so it can be undone), and `tick` is that day's completion after the log. A habit counted in pages gets the pages read that day as its amount. |
 | `DELETE` | `/api/books/:id/log/:date` | Remove that day's entry. |
 | `POST` | `/api/books/:id/loans` | Borrow the book (`{ library?, borrowedOn, dueOn, maxRenewals? }`). Refused with 409 while another loan is open. |
 | `PATCH` / `DELETE` | `/api/books/:id/loans/:loanId` | Edit a loan (including `returnedOn`) or remove it. |
@@ -114,7 +114,7 @@ The track itself (level, target, exam date, exam sections and pass mark) is `lan
 | Method | Path | Description |
 | --- | --- | --- |
 | `POST` | `/api/practice/setup` | Start the track (`{ level, target, examDate, exam? }`): creates the goal with a checkpoint per level and, if the plan is empty, the starter daily plan. 409 if a track exists. |
-| `GET` / `POST` / `PATCH` / `DELETE` | `/api/practice/activities[/:id]` | The daily plan. Deleting an activity keeps the practice it recorded. |
+| `GET` / `POST` / `PATCH` / `DELETE` | `/api/practice/activities[/:id]` | The daily plan. `tier` is `minimum`, `standard` (the default) or `extended`. Deleting an activity keeps the practice it recorded. |
 | `GET` | `/api/practice/sessions?from=&to=` | Practice logged between two dates. |
 | `POST` | `/api/practice/sessions` | Log practice (`{ date, minutes, activityId? , area?, note? }`). A planned activity is logged once a day; logging it again changes the minutes. |
 | `PATCH` / `DELETE` | `/api/practice/sessions/:id` | Change or remove logged practice. |

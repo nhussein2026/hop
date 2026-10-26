@@ -1,11 +1,12 @@
 import { index, integer, sqliteTable, text, unique } from 'drizzle-orm/sqlite-core';
 
-import { CEFR_LEVELS, CHECK_AREAS, CHECK_JUDGES, PRACTICE_AREAS, PRACTICE_SLOTS } from '@hop/domain';
+import { CEFR_LEVELS, CHECK_AREAS, CHECK_JUDGES, PRACTICE_AREAS, PRACTICE_SLOTS, PRACTICE_TIERS } from '@hop/domain';
 import type { CheckMetrics, LanguageSkill } from '@hop/domain';
 
 export const practiceActivities = sqliteTable('practice_activities', {
   id: text('id').primaryKey(),
   area: text('area', { enum: PRACTICE_AREAS }).notNull(),
+  tier: text('tier', { enum: PRACTICE_TIERS }).notNull().default('standard'),
   title: text('title').notNull(),
   detail: text('detail').notNull().default(''),
   minutes: integer('minutes').notNull(),

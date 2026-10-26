@@ -7,7 +7,7 @@ import { MoreSheet, Notifications, QuickAdd, ReflectionEditor, Search } from './
 import type { AddKind } from './global.tsx'
 import { EvidenceEditor, MilestoneEditor, ProjectDrawer, ProjectEditor, SkillDrawer, SkillEditor } from './growth.tsx'
 import type { EvidenceDefaults } from './growth.tsx'
-import { EventEditor, GoalEditor, HabitEditor, TaskEditor } from './planning.tsx'
+import { EventEditor, GoalEditor, HabitEditor, LogHabit, TaskEditor } from './planning.tsx'
 import { FindEditor } from './radar.tsx'
 import { AccountEditor, NoteEditor } from './notes.tsx'
 import { ActivityEditor, LogPractice, SessionEditor, CheckEditor, SetupTrack, TestEditor, TrackEditor } from './practice.tsx'
@@ -23,6 +23,7 @@ export function useEditors() {
     const editors = {
       task: (task?: Task | null, defaults?: Partial<Task>) => open((close) => <TaskEditor close={close} defaults={defaults} task={task} />),
       habit: (habit?: Habit | null) => open((close) => <HabitEditor close={close} habit={habit} />),
+      logHabit: (habit: Habit) => open((close) => <LogHabit close={close} habit={habit} />),
       goal: (goal?: Goal | null) => open((close) => <GoalEditor close={close} goal={goal} />),
       event: (date?: string) => open((close) => <EventEditor close={close} date={date} />),
       opportunity: (opportunity?: Opportunity | null) => open((close) => <OpportunityEditor close={close} opportunity={opportunity} />),

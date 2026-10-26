@@ -27,6 +27,7 @@ import {
   GOAL_PRIORITIES,
   GOAL_STATUSES,
   HABIT_FREQUENCIES,
+  HABIT_UNITS,
   INTERACTION_TYPES,
   MONTHLY_REVIEW_STATUSES,
   OPPORTUNITY_ACTIVITY_TYPES,
@@ -35,6 +36,7 @@ import {
   OPPORTUNITY_TYPES,
   PRACTICE_AREAS,
   PRACTICE_SLOTS,
+  PRACTICE_TIERS,
   PROJECT_STATUSES,
   SKILL_FOCUSES,
   SKILL_LEVELS,
@@ -75,10 +77,11 @@ const taskRow = z.object({
 
 const habitRow = z.object({
   id, name: text, frequency: z.enum(HABIT_FREQUENCIES), targetPerWeek: z.number().int(), goalId: optionalText,
-  days: z.array(z.number().int().min(0).max(6)).default([0, 1, 2, 3, 4, 5, 6]), minutes: z.number().int().default(30), active: z.boolean(), ...timestamps,
-}).strict();
+  days: z.array(z.number().int().min(0).max(6)).default([0, 1, 2, 3, 4, 5, 6]), minutes: z.number().int().default(30),
+  unit: z.enum(HABIT_UNITS).default('minutes'), target: optionalInteger.default(null), minimum: optionalInteger.default(null), active: z.boolean(), ...timestamps,
+}).strict().transform((row) => ({ ...row, target: row.target ?? row.minutes })); // Before amounts, a habit's target was its minutes.
 
-const habitCompletionRow = z.object({ id, habitId: id, date: text, completedAt: text }).strict();
+const habitCompletionRow = z.object({ id, habitId: id, date: text, amount: optionalInteger.default(null), completedAt: text }).strict();
 
 const eventRow = z.object({
   id, title: text, description: optionalText, type: z.enum(EVENT_TYPES), date: text, startTime: optionalText, endTime: optionalText,
@@ -192,7 +195,7 @@ const bookLoanRow = z.object({
 }).strict();
 const readingEntryRow = z.object({ id, bookId: id, date: text, page: z.number().int(), createdAt: text }).strict();
 const practiceActivityRow = z.object({
-  id, area: z.enum(PRACTICE_AREAS), title: text, detail: text, minutes: z.number().int(), slot: z.enum(PRACTICE_SLOTS),
+  id, area: z.enum(PRACTICE_AREAS), tier: z.enum(PRACTICE_TIERS).default('standard'), title: text, detail: text, minutes: z.number().int(), slot: z.enum(PRACTICE_SLOTS),
   days: z.array(z.number().int().min(0).max(6)), position: z.number().int(), active: flag, ...timestamps,
 }).strict();
 const practiceSessionRow = z.object({ id, date: text, area: z.enum(PRACTICE_AREAS), minutes: z.number().int(), activityId: optionalText, note: text, createdAt: text }).strict();

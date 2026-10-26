@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { CEFR_LEVELS, CHECK_AREAS, CHECK_JUDGES, LANGUAGE_SKILLS, LANGUAGES, LISTENING_MODES, PRACTICE_AREAS, PRACTICE_SLOTS } from '@hop/domain';
+import { CEFR_LEVELS, CHECK_AREAS, CHECK_JUDGES, LANGUAGE_SKILLS, LANGUAGES, LISTENING_MODES, PRACTICE_AREAS, PRACTICE_SLOTS, PRACTICE_TIERS } from '@hop/domain';
 import type { CheckArea } from '@hop/domain';
 
 import { dateSchema as date, entityIdSchema as id } from './common.js';
@@ -41,6 +41,7 @@ const activityFields = {
   detail: text('How to do it', 1000),
   minutes: z.number().int('Use whole minutes').min(1, 'At least 1 minute').max(240, 'At most 4 hours'),
   slot: z.enum(PRACTICE_SLOTS),
+  tier: z.enum(PRACTICE_TIERS),
   days,
   position: z.number().int().min(0),
   active: z.boolean(),

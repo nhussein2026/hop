@@ -7,7 +7,7 @@ import * as D from '../lib/dates.ts'
 import { areaSummaries, checkCounts, checkValues, formatValue } from '../lib/checks.ts'
 import type { AreaSummary } from '../lib/checks.ts'
 import { CATCH_UP, CHECK_AREA, CHECK_JUDGE, LEVEL_FOCUS, PRACTICE_AREA, PRACTICE_SLOT_LABEL } from '../lib/labels.ts'
-import { checkpoints, dayProgress, doneSession, minutesByWeekday, planFor, recentWeeks, sessionsOn, testDue, testResult, TEST_EVERY_DAYS, weekBalance, weeklyPlan } from '../lib/practice.ts'
+import { checkpoints, dayProgress, doneSession, minimumOn, minimumWeek, minutesByWeekday, planFor, recentWeeks, sessionsOn, testDue, testResult, TEST_EVERY_DAYS, weekBalance, weeklyPlan } from '../lib/practice.ts'
 import { daysLabel, plural } from '../lib/rules.ts'
 import type { Route } from '../lib/router.ts'
 import type { LanguageTrack, PracticeActivity } from '../lib/types.ts'
@@ -82,6 +82,7 @@ export function PracticeRow({ activity: a, date, compact }: { activity: Practice
         <span className="row-title">{a.title}</span>
         <div className="row-meta">
           <span className={`area area-${a.area}`}><Icon name={icon} />{label}</span>
+          {a.tier === 'minimum' && compact && <span className="tag tag-sm">Minimum</span>}
           {session
             ? <button className="link-btn" onClick={() => editors.practiceSession(session, a.title)} type="button">{session.minutes} min done</button>
             : <span>{a.minutes} min</span>}
@@ -97,6 +98,10 @@ function TodayTab({ track }: { track: LanguageTrack }) {
   const editors = useEditors()
   const today = D.today()
   const plan = planFor(data.practiceActivities, today)
+  const minimumPlan = plan.filter((a) => a.tier === 'minimum')
+  const standardPlan = plan.filter((a) => a.tier === 'standard')
+  const extendedPlan = plan.filter((a) => a.tier === 'extended')
+  const minimum = minimumOn(data.practiceActivities, data.practiceSessions, today)
   const progress = dayProgress(data.practiceActivities, data.practiceSessions, today)
   const weekStart = D.startOfWeek(today, data.settings.weekStart)
   const week = weekBalance(data.practiceActivities, data.practiceSessions, weekStart, today)
@@ -128,9 +133,20 @@ function TodayTab({ track }: { track: LanguageTrack }) {
           </Banner>
         )}
 
+        {minimumPlan.length > 0 && (
+          <section aria-labelledby="slot-minimum" className="section practice-minimum">
+            <div className="section-head">
+              <h2 id="slot-minimum">Minimum</h2>
+              {minimum?.kept ? <Badge icon="check" tone="success">Minimum done</Badge> : <span className="small muted num">{minimum?.done ?? 0} of {minimumPlan.length} · {D.minutes(minimumPlan.reduce((sum, a) => sum + a.minutes, 0))}</span>}
+            </div>
+            <p className="small muted">Done every day, even a bad one. Never zero twice.</p>
+            <div className="rows">{minimumPlan.map((a) => <PracticeRow activity={a} date={today} key={a.id} />)}</div>
+          </section>
+        )}
+
         {plan.length
           ? PRACTICE_SLOTS.map((slot) => {
-              const list = plan.filter((a) => a.slot === slot)
+              const list = standardPlan.filter((a) => a.slot === slot)
               if (!list.length) return null
               return (
                 <section aria-labelledby={`slot-${slot}`} className="section" key={slot}>
@@ -140,6 +156,13 @@ function TodayTab({ track }: { track: LanguageTrack }) {
               )
             })
           : <Empty body="Nothing in your plan for today. Rest, or log anything you do in Turkish." icon="leaf" pad={false} title="A free day" />}
+
+        {extendedPlan.length > 0 && (
+          <details className="disclosure practice-extended">
+            <summary>If you have time <span className="muted num">· {D.minutes(extendedPlan.reduce((sum, a) => sum + a.minutes, 0))}</span></summary>
+            <div className="rows" style={{ marginTop: 'var(--s-3)' }}>{extendedPlan.map((a) => <PracticeRow activity={a} date={today} key={a.id} />)}</div>
+          </details>
+        )}
 
         <section aria-labelledby="extra-h" className="section">
           <div className="section-head"><h2 id="extra-h">Also today</h2><button className="btn btn-sm" onClick={() => editors.logPractice()} type="button"><Icon className="icon-sm" name="plus" />Log practice</button></div>
@@ -190,19 +213,23 @@ function WeekStrip({ weekStart }: { weekStart: string }) {
   const { data } = useHop()
   const today = D.today()
   const days = Array.from({ length: 7 }, (_, index) => D.addDays(weekStart, index))
+  const week = minimumWeek(data.practiceActivities, data.practiceSessions, weekStart, today)
   return (
     <section aria-labelledby="ws-h" className="section">
       <div className="section-head"><h2 id="ws-h">This week</h2><a className="small" href="#/turkish/progress">Progress</a></div>
+      {week.days > 0 && <p className="small num">Minimum kept: {week.kept} of {plural(week.days, 'day')}</p>}
       <ol className="week-strip">
         {days.map((ymd) => {
           const day = dayProgress(data.practiceActivities, data.practiceSessions, ymd)
+          const minimum = ymd > today ? null : minimumOn(data.practiceActivities, data.practiceSessions, ymd)
           const state = ymd === today ? 'is-today' : ymd > today ? 'is-future' : day.planned && day.done === 0 ? 'is-missed' : ''
           return (
-            <li className={state} key={ymd}>
+            <li className={`${state}${minimum?.kept ? ' is-kept' : ''}`} key={ymd}>
               <span className="xs muted">{D.DAYS[D.weekday(ymd)]}</span>
               <span aria-hidden="true" className="week-bar"><span style={{ height: `${ymd > today ? 0 : day.pct}%` }} /></span>
               <span className="xs num">{ymd > today ? D.minutes(day.planned) || '–' : day.done ? D.minutes(day.done) : '–'}</span>
-              <span className="visually-hidden">{ymd > today ? `${day.planned} minutes planned` : `${day.done} of ${day.planned} minutes`}</span>
+              {minimum?.kept && <Icon className="icon-sm week-kept" name="check" />}
+              <span className="visually-hidden">{ymd > today ? `${day.planned} minutes planned` : `${day.done} of ${day.planned} minutes${minimum ? `, minimum ${minimum.kept ? 'kept' : 'not kept'}` : ''}`}</span>
             </li>
           )
         })}

@@ -83,8 +83,8 @@ test('replaceAllTables rolls back completely when a row cannot be inserted', () 
   const invalid = exportSnapshot();
   // Two completions for the same habit and date violate the table's unique constraint.
   invalid.habitCompletions = [
-    { id: 'c1', habitId: 'h1', date: '2026-10-01', completedAt: '2026-10-01T08:00:00.000Z' },
-    { id: 'c2', habitId: 'h1', date: '2026-10-01', completedAt: '2026-10-01T09:00:00.000Z' },
+    { id: 'c1', habitId: 'h1', date: '2026-10-01', amount: null, completedAt: '2026-10-01T08:00:00.000Z' },
+    { id: 'c2', habitId: 'h1', date: '2026-10-01', amount: null, completedAt: '2026-10-01T09:00:00.000Z' },
   ];
 
   assert.throws(() => backupRepository.replaceAllTables(invalid));
@@ -96,15 +96,18 @@ test('replaceAllTables rolls back completely when a row cannot be inserted', () 
 test('restore accepts a version 1 backup and fills the newer tables and columns with defaults', () => {
   const current = exportSnapshot();
   const habit = { id: 'h-v1', name: 'Read', frequency: 'daily', targetPerWeek: 7, goalId: null, active: true, createdAt: '2026-09-01T00:00:00.000Z', updatedAt: '2026-09-01T00:00:00.000Z' };
+  const tick = { id: 'c-v1', habitId: 'h-v1', date: '2026-09-02', completedAt: '2026-09-02T20:00:00.000Z' };
   const v1 = {
     version: 1,
     exportedAt: current.exportedAt,
-    goals: [], tasks: [], habits: [habit], habitCompletions: [], events: [], opportunities: [], projects: [], skills: [], evidence: [], weeklyReviews: [],
+    goals: [], tasks: [], habits: [habit], habitCompletions: [tick], events: [], opportunities: [], projects: [], skills: [], evidence: [], weeklyReviews: [],
   };
 
   restoreService.restore(v1);
 
-  assert.deepEqual(habitService.getAll().map((item) => [item.id, item.days, item.minutes]), [['h-v1', [0, 1, 2, 3, 4, 5, 6], 30]]);
+  assert.deepEqual(habitService.getAll().map((item) => [item.id, item.days, item.minutes, item.unit, item.target, item.minimum]), [['h-v1', [0, 1, 2, 3, 4, 5, 6], 30, 'minutes', 30, null]]);
+  // A tick from before amounts means the whole target.
+  assert.deepEqual(habitService.getCompletions('2026-09-02').map((item) => item.amount), [null]);
   assert.equal(backupRepository.countRows().goalCriteria, 0);
 });
 

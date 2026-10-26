@@ -26,10 +26,13 @@ export const doneSession = (sessions: PracticeSession[], activity: Pick<Practice
 
 export type AreaMinutes = Record<PracticeArea, { planned: number; done: number }>
 
-/** Planned and done minutes for one day, per area and in total. Practice outside the plan counts as done. */
+/**
+ * Planned and done minutes for one day, per area and in total. Practice outside the plan counts as
+ * done. Extended activities are a bonus: they never add to what was planned.
+ */
 export function dayProgress(activities: PracticeActivity[], sessions: PracticeSession[], ymd: string) {
   const areas = Object.fromEntries(PRACTICE_AREAS.map((area) => [area, { planned: 0, done: 0 }])) as AreaMinutes
-  for (const a of planFor(activities, ymd)) areas[a.area].planned += a.minutes
+  for (const a of planFor(activities, ymd)) if (a.tier !== 'extended') areas[a.area].planned += a.minutes
   for (const s of sessionsOn(sessions, ymd)) areas[s.area].done += s.minutes
   const planned = PRACTICE_AREAS.reduce((sum, area) => sum + areas[area].planned, 0)
   const done = PRACTICE_AREAS.reduce((sum, area) => sum + areas[area].done, 0)
@@ -48,6 +51,7 @@ export function weekBalance(activities: PracticeActivity[], sessions: PracticeSe
   const rows = Object.fromEntries(PRACTICE_AREAS.map((area) => [area, { area, planned: 0, plannedSoFar: 0, done: 0, share: null }])) as Record<PracticeArea, SkillBalance>
   for (let ymd = weekStart; ymd <= end; ymd = D.addDays(ymd, 1)) {
     for (const a of planFor(activities, ymd)) {
+      if (a.tier === 'extended') continue
       rows[a.area].planned += a.minutes
       if (ymd < today) rows[a.area].plannedSoFar += a.minutes
     }
@@ -60,6 +64,30 @@ export function weekBalance(activities: PracticeActivity[], sessions: PracticeSe
   const done = Object.values(rows).reduce((sum, row) => sum + row.done, 0)
   const planned = Object.values(rows).reduce((sum, row) => sum + row.planned, 0)
   return { rows: PRACTICE_AREAS.map((area) => rows[area]), behind, done, planned }
+}
+
+/**
+ * The minimum on a day: its activities planned that day and how many were done. `kept` once all
+ * are done, whatever the minutes. Null when the plan has no minimum that day.
+ */
+export function minimumOn(activities: PracticeActivity[], sessions: PracticeSession[], ymd: string) {
+  const minimum = planFor(activities, ymd).filter((a) => a.tier === 'minimum')
+  if (!minimum.length) return null
+  const done = minimum.filter((a) => doneSession(sessions, a, ymd)).length
+  return { planned: minimum.length, done, kept: done === minimum.length }
+}
+
+/** "Minimum kept: 6 of 7 days": days of the week so far (today once kept) that had a minimum. */
+export function minimumWeek(activities: PracticeActivity[], sessions: PracticeSession[], weekStart: string, today: string) {
+  let kept = 0
+  let days = 0
+  for (let ymd = weekStart; ymd <= today && ymd <= D.addDays(weekStart, 6); ymd = D.addDays(ymd, 1)) {
+    const day = minimumOn(activities, sessions, ymd)
+    if (!day || (ymd === today && !day.kept)) continue
+    days++
+    if (day.kept) kept++
+  }
+  return { kept, days }
 }
 
 /** Days with any practice between two dates, inclusive. */

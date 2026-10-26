@@ -101,7 +101,7 @@ export const practiceService = {
 
       if (!practiceRepository.findActivities().length) {
         const now = new Date().toISOString();
-        practiceRepository.createActivities(STARTER_PLAN.map((activity, position) => ({ id: randomUUID(), ...activity, position, active: true, createdAt: now, updatedAt: now })));
+        practiceRepository.createActivities(STARTER_PLAN.map((activity, position) => ({ id: randomUUID(), ...activity, tier: 'standard', position, active: true, createdAt: now, updatedAt: now })));
       }
 
       const note = libraryService.getAll().some((r) => r.kind === 'note' && r.title === MISTAKES_NOTE.title)
@@ -124,6 +124,7 @@ export const practiceService = {
     const activity: PracticeActivity = {
       id: randomUUID(),
       area: input.area,
+      tier: input.tier ?? 'standard',
       title: input.title,
       detail: input.detail ?? '',
       minutes: input.minutes,

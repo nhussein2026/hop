@@ -382,6 +382,8 @@ p > .icon { display: inline-block; vertical-align: -3px; margin-right: 2px; }
 }
 .check[aria-checked="true"] .icon,
 .check[aria-pressed="true"] .icon { opacity: 1; }
+/* Part done: a habit logged below its target, filled halfway. */
+.check[aria-checked="mixed"] { background: linear-gradient(to top, var(--primary) 50%, var(--surface) 50%); border-color: var(--primary); }
 .check.just-done { animation: pop 260ms var(--ease); }
 @keyframes pop {
   40% { transform: scale(1.18); }

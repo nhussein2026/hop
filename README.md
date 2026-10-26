@@ -11,9 +11,9 @@ Everything lives in one SQLite database on a server you control. There are no ac
 | Area | What it does |
 | --- | --- |
 | **Today** | One next action, today's priorities, habits, classes, deadlines that need attention, what's coming up, and a short reflection. |
-| **Plan** | Agenda, all tasks, and habits with four-week consistency (missing a day never resets a streak). |
+| **Plan** | Agenda, all tasks, and habits counted in minutes, pages or times, with a target and a minimum for bad days. Log part of a habit or more than its target; four-week consistency counts the days kept (missing a day never resets a streak), and Today warns before a habit is missed twice in a row. |
 | **Calendar** | Month and week views of events, tasks, deadlines, and the weekly classes of the courses you're taking, between their first and last class and never on a holiday. |
-| **Türkçe** | The road to a language exam, set up for the İTÜ TÖMER C1 certificate: a daily plan across listening, reading, writing, speaking and words, ticked off in a tap; a weekly balance that flags the skill falling behind; level checkpoints up to the exam; practice test results scored like the exam. On phones it takes İTÜ's place in the tab bar. |
+| **Türkçe** | The road to a language exam, set up for the İTÜ TÖMER C1 certificate: a daily plan across listening, reading, writing, speaking and words, ticked off in a tap, with a minimum that keeps a bad day from being a zero and extras for days with time to spare; a weekly balance that flags the skill falling behind; level checkpoints up to the exam; practice test results scored like the exam. On phones it takes İTÜ's place in the tab bar. |
 | **İTÜ** | This term at a glance, courses (from İTÜ or anyone else, like TÖMER or a practicum) with grade tracking, target averages and the VF (final eligibility) attendance limit, a file library, thesis and research ideas, and a handbook of key dates and links. |
 | **Goals** | Outcomes with success criteria, milestones, progress history, and health signals. |
 | **Career** | Opportunity pipeline with follow-ups, interview prep, activity timeline, people and interactions, resumes with files, and analytics. |

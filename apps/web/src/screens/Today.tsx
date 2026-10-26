@@ -2,7 +2,7 @@
 // habits. The side shows what needs a decision soon, then the horizon.
 import { Fragment } from 'react'
 import * as D from '../lib/dates.ts'
-import { STAGE_LABEL, agenda, agendaLabel, attention, goalHealth, goalProgress, habitDone, habitDue, nextForGoal, orgOf, plural, todayPlan, weekFacts } from '../lib/rules.ts'
+import { STAGE_LABEL, agenda, agendaLabel, attention, goalHealth, goalProgress, habitDue, habitKept, nextForGoal, orgOf, plural, todayPlan, weekFacts } from '../lib/rules.ts'
 import type { Habit, Task } from '../lib/types.ts'
 import { useActions } from '../store/actions.ts'
 import { useEditors } from '../editors/editors.tsx'
@@ -11,7 +11,7 @@ import { AttentionList, HabitRow, InlineAdd, TaskRow } from '../components/rows.
 import { DateChip, Empty, ProgressBar } from '../components/ui.tsx'
 import { classesOn, nextClass } from '../lib/uni.ts'
 import { loanLabel, loanState, openLoan, progress } from '../lib/books.ts'
-import { dayProgress, doneSession, planFor } from '../lib/practice.ts'
+import { dayProgress, doneSession, minimumOn, planFor } from '../lib/practice.ts'
 import { PracticeRow } from './Turkish.tsx'
 import { useHop } from '../store/store.ts'
 import { useToast } from '../components/ui-context.ts'
@@ -39,7 +39,7 @@ export function Today() {
   const restShould = plan.should.filter((t) => t !== next)
   const doneToday = data.tasks.filter((t) => t.completedAt && D.ymdOf(t.completedAt) === today)
   const habitsToday = data.habits.filter((h) => habitDue(h, today))
-  const habitsDone = habitsToday.filter((h) => habitDone(h, data.completions, today)).length
+  const habitsDone = habitsToday.filter((h) => habitKept(h, data.completions, today)).length
   const attentionItems = attention(data, today)
   const urgent = attentionItems.filter((item) => item.level === 'critical').length
   // Courses, books in hand or a language track are enough to make Today useful: they all show here.
@@ -188,7 +188,7 @@ function BlockStep({ habit }: { habit: Habit }) {
   const editors = useEditors()
   const today = D.today()
   const goal = habit.goalId ? data.goals.find((g) => g.id === habit.goalId) : undefined
-  if (!goal || !habitDue(habit, today) || habitDone(habit, data.completions, today)) return null
+  if (!goal || !habitDue(habit, today) || habitKept(habit, data.completions, today)) return null
   const { next, open } = nextForGoal(goal.id, data.tasks, ui.skipped)
   if (!next) return null
   const started = next.status === 'in_progress'
@@ -216,7 +216,10 @@ function TurkishToday() {
   const plan = planFor(data.practiceActivities, today)
   if (!plan.length) return null
   const day = dayProgress(data.practiceActivities, data.practiceSessions, today)
-  const next = plan.filter((a) => !doneSession(data.practiceSessions, a, today)).slice(0, 3)
+  const minimum = minimumOn(data.practiceActivities, data.practiceSessions, today)
+  // The minimum comes first; extended activities wait on the Türkçe page.
+  const open = plan.filter((a) => a.tier !== 'extended' && !doneSession(data.practiceSessions, a, today))
+  const next = [...open.filter((a) => a.tier === 'minimum'), ...open.filter((a) => a.tier !== 'minimum')].slice(0, 3)
   return (
     <section aria-labelledby="tr-today-h" className="section">
       <div className="section-head"><h2 id="tr-today-h">Türkçe</h2><a className="small" href="#/turkish">Today’s plan</a></div>
@@ -224,6 +227,7 @@ function TurkishToday() {
         <ProgressBar label="Today’s Turkish practice" pct={day.pct} />
         <span className="small num">{D.minutes(day.done) || '0 min'} of {D.minutes(day.planned)}</span>
       </div>
+      {minimum && <p className="small">{minimum.kept ? <><Icon className="icon-sm" name="check" /> Minimum kept today.</> : `Minimum: ${minimum.done} of ${minimum.planned} done.`}</p>}
       {next.length
         ? <div className="rows">{next.map((a) => <PracticeRow activity={a} compact date={today} key={a.id} />)}</div>
         : <p className="small muted">Today’s plan is done. Anything more is a bonus.</p>}

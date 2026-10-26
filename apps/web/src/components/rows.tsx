@@ -2,7 +2,7 @@
 import { useState } from 'react'
 import type { ReactNode } from 'react'
 import * as D from '../lib/dates.ts'
-import { STAGE_LABEL, STAGES, agendaHref, agendaLabel, daysLabel, habitDone, habitDue, habitWeek, isClosed, nextEvent, oppHealth, orgOf, placeOf, rank } from '../lib/rules.ts'
+import { STAGE_LABEL, STAGES, agendaHref, agendaLabel, daysLabel, habitAmount, habitDue, habitState, habitUnits, habitWeek, isClosed, nextEvent, oppHealth, orgOf, placeOf, rank } from '../lib/rules.ts'
 import type { AgendaItem, AttentionItem } from '../lib/rules.ts'
 import type { Habit, Opportunity, Task } from '../lib/types.ts'
 import { navigate } from '../lib/router.ts'
@@ -73,34 +73,55 @@ export function TaskRow({ task, showMust, showDate, hideGoal, menu = true }: { t
   )
 }
 
+/** "5 of 10 pages", "45 min of 1 h"; just "10 pages" when it's exactly the target. */
+const amountOf = (habit: Habit, amount: number) =>
+  amount === habit.target ? habitUnits(habit, amount) : habit.unit === 'minutes' ? `${D.minutes(amount)} of ${D.minutes(habit.target)}` : `${amount} of ${habitUnits(habit, habit.target)}`
+const DAY_STATE: Record<string, string> = { done: 'done', minimum: 'minimum kept', some: 'some done', none: 'not done' }
+
 export function HabitRow({ habit, hideGoal, manage }: { habit: Habit; hideGoal?: boolean; manage?: boolean }) {
   const { data } = useHop()
   const actions = useActions()
   const editors = useEditors()
   const today = D.today()
-  const done = habitDone(habit, data.completions, today)
+  const state = habitState(habit, data.completions, today)
+  const amount = habitAmount(habit, data.completions, today)
   const due = habitDue(habit, today)
   const week = habitWeek(habit, data.completions, today)
   const goal = data.goals.find((g) => g.id === habit.goalId)
+  const logged = state !== 'none'
+  // A minimum equal to the target (a whole hizb) says nothing new.
+  const minimum = habit.minimum !== null && habit.minimum < habit.target ? ` · minimum ${habitUnits(habit, habit.minimum)}` : ''
+  const howMuch = state === 'none' ? `${habitUnits(habit, habit.target)}${minimum}` : state === 'done' ? `Done · ${amountOf(habit, amount)}` : `${amountOf(habit, amount)}${state === 'minimum' ? ' · minimum kept' : ''}`
 
   return (
-    <div className={`row habit-row${done ? ' is-done-habit' : ''}`}>
+    <div className={`row habit-row${state === 'done' ? ' is-done-habit' : ''}`}>
+      {/* One tap logs the whole target or undoes the day; the amount next to the name logs part of it. */}
       {due
-        ? <button aria-checked={done} aria-label={`${done ? 'Undo' : 'Mark done'}: ${habit.name} today`} className="check" onClick={() => void actions.habits.toggle(habit)} role="checkbox" type="button"><Icon name="check" /></button>
+        ? <button aria-checked={state === 'done' ? true : logged ? 'mixed' : false} aria-label={`${logged ? 'Undo' : 'Mark done'}: ${habit.name} today`} className="check" onClick={() => void actions.habits.toggle(habit)} role="checkbox" type="button"><Icon name="check" /></button>
         : <span aria-hidden="true" className="check" style={{ opacity: 0.35 }} />}
       <div className="row-main">
         <span className="row-title">{habit.name}</span>
         <div className="row-meta">
+          {due
+            ? <button aria-label={`Log how much: ${habit.name}. ${howMuch}`} className="habit-amount" onClick={() => editors.logHabit(habit)} type="button">{howMuch}</button>
+            : <span>{habitUnits(habit, habit.target)}</span>}
           <span>{daysLabel(habit.days)}</span>
-          {goal && !hideGoal && <span><Icon name="goals" />{goal.name}</span>}
+          {goal && !hideGoal && <span className="habit-goal"><Icon name="goals" />{goal.name}</span>}
           {!due && <span>Not scheduled today</span>}
         </div>
       </div>
       <div className="habit-consistency">
-        <span aria-label={`Last 7 days: ${week.days.filter((d) => d.done).length} of ${week.days.filter((d) => d.due).length} scheduled days done`} className="habit-strip">
-          {week.days.map((day) => <i className={`${day.done ? 'on' : day.due ? 'miss' : 'off'}${day.isToday ? ' today' : ''}`} key={day.date} title={`${D.withDay(day.date)}: ${day.done ? 'done' : day.due ? 'not done' : 'not scheduled'}`} />)}
+        <span aria-label={`Last 7 days: ${week.days.filter((d) => d.state === 'done' || d.state === 'minimum').length} of ${week.days.filter((d) => d.due).length} scheduled days kept`} className="habit-strip">
+          {week.days.map((day) => (
+            <span className="habit-day" key={day.date} title={`${D.withDay(day.date)}: ${day.due || day.state !== 'none' ? DAY_STATE[day.state] : 'not scheduled'}`}>
+              <i className={`${day.state === 'done' ? 'on' : day.state !== 'none' ? 'part' : day.due ? 'miss' : 'off'}${day.isToday ? ' today' : ''}`} />
+              <b aria-hidden="true" className={day.isToday ? 'is-today' : undefined}>{D.DAYS[D.weekday(day.date)]![0]}</b>
+            </span>
+          ))}
         </span>
-        <span className="xs muted num">{week.rate}% of the last 4 weeks</span>
+        <span className="xs muted num" title={week.scheduled ? `${week.rate}% of scheduled days in the last 4 weeks${week.minimum ? `, ${week.minimum} of them at the minimum` : ''}` : undefined}>
+          {week.scheduled ? `${week.done} of ${week.scheduled} days kept` : 'New: no full day yet'}
+        </span>
       </div>
       {manage && (
         <div className="row-actions">

@@ -10,7 +10,7 @@ type Setup = { settings: Settings; goal: Goal; milestones: Milestone[]; activiti
 
 export type CheckFields = Pick<LanguageCheck, 'date' | 'area' | 'task' | 'metrics' | 'level' | 'judgedBy' | 'link' | 'note'>
 
-export type ActivityFields = Pick<PracticeActivity, 'area' | 'title' | 'detail' | 'minutes' | 'slot' | 'days'>
+export type ActivityFields = Pick<PracticeActivity, 'area' | 'title' | 'detail' | 'minutes' | 'slot' | 'days' | 'tier'>
 
 /**
  * Replace one session with its new version (either may be missing: a new or a deleted session)

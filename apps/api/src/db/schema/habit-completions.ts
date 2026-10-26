@@ -1,9 +1,10 @@
-import { sqliteTable, text, unique } from 'drizzle-orm/sqlite-core';
+import { integer, sqliteTable, text, unique } from 'drizzle-orm/sqlite-core';
 
 export const habitCompletions = sqliteTable('habit_completions', {
   id: text('id').primaryKey(),
   habitId: text('habit_id').notNull(),
   date: text('date').notNull(),
+  amount: integer('amount'),
   completedAt: text('completed_at').notNull(),
 }, (table) => [
   // A habit can be completed at most once per local date.

@@ -2,7 +2,7 @@
 // consequential ones are confirmed by the screen before they get here.
 import { useMemo } from 'react'
 import * as D from '../lib/dates.ts'
-import { STAGE_LABEL, isOverdue } from '../lib/rules.ts'
+import { STAGE_LABEL, habitUnits, isOverdue } from '../lib/rules.ts'
 import type {
   Contact, Event, Evidence, EvidenceKind, Goal, GoalArea, GoalCriterion, GoalStatus, Habit, HabitCompletion, HopData, Interaction, Milestone,
   Opportunity, OpportunityActivity, OpportunityActivityType, OpportunityStage, Project, ProjectStatus, Reflection, Resume, Settings,
@@ -97,7 +97,18 @@ export function useActions() {
           ...current, completions: [...current.completions.filter((c) => c.id !== completion.id), completion],
         }))
       },
-      save(habit: Habit | null, fields: { name: string; days: number[]; minutes: number; goalId: string | null }) {
+      /** Log how much was done on a day; logging again replaces it. Undo puts back what was there. */
+      log(habit: Habit, amount: number, date = D.today()) {
+        const before = data.completions.find((c) => c.habitId === habit.id && c.date === date)
+        const label = `Logged ${habitUnits(habit, amount)}${amount >= habit.target ? '. Done for today.' : habit.minimum !== null && amount >= habit.minimum ? '. Minimum kept.' : '. Every bit counts.'}`
+        const apply = (completion: HabitCompletion, current: HopData) => ({ ...current, completions: [...current.completions.filter((c) => c.id !== completion.id && !(c.habitId === habit.id && c.date === date)), completion] })
+        return commit(label, () => api.post<HabitCompletion>(`/api/habits/${habit.id}/completions`, { date, amount }), apply, {
+          undo: () => void (before
+            ? commit('Undone', () => api.post<HabitCompletion>(`/api/habits/${habit.id}/completions`, before.amount === null ? { date } : { date, amount: before.amount }), apply)
+            : commit('Undone', () => api.delete(`/api/habits/${habit.id}/completions/${date}`), (_, current) => ({ ...current, completions: current.completions.filter((c) => !(c.habitId === habit.id && c.date === date)) }))),
+        })
+      },
+      save(habit: Habit | null, fields: { name: string; days: number[]; unit: Habit['unit']; target: number; minimum: number | null; minutes?: number; goalId: string | null }) {
         if (habit) return commit('Habit saved', () => api.patch<Habit>(`/api/habits/${habit.id}`, fields), applyItem('habits'))
         return commit('Habit added', () => api.post<Habit>('/api/habits', createBody(fields)), applyItem('habits'))
       },

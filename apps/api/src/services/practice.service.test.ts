@@ -51,7 +51,8 @@ test('setup creates the goal, its checkpoints and the starter plan, once', () =>
 
 test('a planned activity is logged once a day; other practice adds up', () => {
   const activity = practiceService.createActivity({ area: 'speaking', title: 'Shadowing', minutes: 15, days: [3, 1] });
-  assert.deepEqual(activity.days, [1, 3]);
+  assert.deepEqual([activity.days, activity.tier], [[1, 3], 'standard']);
+  assert.equal(practiceService.createActivity({ area: 'words', title: 'Anki reviews', minutes: 20, tier: 'minimum' }).tier, 'minimum');
 
   const first = practiceService.logSession({ date: '2026-10-19', minutes: 15, activityId: activity.id });
   const again = practiceService.logSession({ date: '2026-10-19', minutes: 25, activityId: activity.id, note: 'Did extra' });

@@ -82,9 +82,10 @@ export const bookService = {
    * Record the page reached on a day. A book on the wish list or dropped is being read again, and
    * the first day logged is when reading started. If the book has a habit and the page moved
    * forward, the habit is done for that day; `completion` is set only when this call ticked it,
-   * so undoing the log can untick it.
+   * so undoing the log can untick it. A habit counted in pages also gets that day's pages read as
+   * its amount, kept up to date by later logs the same day; `tick` is the day's completion after it.
    */
-  log(bookId: string, input: LogReadingInput): { book: BookWithDetails; completion: HabitCompletion | null } | undefined {
+  log(bookId: string, input: LogReadingInput): { book: BookWithDetails; completion: HabitCompletion | null; tick: HabitCompletion | null } | undefined {
     const book = bookRepository.findById(bookId);
 
     if (!book) {
@@ -98,6 +99,7 @@ export const bookService = {
     const before = book.log.filter((entry) => entry.date < input.date).at(-1)?.page ?? 0;
     const now = new Date().toISOString();
     let completion: HabitCompletion | null = null;
+    let tick: HabitCompletion | null = null;
 
     db.transaction(() => {
       bookRepository.saveEntry({ id: randomUUID(), bookId, date: input.date, page: input.page, createdAt: now });
@@ -108,12 +110,15 @@ export const bookService = {
       if (Object.keys(changes).length) bookRepository.update(bookId, { ...changes, updatedAt: now });
 
       const habit = book.habitId ? habitRepository.findById(book.habitId) : undefined;
-      if (habit?.active && input.page > before && !habitRepository.findCompletion(habit.id, input.date)) {
-        completion = habitRepository.complete({ id: randomUUID(), habitId: habit.id, date: input.date, completedAt: now });
+      if (habit?.active && input.page > before) {
+        const amount = habit.unit === 'pages' ? input.page - before : null;
+        const existing = habitRepository.findCompletion(habit.id, input.date);
+        if (!existing) completion = tick = habitRepository.complete({ id: randomUUID(), habitId: habit.id, date: input.date, amount, completedAt: now });
+        else tick = habit.unit === 'pages' ? habitRepository.complete({ ...existing, amount }) : existing;
       }
     });
 
-    return { book: bookRepository.findById(bookId)!, completion };
+    return { book: bookRepository.findById(bookId)!, completion, tick };
   },
 
   unlog(bookId: string, date: string): BookWithDetails | undefined {
