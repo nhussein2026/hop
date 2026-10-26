@@ -9,27 +9,27 @@ How it works (details in [Development](DEVELOPMENT.md#versions-and-releases)):
 - Ideas that come up while a version is being built go to the Backlog, unless we agree to pull them into Next.
 - After a release, its items leave this file and the first version under Later becomes Next.
 
-## Next: v1.3.0 (by end of November)
+## Next: v1.3.0 (built, in review)
 
 | Item | Type | Spec | Status |
 | --- | --- | --- | --- |
-| Habit amounts and minimums: log 5 of 10 pages, a minimum per habit, a "never zero twice" warning, a clearer done state | feat | [Hop proposal A](proposals/2026-10-hop-improvements.md#a-habit-amounts-and-minimums) | Agreed 2026-10-24 |
-| Minimum day: a tier on each plan activity, built together with the habit minimums | feat | [Türkçe proposal C](proposals/2026-10-turkish-c1-measurement.md#c-minimum-day) | Agreed 2026-10-24 |
-| Radar: edit a find, a "To explore" shelf, a Website kind | feat | [Hop proposal B](proposals/2026-10-hop-improvements.md#b-radar-edit-to-explore-website) | Agreed 2026-10-24 |
-| Classes on Calendar and Today; any course, not only İTÜ. Live before TÖMER starts on 30 Nov | feat | [Hop proposal C](proposals/2026-10-hop-improvements.md#c-classes-on-the-calendar) | Agreed 2026-10-24 |
-| Week plan: timed habits, repeating work tasks with a tick per day, repeating events, Today → Your day, Calendar → Timetable | feat | [Week plan proposal](proposals/2026-10-week-plan.md) | Asked for 2026-10-26: "the schedule is not full". Version to confirm in the implementation chat; it shares the slot helper with classes. |
+| Radar: edit a find, a "To explore" shelf, a Website kind | feat | [Hop proposal B](proposals/2026-10-hop-improvements.md#b-radar-edit-to-explore-website) | Built 2026-10-26 on `feat/radar-edit-explore` |
+| Classes on Calendar and Today; any course, not only İTÜ. Live before TÖMER starts on 30 Nov | feat | [Hop proposal C](proposals/2026-10-hop-improvements.md#c-classes-on-the-calendar) | Built 2026-10-26 on `feat/classes-on-calendar` |
+| Habit amounts and minimums: log 5 of 10 pages, a minimum per habit, a "never zero twice" warning, a clearer done state | feat | [Hop proposal A](proposals/2026-10-hop-improvements.md#a-habit-amounts-and-minimums) | Built 2026-10-26 on `feat/habit-amounts` |
+| Minimum day: a tier on each plan activity, built together with the habit minimums | feat | [Türkçe proposal C](proposals/2026-10-turkish-c1-measurement.md#c-minimum-day) | Built 2026-10-26 on `feat/habit-amounts` |
 
-If v1.3.0 isn't finished by 26 Nov, release what is merged so that classes are live by 30 Nov.
+The three branches are stacked in that order, because two of them add migrations: merge them in that order. Released as soon as they're reviewed (decided 2026-10-26), not at the end of November.
 
 ## Later
 
 | Version | Item | Type | Spec |
 | --- | --- | --- | --- |
-| v1.4.0 (by mid-Dec) | Gates: each checkpoint's targets with ✓/✗, and a confirmation before passing with unmet targets | feat | [Türkçe proposal A](proposals/2026-10-turkish-c1-measurement.md#gates) |
-| v1.4.0 | Score targets for mock exams | feat | [Türkçe proposal D](proposals/2026-10-turkish-c1-measurement.md#d-score-targets) |
-| v1.4.0 | Error log: mistakes by category, recurring ones on Today, Anki export (moved from v1.3.0 on 2026-10-24) | feat | [Türkçe proposal B](proposals/2026-10-turkish-c1-measurement.md#b-error-log) |
-| v1.5.0 (January) | Ventures and project editing: Career or Venture, a progress log, a drawer that edits every field | feat | [Hop proposal D](proposals/2026-10-hop-improvements.md#d-ventures-and-project-editing) |
-| v1.5.0 | Job sources in Career: career sites to check every few weeks | feat | [Hop proposal E](proposals/2026-10-hop-improvements.md#e-job-sources) |
+| v1.4.0 (before 30 Nov, when the week changes phase) | Week plan: timed habits, repeating work tasks with a tick per day, repeating events, Today → Your day, Calendar → Timetable | feat | [Week plan proposal](proposals/2026-10-week-plan.md) |
+| v1.5.0 (by mid-Dec, before the B1 gate on 4 Jan) | Gates: each checkpoint's targets with ✓/✗, and a confirmation before passing with unmet targets | feat | [Türkçe proposal A](proposals/2026-10-turkish-c1-measurement.md#gates) |
+| v1.5.0 | Score targets for mock exams | feat | [Türkçe proposal D](proposals/2026-10-turkish-c1-measurement.md#d-score-targets) |
+| v1.5.0 | Error log: mistakes by category, recurring ones on Today, Anki export (moved from v1.3.0 on 2026-10-24) | feat | [Türkçe proposal B](proposals/2026-10-turkish-c1-measurement.md#b-error-log) |
+| v1.6.0 (January) | Ventures and project editing: Career or Venture, a progress log, a drawer that edits every field | feat | [Hop proposal D](proposals/2026-10-hop-improvements.md#d-ventures-and-project-editing) |
+| v1.6.0 | Job sources in Career: career sites to check every few weeks | feat | [Hop proposal E](proposals/2026-10-hop-improvements.md#e-job-sources) |
 
 ## Backlog
 

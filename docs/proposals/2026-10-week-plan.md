@@ -1,6 +1,6 @@
 # Proposal: Week Plan (Timed Habits, Repeating Work, Your Day, Timetable)
 
-Written 2026-10-26 in a planning chat. This is the hand-off to an implementation chat: context, the decisions already made, the design, acceptance criteria, what is deliberately not built, and the data to enter after the release. Read it whole before changing code. It builds on [Hop proposal A](2026-10-hop-improvements.md#a-habit-amounts-and-minimums) (habit amounts and minimums) and [Hop proposal C](2026-10-hop-improvements.md#c-classes-on-the-calendar) (classes on the Calendar), and it **absorbs [Hop proposal F](2026-10-hop-improvements.md#f-repeating-events)** (repeating events).
+Written 2026-10-26 in a planning chat. This is the hand-off to an implementation chat: context, the decisions already made, the design, acceptance criteria, what is deliberately not built, and the data to enter after the release. Read it whole before changing code. **Version: v1.4.0**, before 30 Nov (agreed 2026-10-26). It builds on [Hop proposal A](2026-10-hop-improvements.md#a-habit-amounts-and-minimums) (habit amounts and minimums) and [Hop proposal C](2026-10-hop-improvements.md#c-classes-on-the-calendar) (classes on the Calendar), and it **absorbs [Hop proposal F](2026-10-hop-improvements.md#f-repeating-events)** (repeating events).
 
 | # | Part | Size |
 | --- | --- | --- |

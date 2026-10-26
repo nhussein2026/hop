@@ -7,13 +7,13 @@ Written 2026-10-24 in a planning chat, from the user's note "Features to be add 
 | A | [Habit amounts and minimums](#a-habit-amounts-and-minimums): log how much you did, a minimum per habit, "never zero twice", a clearer done state | Items 2, 3 | **v1.3.0** | Medium (all layers, migration, backups) |
 | B | [Radar: edit, To explore, Website](#b-radar-edit-to-explore-website) | Items 1, 8 | **v1.3.0** | Small |
 | C | [Classes on the calendar](#c-classes-on-the-calendar): weekly class times on Calendar and Today, any course | Item 6 | **v1.3.0**, ready before 30 Nov | Small to medium |
-| D | [Ventures and project editing](#d-ventures-and-project-editing): a project kind, a progress log, a drawer that edits everything | Item 4 | v1.5.0 | Medium |
-| E | [Job sources](#e-job-sources): career sites you check again and again, in Career | Item 7 | v1.5.0 | Small to medium |
-| F | [Repeating events](#f-repeating-events): weekly meetings | Backlog | v1.5.0 | Small to medium |
+| D | [Ventures and project editing](#d-ventures-and-project-editing): a project kind, a progress log, a drawer that edits everything | Item 4 | v1.6.0 | Medium |
+| E | [Job sources](#e-job-sources): career sites you check again and again, in Career | Item 7 | v1.6.0 | Small to medium |
+| F | [Repeating events](#f-repeating-events): weekly meetings | Backlog | v1.4.0, in the [week plan](2026-10-week-plan.md#w4-repeating-events) | Small to medium |
 | G | [Citations and references](#g-citations-and-references), in the user's own method | Item 5 | Not set: needs a conversation first | Unknown |
 | — | [Not building](#not-building) | | Decided against | — |
 
-v1.3.0 also keeps [Minimum day](2026-10-turkish-c1-measurement.md#c-minimum-day) from the Türkçe proposal. It is built together with A so that "minimum" looks and behaves the same everywhere. The [Error log](2026-10-turkish-c1-measurement.md#b-error-log) moves from v1.3.0 to v1.4.0, next to Gates and Score targets. Until then the note "Türkçe: mistakes I keep making" does its job.
+v1.3.0 also keeps [Minimum day](2026-10-turkish-c1-measurement.md#c-minimum-day) from the Türkçe proposal. It is built together with A so that "minimum" looks and behaves the same everywhere. The [Error log](2026-10-turkish-c1-measurement.md#b-error-log) moves from v1.3.0 to v1.5.0, next to Gates and Score targets (versions renumbered on 2026-10-26, when the week plan became v1.4.0). Until then the note "Türkçe: mistakes I keep making" does its job.
 
 **Time cap.** Hop has no slot in the approved week (note "My week"). Claude builds; the user's own time on Hop (testing, deciding) stays around 1 hour a week, taken from the Sunday buffer, never from Turkish time. If v1.3.0 is not finished by 26 Nov, release what is merged so that C is live before TÖMER starts on 30 Nov.
 
@@ -263,7 +263,8 @@ Done by the user (or together in a chat), not by code:
   - Save note.com in Radar → To explore, and retire the "To Explore" note.
   - Fix the Microsoft find's title.
   - Add TÖMER (from 30 Nov) and BrewHaus (until 31 Dec) as courses with their class times.
-- **v1.5.0:**
+- **v1.4.0 (week plan):**
+  - Add Kaleem's Wed and Sun meetings as one repeating event (the week plan's set-up list has the rest).
+- **v1.6.0:**
   - Set Sefer-Cashier and Wifine (and Mawaheb if it fits) to Venture.
   - Move the four career platforms from Radar to job sources.
-  - Add Kaleem's Wed and Sun meetings as one repeating event.
