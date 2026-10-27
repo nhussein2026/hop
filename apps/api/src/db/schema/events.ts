@@ -1,6 +1,7 @@
 import { sqliteTable, text } from 'drizzle-orm/sqlite-core';
 
 import { EVENT_TYPES } from '@hop/domain';
+import type { TimeSlot } from '@hop/domain';
 
 export const events = sqliteTable('events', {
   id: text('id').primaryKey(),
@@ -13,6 +14,8 @@ export const events = sqliteTable('events', {
   goalId: text('goal_id'),
   projectId: text('project_id'),
   opportunityId: text('opportunity_id'),
+  repeat: text('repeat', { mode: 'json' }).$type<TimeSlot[]>(),
+  skips: text('skips', { mode: 'json' }).$type<string[]>().notNull().default([]),
   createdAt: text('created_at').notNull(),
   updatedAt: text('updated_at').notNull(),
 });

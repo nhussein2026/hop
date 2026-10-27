@@ -3,6 +3,7 @@ import type {
   ISODate,
   ISODateTime,
 } from './common.js';
+import type { TimeSlot } from './schedule.js';
 
 export const TASK_STATUSES = [
   'todo',
@@ -78,10 +79,27 @@ export interface Task {
    */
   estimatedMinutes: number | null;
 
+  /**
+   * Work that happens at set times every week (Veribir Mon–Fri 13:30–16:00) is one task with
+   * these slots, ticked once per occurrence. Null for an ordinary task. A repeating task has no
+   * scheduled or due date; it stays open while the series runs.
+   */
+  repeat: TimeSlot[] | null;
+
   completedAt: ISODateTime | null;
 
   createdAt: ISODateTime;
   updatedAt: ISODateTime;
+}
+
+/** One occurrence of a repeating task, ticked done or skipped ("Veribir had no tasks today"). */
+export interface TaskCompletion {
+  id: EntityId;
+  taskId: EntityId;
+  date: ISODate;
+  /** Skipped counts as neither done nor missed. */
+  skipped: boolean;
+  completedAt: ISODateTime;
 }
 
 /**
@@ -108,6 +126,7 @@ export interface CreateTaskInput {
   dueDate?: ISODate;
 
   estimatedMinutes?: number;
+  repeat?: TimeSlot[] | null;
 }
 
 /**
@@ -134,4 +153,6 @@ export interface UpdateTaskInput {
   dueDate?: ISODate | null;
 
   estimatedMinutes?: number | null;
+
+  repeat?: TimeSlot[] | null;
 }

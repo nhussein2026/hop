@@ -6,6 +6,7 @@ import {
 } from '@hop/domain';
 
 import { dateSchema, entityIdSchema } from './common.js';
+import { timeSlotsSchema } from './schedule.js';
 
 const titleSchema = z
   .string()
@@ -41,9 +42,19 @@ function validateTaskDates(
   value: {
     scheduledDate?: string | null | undefined;
     dueDate?: string | null | undefined;
+    repeat?: unknown[] | null | undefined;
   },
   ctx: z.RefinementCtx,
 ) {
+  // A repeating task happens at its times every week; a single date would contradict them.
+  if (value.repeat && (value.scheduledDate || value.dueDate)) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['repeat'],
+      message: 'A repeating task has its times instead of a date',
+    });
+  }
+
   if (
     value.scheduledDate &&
     value.dueDate &&
@@ -77,6 +88,8 @@ export const createTaskSchema = z
     dueDate: dateSchema.optional(),
 
     estimatedMinutes: estimatedMinutesSchema.optional(),
+
+    repeat: timeSlotsSchema.min(1, 'Add at least one time').nullable().optional(),
   })
   .strict()
   .superRefine(validateTaskDates);
@@ -102,6 +115,16 @@ export const updateTaskSchema = z
 
     estimatedMinutes:
       estimatedMinutesSchema.nullable().optional(),
+
+    repeat: timeSlotsSchema.min(1, 'Add at least one time').nullable().optional(),
   })
   .strict()
   .superRefine(validateTaskDates);
+
+/** Tick one occurrence of a repeating task done, or skip it. Ticking again replaces it. */
+export const taskOccurrenceSchema = z
+  .object({
+    date: dateSchema,
+    skipped: z.boolean().optional(),
+  })
+  .strict();

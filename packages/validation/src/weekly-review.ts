@@ -8,6 +8,9 @@ const rating = z.number().int().min(1).max(5).nullable().optional();
 const count = z.number().int().min(0);
 const titles = z.array(z.string().max(200)).max(200);
 
+/** Repeating work per task: occurrences done, skipped and missed. */
+export const workFactsSchema = z.array(z.object({ title: z.string().max(200), done: count, skipped: count, missed: count }).strict()).max(50);
+
 const weekFactsSchema = z.object({
   tasks: count,
   habitsPct: z.number().int().min(0).max(100),
@@ -17,6 +20,7 @@ const weekFactsSchema = z.object({
   interviews: count,
   shipped: titles,
   evidence: titles,
+  work: workFactsSchema.optional(),
 }).strict();
 
 const reviewFields = {

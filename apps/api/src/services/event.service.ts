@@ -22,6 +22,8 @@ export const eventService = {
       goalId: input.goalId ?? null,
       projectId: input.projectId ?? null,
       opportunityId: input.opportunityId ?? null,
+      repeat: input.repeat?.length ? input.repeat : null,
+      skips: input.skips ?? [],
       createdAt: now,
       updatedAt: now,
     };
@@ -36,7 +38,13 @@ export const eventService = {
 
     return eventRepository.update(id, {
       ...input,
+      ...(input.repeat !== undefined ? { repeat: input.repeat?.length ? input.repeat : null } : {}),
       updatedAt: new Date().toISOString(),
     });
+  },
+
+  /** A repeating event goes with all its occurrences. */
+  delete(id: string): boolean {
+    return eventRepository.delete(id);
   },
 };

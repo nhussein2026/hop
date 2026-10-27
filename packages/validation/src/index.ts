@@ -17,6 +17,7 @@ export * from './project.js';
 export * from './radar.js';
 export * from './reflection.js';
 export * from './resume.js';
+export * from './schedule.js';
 export * from './settings.js';
 export * from './skill.js';
 export * from './task.js';

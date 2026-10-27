@@ -46,6 +46,7 @@ import {
   resumes,
   settings,
   skills,
+  taskCompletions,
   tasks,
   weeklyReviews,
 } from '../db/schema/index.js';
@@ -53,6 +54,7 @@ import {
 const tables = {
   goals,
   tasks,
+  taskCompletions,
   habits,
   habitCompletions,
   events,

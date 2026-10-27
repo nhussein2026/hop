@@ -14,6 +14,15 @@ export interface WeekFacts {
   interviews: number;
   shipped: string[];
   evidence: string[];
+  /** Repeating work, per task: occurrences done, skipped and missed. Missing from reviews before v1.4.0. */
+  work?: WorkFacts[];
+}
+
+export interface WorkFacts {
+  title: string;
+  done: number;
+  skipped: number;
+  missed: number;
 }
 
 export interface WeeklyReview {

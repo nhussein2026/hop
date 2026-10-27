@@ -1,3 +1,4 @@
+import type { WorkFacts } from './weekly-review.js';
 import type { EntityId, ISODate, ISODateTime } from './common.js';
 import type { GoalArea } from './goal.js';
 
@@ -29,6 +30,8 @@ export interface MonthFacts {
   evidence: string[];
   /** Areas with an active goal but no recorded activity this month. */
   neglectedAreas: GoalArea[];
+  /** Repeating work, per task. Missing from reviews before v1.4.0. */
+  work?: WorkFacts[];
 }
 
 export interface MonthlyReview {
