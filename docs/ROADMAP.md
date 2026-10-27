@@ -52,5 +52,11 @@ Not assigned to a version. Each one needs a conversation before it moves up.
 | Citations and references, in your own method (not Zotero) | feat | [Hop proposal G](proposals/2026-10-hop-improvements.md#g-citations-and-references). Needs a conversation about your method first; the questions are in the proposal. |
 | Long dialogs scroll in two places, so buttons move under the pointer | fix | Seen in Save a find and Add course while testing v1.3.0; the evidence editor item above is the same problem. One scrollbar for every dialog. |
 | "Next: Practicum sunday at 13:00" on Today's Classes today | fix | Should read "on Sunday at 13:00". Found testing v1.3.0. |
-| Course form: hide İTÜ-only parts (final eligibility, VF) for other providers, and fix the clock icon overlapping the end time in class rows | fix | Found testing v1.3.0. |
+| Course form: hide İTÜ-only parts (final eligibility, VF) for other providers | fix | Found testing v1.3.0. The clock icon overlapping the end time is fixed in v1.4.0. |
 | Courses from TÖMER or a practicum live under İTÜ → Courses, labelled "This term" | fix | Decide where non-İTÜ courses belong. Found testing v1.3.0. |
+| Course class days stop at Saturday: no Sunday in the day picker, though the API accepts it | fix | The BrewHaus session (Sundays 13:00–15:00) can't be added as a course from the form. Found 2026-10-27 entering the week. |
+| A course you're taking with no dates and no term shows its classes every week, forever | fix | "Digital Circuits" (no term, no dates) puts a Mon 09:30–12:30 class on every Monday and on Today's "Next". Proposal C expects a hint, not endless classes. Both İTÜ courses also still carry that fake slot from the old form bug; removing it is the user's call. |
+| Habit form: changing "Counted in" keeps the old number | fix | Minutes → pages turned "30 min" into "30 pages"; minutes → times into "30 times". Suggest resetting to the unit's usual default, or asking. |
+| Plan → Habits shows a habit's minimum only on days it's scheduled | fix | Profile, Football and Family have minimums saved, but their rows show only the target on other days. |
+| "Timeline only" habits: meals, rides and free time show in Your day and the Timetable but don't count as habits or trigger "missed last time" | feat | Found testing v1.4.0: entered as ordinary habits they count in Today's Habits total and warn when not ticked. Until then, leave them out of Hop's habits. |
+| Your day's "to go" counts done and skipped blocks | fix | Found testing v1.4.0: "12 blocks, 12 to go" after ticking the first. |
