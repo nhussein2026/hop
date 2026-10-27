@@ -270,6 +270,9 @@ a.find-title:hover { text-decoration: underline; }
 .slot-list { display: grid; gap: var(--s-2); }
 .slot-row { display: grid; grid-template-columns: minmax(90px, 1fr) minmax(90px, 1fr) minmax(90px, 1fr) minmax(110px, 1.4fr) auto; gap: var(--s-2); align-items: end; }
 .slot-row .icon-btn { margin-bottom: 4px; }
+/* A time input's own width (with its clock icon) can't push into the next column. */
+.slot-row .input, .slot-row .select { width: 100%; min-width: 0; }
+.time-slot .slot-row { grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr) minmax(0, 1.2fr) auto auto; }
 /* Weekly times on habits, repeating tasks and events: the dates line sits under its row. */
 .time-slot { display: grid; gap: var(--s-2); }
 .time-slot .slot-row > .btn { margin-bottom: 4px; justify-self: start; }

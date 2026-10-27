@@ -13,7 +13,8 @@ import { Icon } from '../components/Icon.tsx'
 import { useActions } from '../store/actions.ts'
 import { useHop } from '../store/store.ts'
 
-const KIND_ICON: Record<DayBlock['kind'], [string, string]> = { class: ['school', 'Class'], event: ['calendar', 'Event'], work: ['check', 'Work'], habit: ['leaf', 'Habit'] }
+// Work gets a briefcase, not a tick: a tick would read as already done.
+const KIND_ICON: Record<DayBlock['kind'], [string, string]> = { class: ['school', 'Class'], event: ['calendar', 'Event'], work: ['career', 'Work'], habit: ['leaf', 'Habit'] }
 
 /** The current time as HH:MM, updated every minute so "Now" moves on its own. */
 function useNow() {

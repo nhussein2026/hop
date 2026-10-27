@@ -3,7 +3,7 @@ import { useState } from 'react'
 import type { ReactNode } from 'react'
 import * as D from '../lib/dates.ts'
 import { slotsLabel, slotsOn } from '../lib/schedule.ts'
-import { STAGE_LABEL, STAGES, agendaHref, agendaLabel, daysLabel, habitAmount, habitDue, habitState, habitUnits, habitWeek, isRepeating, targetOn, workBetween, isClosed, nextEvent, oppHealth, orgOf, placeOf, rank } from '../lib/rules.ts'
+import { STAGE_LABEL, STAGES, agendaHref, agendaLabel, daysLabel, habitAmount, habitDue, habitState, habitUnits, habitWeek, isRepeating, plural, targetOn, workBetween, isClosed, nextEvent, oppHealth, orgOf, placeOf, rank } from '../lib/rules.ts'
 import type { AgendaItem, AttentionItem, WorkState } from '../lib/rules.ts'
 import type { Habit, Opportunity, Task } from '../lib/types.ts'
 import { navigate } from '../lib/router.ts'
@@ -155,7 +155,7 @@ export function HabitRow({ habit, hideGoal, manage }: { habit: Habit; hideGoal?:
           ))}
         </span>
         <span className="xs muted num" title={week.scheduled ? `${week.rate}% of scheduled days in the last 4 weeks${week.minimum ? `, ${week.minimum} of them at the minimum` : ''}` : undefined}>
-          {week.scheduled ? `${week.done} of ${week.scheduled} days kept` : 'New: no full day yet'}
+          {week.scheduled ? `${week.done} of ${plural(week.scheduled, 'day')} kept` : 'New: no full day yet'}
         </span>
       </div>
       {manage && (

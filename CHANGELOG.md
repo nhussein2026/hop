@@ -6,6 +6,15 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Ver
 
 ## [Unreleased]
 
+### Added
+
+- **Your day** on Today: everything timed today in time order (classes, meetings, work hours, timed habits). The block on now is highlighted with when it ends, earlier ones fold away behind "Show earlier", overlapping blocks share a row, and gaps of 30 minutes or more show as free time. Work and habits are ticked right there.
+- Timed habits: give a habit times of day, each only between two dates if you like, so one habit can change times when your week changes. Its days follow from the times, and a habit counted in minutes is as long as that day's times (3 h on Saturday, 50 min on a weekday).
+- Repeating work: a task can repeat every week at set times (Veribir Mon–Fri 13:30–16:00). Each day is ticked done or skipped on its own; a day not ticked is history, never overdue, and doesn't move to the next day. Plan → Tasks has a **Repeating** list, and weekly and monthly reviews show each one's days done, skipped and missed.
+- Repeating events: an event can repeat every week with its own time on each day (Wednesday 19:30, Sunday 21:15), and one date can be skipped.
+- Events can now be opened from the Calendar to edit or delete. There is a **Meeting** type.
+- Calendar → Week → **Timetable**: the week as an hour grid, coloured by class, event, work and habit, with untimed things above. On a phone it shows one day at a time. The choice is remembered on each device.
+
 ## [1.3.0] - 2026-10-26
 
 ### Added

@@ -72,7 +72,7 @@ export const AGENDA_META: Record<string, [string, string, string]> = {
   exam: ['file', 'Exam', 'warning'],
   coursework: ['school', 'Coursework', 'primary'],
   class: ['school', 'Class', 'info'],
-  work: ['check', 'Work', 'primary'],
+  work: ['career', 'Work', 'primary'],
   uni: ['school', 'İTÜ calendar', ''],
   loan: ['library', 'Library return', 'warning'],
   renewal: ['refresh', 'Renewal', ''],

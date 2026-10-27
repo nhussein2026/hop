@@ -71,3 +71,42 @@ export function dayRows(blocks: DayBlock[]): DayRow[] {
   })
   return rows
 }
+
+const timeOfMinutes = (minutes: number) => `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`
+
+/** On a timetable an event with no end still takes this long, so it can be seen and clicked. */
+export const POINT_MINUTES = 15
+
+/**
+ * Lanes for one day column of a timetable: blocks that overlap sit side by side, each as wide as
+ * its cluster of overlapping blocks allows.
+ */
+export function timetableLanes(blocks: DayBlock[]) {
+  const out: { block: DayBlock; lane: number; lanes: number }[] = []
+  let cluster: typeof out = []
+  let laneEnds: string[] = []
+  let clusterEnd = ''
+  const flush = () => {
+    for (const item of cluster) item.lanes = laneEnds.length
+    cluster = []
+    laneEnds = []
+    clusterEnd = ''
+  }
+  for (const block of [...blocks].sort((a, b) => a.start.localeCompare(b.start))) {
+    const end = block.end > block.start ? block.end : timeOfMinutes(Math.min(24 * 60, minutesOf(block.start) + POINT_MINUTES))
+    if (cluster.length && block.start >= clusterEnd) flush()
+    let lane = laneEnds.findIndex((laneEnd) => laneEnd <= block.start)
+    if (lane === -1) {
+      lane = laneEnds.length
+      laneEnds.push(end)
+    } else {
+      laneEnds[lane] = end
+    }
+    const item = { block, lane, lanes: 1 }
+    cluster.push(item)
+    out.push(item)
+    if (end > clusterEnd) clusterEnd = end
+  }
+  flush()
+  return out
+}

@@ -1,7 +1,7 @@
 // Calendar: Hop's own data laid out by day. A month or week at a glance (events, classes, tasks open
 // and done, application deadlines, opportunity steps, milestones), and the chosen day in full beside
 // it, with that day's habits. Routes: #/calendar[/month|week[/YYYY-MM-DD]].
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { KeyboardEvent } from 'react'
 import * as D from '../lib/dates.ts'
 import { agendaItems, habitAmount, habitDue, habitState, habitUnits, targetOn } from '../lib/rules.ts'
@@ -14,8 +14,20 @@ import { Icon } from '../components/Icon.tsx'
 import { AgendaRow, HabitRow, TaskRow, WorkRow } from '../components/rows.tsx'
 import { Empty, Segmented } from '../components/ui.tsx'
 import { useHop } from '../store/store.ts'
+import { Timetable } from './Timetable.tsx'
 
 type View = 'month' | 'week'
+type WeekMode = 'list' | 'timetable'
+
+/** The week view's mode is remembered on this device only; storage may be unavailable. */
+const WEEK_MODE_KEY = 'hop.calendar.weekMode'
+function storedWeekMode(): WeekMode {
+  try {
+    return localStorage.getItem(WEEK_MODE_KEY) === 'timetable' ? 'timetable' : 'list'
+  } catch {
+    return 'list'
+  }
+}
 
 const isDate = (value: string | undefined): value is string => Boolean(value && /^\d{4}-\d{2}-\d{2}$/.test(value) && !Number.isNaN(Date.parse(value)))
 const href = (view: View, date: string) => `#/calendar/${view}/${date}`
@@ -41,6 +53,12 @@ export function Calendar({ route }: { route: Route }) {
   const selected = isDate(route.params[1]) ? route.params[1] : today
   const weekStart = data.settings.weekStart
   const filter = ui.agendaFilter
+  const [weekMode, setWeekModeState] = useState<WeekMode>(storedWeekMode)
+  const timetable = view === 'week' && weekMode === 'timetable'
+  function setWeekMode(mode: WeekMode) {
+    setWeekModeState(mode)
+    try { localStorage.setItem(WEEK_MODE_KEY, mode) } catch { /* Not remembered; it still switches. */ }
+  }
 
   // The visible range: whole weeks covering the month, or the one week.
   const first = view === 'month' ? D.startOfWeek(D.startOfMonth(selected), weekStart) : D.startOfWeek(selected, weekStart)
@@ -83,14 +101,26 @@ export function Calendar({ route }: { route: Route }) {
           <h2 aria-live="polite" className="cal-title">{title}</h2>
           {(selected !== today || !days.includes(today)) && <button className="btn btn-sm" onClick={() => navigate(href(view, today))} type="button">Today</button>}
         </div>
-        <Segmented label={<span className="visually-hidden">View</span>} name="cal-view" onChange={(value) => navigate(href(value as View, selected))} options={[['month', 'Month'], ['week', 'Week']]} small value={view} />
+        <div className="btn-row">
+          {view === 'week' && <Segmented label={<span className="visually-hidden">Week as</span>} name="cal-week-mode" onChange={(value) => setWeekMode(value as WeekMode)} options={[['list', 'List'], ['timetable', 'Timetable']]} small value={weekMode} />}
+          <Segmented label={<span className="visually-hidden">View</span>} name="cal-view" onChange={(value) => navigate(href(value as View, selected))} options={[['month', 'Month'], ['week', 'Week']]} small value={view} />
+        </div>
       </div>
       <div aria-label="Show" className="chips" role="group">{chip('all', 'Everything')}{chip('dated', 'Events and deadlines')}{chip('classes', 'Classes')}{chip('tasks', 'Tasks')}</div>
 
-      <div className="cal-layout">
-        <CalendarGrid byDay={byDay} days={days} month={view === 'month' ? selected.slice(0, 7) : null} onSelect={(date) => navigate(href(view, date))} selected={selected} today={today} />
-        <DayPanel date={selected} items={byDay.get(selected) ?? []} today={today} />
-      </div>
+      {timetable
+        ? (
+          <div className="cal-timetable">
+            <Timetable days={days} onSelect={(date) => navigate(href(view, date))} selected={selected} untimed={new Map(days.map((d) => [d, (byDay.get(d) ?? []).filter((item) => !item.time)]))} />
+            <DayPanel date={selected} items={byDay.get(selected) ?? []} today={today} />
+          </div>
+        )
+        : (
+          <div className="cal-layout">
+            <CalendarGrid byDay={byDay} days={days} month={view === 'month' ? selected.slice(0, 7) : null} onSelect={(date) => navigate(href(view, date))} selected={selected} today={today} />
+            <DayPanel date={selected} items={byDay.get(selected) ?? []} today={today} />
+          </div>
+        )}
     </div>
   )
 }

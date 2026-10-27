@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { setTimezone } from './dates.ts'
-import { dayBlocks, dayRows, isTrackHabit } from './day.ts'
+import { dayBlocks, dayRows, isTrackHabit, timetableLanes } from './day.ts'
 import type { DayBlock } from './day.ts'
 import type { Event, Habit, HopData, Task } from './types.ts'
 
@@ -47,4 +47,10 @@ test('overlapping blocks share a row and a gap of 30 minutes or more is free tim
   ])
   // A 15-minute gap is not worth calling free.
   assert.equal(dayRows([block('12:45', '13:30'), block('13:45', '16:00')]).filter((r) => r.kind === 'free').length, 0)
+})
+
+test('on a timetable, overlapping blocks share their width; the rest take the whole column', () => {
+  const lanes = timetableLanes([block('19:00', '20:45', 'Türkçe'), block('19:30', '20:30', 'Kaleem'), block('21:00', '21:30', 'Fundamentals'), block('21:00', '21:00', 'Call')])
+  assert.deepEqual(lanes.map((l) => `${l.block.title} ${l.lane}/${l.lanes}`), ['Türkçe 0/2', 'Kaleem 1/2', 'Fundamentals 0/2', 'Call 1/2'])
+  assert.deepEqual(timetableLanes([block('09:00', '10:00')]).map((l) => l.lanes), [1])
 })
