@@ -2,9 +2,9 @@
 // consequential ones are confirmed by the screen before they get here.
 import { useMemo } from 'react'
 import * as D from '../lib/dates.ts'
-import { STAGE_LABEL, habitUnits, isOverdue } from '../lib/rules.ts'
+import { STAGE_LABEL, habitUnits, isOverdue, targetOn } from '../lib/rules.ts'
 import type {
-  Contact, Event, Evidence, EvidenceKind, Goal, GoalArea, GoalCriterion, GoalStatus, Habit, HabitCompletion, HopData, Interaction, Milestone,
+  Contact, Event, Evidence, EvidenceKind, Goal, GoalArea, GoalCriterion, GoalStatus, Habit, HabitCompletion, HopData, Interaction, Milestone, TaskCompletion,
   Opportunity, OpportunityActivity, OpportunityActivityType, OpportunityStage, Project, ProjectStatus, Reflection, Resume, Settings,
   MonthFacts, MonthlyReview, Skill, SkillFocus, SkillType, Task, TaskPriority, WeekFacts, WeeklyReview,
 } from '../lib/types.ts'
@@ -36,6 +36,7 @@ export type TaskFields = {
   assessmentId?: string | null
   estimatedMinutes?: number | null
   description?: string | null
+  repeat?: Task['repeat']
 }
 
 /** The create endpoint takes optional fields, not nulls. */
@@ -100,7 +101,7 @@ export function useActions() {
       /** Log how much was done on a day; logging again replaces it. Undo puts back what was there. */
       log(habit: Habit, amount: number, date = D.today()) {
         const before = data.completions.find((c) => c.habitId === habit.id && c.date === date)
-        const label = `Logged ${habitUnits(habit, amount)}${amount >= habit.target ? '. Done for today.' : habit.minimum !== null && amount >= habit.minimum ? '. Minimum kept.' : '. Every bit counts.'}`
+        const label = `Logged ${habitUnits(habit, amount)}${amount >= targetOn(habit, date) ? '. Done for today.' : habit.minimum !== null && amount >= habit.minimum ? '. Minimum kept.' : '. Every bit counts.'}`
         const apply = (completion: HabitCompletion, current: HopData) => ({ ...current, completions: [...current.completions.filter((c) => c.id !== completion.id && !(c.habitId === habit.id && c.date === date)), completion] })
         return commit(label, () => api.post<HabitCompletion>(`/api/habits/${habit.id}/completions`, { date, amount }), apply, {
           undo: () => void (before
@@ -108,7 +109,7 @@ export function useActions() {
             : commit('Undone', () => api.delete(`/api/habits/${habit.id}/completions/${date}`), (_, current) => ({ ...current, completions: current.completions.filter((c) => !(c.habitId === habit.id && c.date === date)) }))),
         })
       },
-      save(habit: Habit | null, fields: { name: string; days: number[]; unit: Habit['unit']; target: number; minimum: number | null; minutes?: number; goalId: string | null }) {
+      save(habit: Habit | null, fields: { name: string; days: number[]; unit: Habit['unit']; target: number; minimum: number | null; minutes?: number; slots: Habit['slots']; goalId: string | null }) {
         if (habit) return commit('Habit saved', () => api.patch<Habit>(`/api/habits/${habit.id}`, fields), applyItem('habits'))
         return commit('Habit added', () => api.post<Habit>('/api/habits', createBody(fields)), applyItem('habits'))
       },
@@ -261,7 +262,7 @@ export function useActions() {
 
     const plan = {
       /** An interview linked to an opportunity also becomes its next step and a timeline entry. */
-      addEvent(fields: { title: string; date: string; startTime: string; endTime?: string | null; description?: string | null; type: Event['type']; opportunityId: string | null }) {
+      addEvent(fields: { title: string; date: string; startTime: string; endTime?: string | null; description?: string | null; type: Event['type']; opportunityId: string | null; repeat?: Event['repeat'] }) {
         return commit('Event added', async () => {
           const event = await api.post<Event>('/api/events', createBody(fields))
           const o = fields.opportunityId ? data.opportunities.find((x) => x.id === fields.opportunityId) : undefined
@@ -273,6 +274,34 @@ export function useActions() {
           const next = upsert(current, 'events', event)
           return o ? upsert(next, 'opportunities', o) : next
         })
+      },
+      updateEvent(event: Event, changes: Partial<Event>) {
+        return commit('Event saved', () => api.patch<Event>(`/api/events/${event.id}`, changes), applyItem('events'))
+      },
+      /** A repeating event goes with all its occurrences. */
+      removeEvent(event: Event) {
+        return commit(event.repeat ? 'Event and all its dates deleted' : 'Event deleted', () => api.delete(`/api/events/${event.id}`), (_, current) => without(current, 'events', event.id))
+      },
+      /** Skip one date of a repeating event; the rest of the series stays. */
+      skipEvent(event: Event, date: string) {
+        return commit(`Skipped ${D.withDay(date)}`, () => api.patch<Event>(`/api/events/${event.id}`, { skips: [...event.skips, date] }), applyItem('events'), {
+          undo: () => void commit('Undone', () => api.patch<Event>(`/api/events/${event.id}`, { skips: event.skips }), applyItem('events')),
+        })
+      },
+    }
+
+    /** Repeating work: each occurrence is ticked done or skipped on its own; undo removes the tick. */
+    const work = {
+      tick(task: Task, date: string, skipped = false) {
+        const apply = (completion: TaskCompletion, current: HopData) => ({ ...current, taskCompletions: [...current.taskCompletions.filter((c) => !(c.taskId === task.id && c.date === date)), completion] })
+        return commit(skipped ? `${task.title}: skipped ${D.withDay(date)}` : `${task.title}: done`, () => api.post<TaskCompletion>(`/api/tasks/${task.id}/occurrences`, { date, skipped }), apply, {
+          undo: () => void work.untick(task, date, true),
+        })
+      },
+      untick(task: Task, date: string, quiet = false) {
+        return commit('Marked as not done', () => api.delete(`/api/tasks/${task.id}/occurrences/${date}`), (_, current) => ({
+          ...current, taskCompletions: current.taskCompletions.filter((c) => !(c.taskId === task.id && c.date === date)),
+        }), { quiet })
       },
     }
 
@@ -323,7 +352,7 @@ export function useActions() {
       },
     }
 
-    return { tasks, habits, goals, milestones, opportunities, career, growth, plan, review, settings }
+    return { tasks, work, habits, goals, milestones, opportunities, career, growth, plan, review, settings }
   }, [commit, update, data])
 }
 

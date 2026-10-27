@@ -1,8 +1,9 @@
 // Hop's rules as pure functions: (data, today, settings) → what to show.
 // Raw facts are stored; health, follow-ups, overdue and progress are derived here.
 import * as D from './dates.ts'
+import { minutesOn, occurrences, slotOn } from './schedule.ts'
 import { GOAL_AREAS } from '@hop/domain'
-import type { Account, Book, Course, Goal, Habit, HabitCompletion, HopData, KeyDate, MonthFacts, MonthlyReview, Opportunity, OpportunityStage, Task, WeekFacts } from './types.ts'
+import type { Account, Book, Course, Event, Goal, Habit, HabitCompletion, HopData, KeyDate, MonthFacts, MonthlyReview, Opportunity, OpportunityStage, Task, WeekFacts, WorkFacts } from './types.ts'
 import { classesBetween, dueTime, eligibility, isPending, isExam, satInClass, taking, unsubmitted, upcoming, whenWord } from './uni.ts'
 import { AGENDA_META, BOOK_STATUS_LABEL, FIND_KINDS, FIND_STATUS_LABEL, IDEA_STAGE_LABEL, RESOURCE_KINDS } from './labels.ts'
 import { LOAN_NOTICE_DAYS, loanState, openLoan } from './books.ts'
@@ -111,14 +112,27 @@ export function goalHealth(g: Goal, s: Pick<HopData, 'tasks' | 'settings' | 'pra
 }
 
 /* ---- Habits ------------------------------------------------------------------ */
-export const habitDue = (h: Habit, ymd: string) => h.active && h.days.includes(D.weekday(ymd))
+/** Does the habit happen on this date? A timed habit follows its times and their dates; an untimed one its days. */
+export const habitScheduledOn = (h: Pick<Habit, 'days' | 'slots'>, ymd: string) =>
+  h.slots.length ? h.slots.some((slot) => slotOn(slot, ymd)) : h.days.includes(D.weekday(ymd))
 
-type HabitTarget = Pick<Habit, 'id' | 'target' | 'minimum'>
+export const habitDue = (h: Habit, ymd: string) => h.active && habitScheduledOn(h, ymd)
+
+/**
+ * A day's target. A timed habit counted in minutes is as long as that day's times (Mawaheb: 3 h on
+ * Saturday, 50 min on a weekday); every other habit has one target.
+ */
+export function targetOn(h: Pick<Habit, 'unit' | 'target' | 'slots'>, ymd: string) {
+  const timed = h.unit === 'minutes' && h.slots.length ? minutesOn(h.slots, ymd) : 0
+  return timed || h.target
+}
+
+type HabitTarget = Pick<Habit, 'id' | 'target' | 'minimum' | 'unit' | 'slots'>
 
 /** How much was logged on a day. A tick without an amount (one tap, or from before amounts) is the whole target. */
 export function habitAmount(h: HabitTarget, completions: HabitCompletion[], ymd: string) {
   const c = completions.find((x) => x.habitId === h.id && x.date === ymd)
-  return c ? c.amount ?? h.target : 0
+  return c ? c.amount ?? targetOn(h, ymd) : 0
 }
 
 /** Done: the target. Minimum: at least the minimum. Some: anything less. None: nothing logged. */
@@ -127,7 +141,7 @@ export type HabitState = 'done' | 'minimum' | 'some' | 'none'
 export function habitState(h: HabitTarget, completions: HabitCompletion[], ymd: string): HabitState {
   const amount = habitAmount(h, completions, ymd)
   if (!amount) return 'none'
-  if (amount >= h.target) return 'done'
+  if (amount >= targetOn(h, ymd)) return 'done'
   return h.minimum !== null && amount >= h.minimum ? 'minimum' : 'some'
 }
 
@@ -148,7 +162,7 @@ export const habitUnits = (h: Pick<Habit, 'unit'>, n: number) => (h.unit === 'mi
 function habitCounts(h: Habit, completions: HabitCompletion[], ymd: string, today: string) {
   const state = habitState(h, completions, ymd)
   const kept = state === 'done' || state === 'minimum'
-  const counts = h.days.includes(D.weekday(ymd)) && (kept || (state === 'some' && ymd < today) || (ymd >= D.ymdOf(h.createdAt) && ymd < today))
+  const counts = habitScheduledOn(h, ymd) && (kept || (state === 'some' && ymd < today) || (ymd >= D.ymdOf(h.createdAt) && ymd < today))
   return { kept, minimum: state === 'minimum', counts }
 }
 
@@ -161,7 +175,7 @@ export function habitWeek(h: Habit, completions: HabitCompletion[], today: strin
   const days = []
   for (let i = 6; i >= 0; i--) {
     const ymd = D.addDays(today, -i)
-    const due = h.days.includes(D.weekday(ymd)) && ymd >= D.ymdOf(h.createdAt)
+    const due = habitScheduledOn(h, ymd) && ymd >= D.ymdOf(h.createdAt)
     days.push({ date: ymd, due, state: habitState(h, completions, ymd), isToday: i === 0 })
   }
   let kept = 0
@@ -187,7 +201,7 @@ export function zeroLastTime(h: Habit, completions: HabitCompletion[], today: st
   for (let i = 1; i <= 14; i++) {
     const ymd = D.addDays(today, -i)
     if (ymd < created) return false
-    if (h.days.includes(D.weekday(ymd))) return !habitAmount(h, completions, ymd)
+    if (habitScheduledOn(h, ymd)) return !habitAmount(h, completions, ymd)
   }
   return false
 }
@@ -225,9 +239,62 @@ export function sortTasks(list: Task[]) {
  */
 export function nextForGoal(goalId: string, tasks: Task[], skipped: string[] = []) {
   const open = tasks
-    .filter((t) => t.goalId === goalId && isOpen(t))
+    .filter((t) => t.goalId === goalId && isOpen(t) && !isRepeating(t))
     .sort((a, b) => PRIORITY[a.priority] - PRIORITY[b.priority] || (a.scheduledDate ?? '9999').localeCompare(b.scheduledDate ?? '9999') || a.createdAt.localeCompare(b.createdAt))
   return { next: open.find((t) => !skipped.includes(t.id)) ?? open[0], open: open.length }
+}
+
+/* ---- Repeating work and repeating events ------------------------------------------ */
+/** Work at set times every week (Veribir, Garanti) is one task with times, ticked per occurrence. */
+export const isRepeating = (t: Pick<Task, 'repeat'>) => Boolean(t.repeat?.length)
+
+/** Done or skipped as ticked; an unticked past occurrence is missed history, never overdue; today and later are open. */
+export type WorkState = 'done' | 'skipped' | 'missed' | 'open'
+export type WorkOccurrence = { task: Task; date: string; start: string; end: string; state: WorkState }
+
+/** The last day a series runs: the day it was completed or cancelled, or no end while it's open. */
+function seriesEnd(t: Task) {
+  if (t.status === 'completed' && t.completedAt) return D.ymdOf(t.completedAt)
+  return t.status === 'cancelled' ? D.ymdOf(t.updatedAt) : null
+}
+
+/** Every occurrence of repeating work between two dates (inclusive), from the day each task was made. */
+export function workBetween(s: Pick<HopData, 'tasks' | 'taskCompletions'>, from: string, to: string, today: string): WorkOccurrence[] {
+  const out: WorkOccurrence[] = []
+  for (const t of s.tasks) {
+    if (!isRepeating(t)) continue
+    const created = D.ymdOf(t.createdAt)
+    const ends = seriesEnd(t)
+    const first = created > from ? created : from
+    const last = ends && ends < to ? ends : to
+    if (first > last) continue
+    for (const o of occurrences(t.repeat!, first, last)) {
+      const c = s.taskCompletions.find((x) => x.taskId === t.id && x.date === o.date)
+      out.push({ task: t, date: o.date, start: o.start, end: o.end, state: c ? (c.skipped ? 'skipped' : 'done') : o.date < today ? 'missed' : 'open' })
+    }
+  }
+  return out.sort((a, b) => a.date.localeCompare(b.date) || a.start.localeCompare(b.start))
+}
+
+/** Per repeating task in a period up to today: occurrences done, skipped and missed ("Veribir: 4 of 5 done, 1 skipped"). */
+export function workFacts(s: Pick<HopData, 'tasks' | 'taskCompletions'>, from: string, to: string, today: string): WorkFacts[] {
+  const byTask = new Map<string, WorkFacts>()
+  for (const o of workBetween(s, from, to < today ? to : today, today)) {
+    if (o.state === 'open') continue
+    const facts = byTask.get(o.task.id) ?? { title: o.task.title, done: 0, skipped: 0, missed: 0 }
+    facts[o.state]++
+    byTask.set(o.task.id, facts)
+  }
+  return [...byTask.values()]
+}
+
+export type EventOccurrence = { event: Event; date: string; start: string | null; end: string | null }
+
+/** A one-off event on its date, or a repeating event on each of its times from its first day, minus skipped dates. */
+export function eventOccurrences(e: Event, from: string, to: string): EventOccurrence[] {
+  if (!e.repeat?.length) return e.date >= from && e.date <= to ? [{ event: e, date: e.date, start: e.startTime, end: e.endTime }] : []
+  const first = e.date > from ? e.date : from
+  return occurrences(e.repeat, first, to, e.skips).map((o) => ({ event: e, date: o.date, start: o.start, end: o.end }))
 }
 
 /** Today: Must = high priority, due by tomorrow, or overdue; Should = the rest planned for today or slipped. */
@@ -403,7 +470,8 @@ function courseAttention(s: HopData, today: string): AttentionItem[] {
 
 /* ---- Agenda --------------------------------------------------------------------- */
 export type AgendaItem =
-  | { kind: 'event'; type: string; date: string; time: string | null; title: string; ref: HopData['events'][number] }
+  | { kind: 'event'; type: string; date: string; time: string | null; end: string | null; title: string; ref: HopData['events'][number] }
+  | { kind: 'work'; type: 'work'; date: string; time: string; end: string; title: string; ref: Task; state: WorkState }
   | { kind: 'task'; type: 'task'; date: string; time: null; title: string; ref: Task }
   | { kind: 'deadline'; type: 'deadline'; date: string; time: null; title: string; ref: Opportunity }
   | { kind: 'oppEvent'; type: 'assessment'; date: string; time: string | null; title: string; ref: Opportunity }
@@ -421,10 +489,12 @@ export type AgendaGroup = { date: string; items: AgendaItem[] }
  * deadlines, scheduled opportunity steps and goal milestones. The calendar also asks for
  * completed tasks, so past days show what was done, and for classes, which Today shows on its own.
  */
-export function agendaItems(s: HopData, from: string, to: string, { includeDone = false, includeClasses = false } = {}): AgendaItem[] {
+export function agendaItems(s: HopData, from: string, to: string, { includeDone = false, includeClasses = false, includeWork = false } = {}): AgendaItem[] {
   const inRange = (d: string | null): d is string => Boolean(d) && d! >= from && d! <= to
   const items: AgendaItem[] = []
-  for (const e of s.events) if (inRange(e.date)) items.push({ kind: 'event', type: e.type === 'other' || e.type === 'meeting' || e.type === 'personal' ? 'event' : e.type, date: e.date, time: e.startTime, title: e.title, ref: e })
+  for (const e of s.events) {
+    for (const o of eventOccurrences(e, from, to)) items.push({ kind: 'event', type: e.type === 'other' || e.type === 'meeting' || e.type === 'personal' ? 'event' : e.type, date: o.date, time: o.start, end: o.end, title: e.title, ref: e })
+  }
   for (const t of s.tasks) {
     const open = isOpen(t)
     if (!open && !(includeDone && t.status === 'completed')) continue
@@ -461,7 +531,11 @@ export function agendaItems(s: HopData, from: string, to: string, { includeDone 
   if (includeClasses) {
     for (const { course: c, slot, date } of classesBetween(s, from, to)) items.push({ kind: 'class', type: 'class', date, time: slot.start, end: slot.end, room: slot.room, title: `${c.code} ${c.name}`, ref: c })
   }
-  const kindOrder = { class: 0, event: 1, assessment: 2, oppEvent: 3, deadline: 4, keyDate: 5, loan: 6, renewal: 7, milestone: 8, task: 9 }
+  // Repeating work belongs on the Calendar and in Your day, not in Today's "Coming up".
+  if (includeWork) {
+    for (const o of workBetween(s, from, to, D.today())) items.push({ kind: 'work', type: 'work', date: o.date, time: o.start, end: o.end, title: o.task.title, ref: o.task, state: o.state })
+  }
+  const kindOrder = { class: 0, event: 1, work: 2, assessment: 3, oppEvent: 4, deadline: 5, keyDate: 6, loan: 7, renewal: 8, milestone: 9, task: 10 }
   return items.sort((a, b) => a.date.localeCompare(b.date) || (a.time || '99').localeCompare(b.time || '99') || kindOrder[a.kind] - kindOrder[b.kind])
 }
 
@@ -495,9 +569,10 @@ export function agenda(s: HopData, from: string, span: number): AgendaGroup[] {
 
 /* ---- Review facts ---------------------------------------------------------------- */
 /** Time a logged habit took: the minutes logged, or for pages and times, its minutes in proportion to the target. */
-export function habitMinutes(h: Pick<Habit, 'unit' | 'target' | 'minutes'>, c: Pick<HabitCompletion, 'amount'>) {
-  const amount = c.amount ?? h.target
-  return h.unit === 'minutes' ? amount : Math.round(h.minutes * (amount / h.target))
+export function habitMinutes(h: Pick<Habit, 'unit' | 'target' | 'minutes' | 'slots'>, c: Pick<HabitCompletion, 'amount'> & Partial<Pick<HabitCompletion, 'date'>>) {
+  const target = c.date ? targetOn(h, c.date) : h.target
+  const amount = c.amount ?? target
+  return h.unit === 'minutes' ? amount : Math.round(h.minutes * (amount / target))
 }
 
 const RESPONSE_TYPES = ['email_received', 'call', 'interview_scheduled', 'assessment_received']
@@ -521,7 +596,9 @@ function periodFacts(s: HopData, from: string, to: string, today: string): WeekF
     done.filter((t) => t.goalId && learningGoals.has(t.goalId)).reduce((total, t) => total + (t.estimatedMinutes || 0), 0) +
     s.completions.filter((c) => within(c.date)).reduce((total, c) => {
       const h = s.habits.find((x) => x.id === c.habitId)
-      return total + (h && h.goalId && learningGoals.has(h.goalId) ? habitMinutes(h, c) : 0)
+      // A habit linked to the language track is the plan's time, already counted from its sessions.
+      const track = h?.goalId && h.goalId === s.settings.languageTrack?.goalId
+      return total + (h && h.goalId && learningGoals.has(h.goalId) && !track ? habitMinutes(h, c) : 0)
     }, 0) +
     // Language practice is learning time too.
     s.practiceSessions.filter((p) => within(p.date)).reduce((total, p) => total + p.minutes, 0)
@@ -535,6 +612,7 @@ function periodFacts(s: HopData, from: string, to: string, today: string): WeekF
     interviews: s.events.filter((e) => e.type === 'interview' && within(e.date)).length + timeline.filter((e) => e.type === 'interview' && within(D.ymdOf(e.at))).length,
     shipped: done.filter((t) => t.projectId).map((t) => t.title),
     evidence: s.evidence.filter((e) => within(e.date)).map((e) => e.title),
+    work: workFacts(s, from, to, today),
   }
 }
 
@@ -602,6 +680,7 @@ export function monthFacts(s: HopData, monthStart: string, today = D.today()): M
     milestones: reached.map((m) => m.title),
     evidence: base.evidence,
     neglectedAreas,
+    work: base.work,
   }
 }
 

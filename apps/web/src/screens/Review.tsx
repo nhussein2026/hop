@@ -5,7 +5,7 @@ import * as D from '../lib/dates.ts'
 import { monthEnd, monthFacts, plural, reviewMonth, weekFacts } from '../lib/rules.ts'
 import { staleFinds, upcoming } from '../lib/uni.ts'
 import type { Route } from '../lib/router.ts'
-import type { MonthFacts, MonthlyReview, WeekFacts, WeeklyReview } from '../lib/types.ts'
+import type { MonthFacts, MonthlyReview, WeekFacts, WeeklyReview, WorkFacts } from '../lib/types.ts'
 import { useActions } from '../store/actions.ts'
 import { useEditors } from '../editors/editors.tsx'
 import { Icon } from '../components/Icon.tsx'
@@ -102,8 +102,9 @@ function ThisWeek() {
           <FactTile label="Replies" value={facts.responses} />
           <FactTile label="Interviews" value={facts.interviews} />
         </div>
-        {(facts.shipped.length > 0 || facts.evidence.length > 0) && (
+        {(facts.shipped.length > 0 || facts.evidence.length > 0 || Boolean(facts.work?.length)) && (
           <div className="panel panel-pad review-shipped">
+            {Boolean(facts.work?.length) && <WorkList work={facts.work!} />}
             {facts.shipped.length > 0 && <div><h3 className="small">Project work done</h3><ul className="dot-list small">{facts.shipped.map((title, index) => <li key={index}>{title}</li>)}</ul></div>}
             {facts.evidence.length > 0 && <div><h3 className="small">Evidence added</h3><ul className="dot-list small">{facts.evidence.map((title, index) => <li key={index}>{title}</li>)}</ul></div>}
           </div>
@@ -269,6 +270,7 @@ function ThisMonth() {
           <FactTile label="Interviews" value={facts.interviews} />
           <FactTile label="Offers" value={facts.offers} />
         </div>
+        {Boolean(facts.work?.length) && <div className="panel panel-pad review-shipped"><WorkList work={facts.work!} /></div>}
         <MonthLists facts={facts} />
         {facts.neglectedAreas.length > 0 && (
           <Banner icon="alert" title={`Nothing happened in ${listOf(facts.neglectedAreas)} this month.`} tone="info">You have an active goal there. Pause it, or plan one step for next month.</Banner>
@@ -386,6 +388,21 @@ function Reflections() {
           <button className="link-btn small" onClick={() => editors.reflection(r.date)} type="button">Edit</button>
         </article>
       ))}
+    </div>
+  )
+}
+
+/** "Veribir: 4 of 5 done, 1 skipped". Skipped days count as neither done nor missed. */
+function WorkList({ work }: { work: WorkFacts[] }) {
+  return (
+    <div>
+      <h3 className="small">Repeating work</h3>
+      <ul className="dot-list small">
+        {work.map((w) => {
+          const counted = w.done + w.missed
+          return <li key={w.title}>{w.title}: {w.done} of {counted} done{w.skipped ? `, ${w.skipped} skipped` : ''}{w.missed ? `, ${w.missed} missed` : ''}</li>
+        })}
+      </ul>
     </div>
   )
 }

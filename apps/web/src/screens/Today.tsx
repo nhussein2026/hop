@@ -10,6 +10,9 @@ import { Icon, Pad } from '../components/Icon.tsx'
 import { AttentionList, HabitRow, InlineAdd, TaskRow } from '../components/rows.tsx'
 import { DateChip, Empty, ProgressBar } from '../components/ui.tsx'
 import { classesOn, nextClass } from '../lib/uni.ts'
+import { isTrackHabit } from '../lib/day.ts'
+import { slotsOn } from '../lib/schedule.ts'
+import { YourDay } from './YourDay.tsx'
 import { loanLabel, loanState, openLoan, progress } from '../lib/books.ts'
 import { dayProgress, doneSession, minimumOn, planFor } from '../lib/practice.ts'
 import { PracticeRow } from './Turkish.tsx'
@@ -38,7 +41,10 @@ export function Today() {
   const restMust = plan.must.filter((t) => t !== next)
   const restShould = plan.should.filter((t) => t !== next)
   const doneToday = data.tasks.filter((t) => t.completedAt && D.ymdOf(t.completedAt) === today)
-  const habitsToday = data.habits.filter((h) => habitDue(h, today))
+  // A habit linked to the language track is the Türkçe plan's time; it's counted there, not here.
+  const habitsToday = data.habits.filter((h) => habitDue(h, today) && !isTrackHabit(h, data))
+  // Habits with a time today are in Your day; the Habits section keeps the rest.
+  const untimedToday = habitsToday.filter((h) => !slotsOn(h.slots, today).length)
   const habitsDone = habitsToday.filter((h) => habitKept(h, data.completions, today)).length
   const attentionItems = attention(data, today)
   const urgent = attentionItems.filter((item) => item.level === 'critical').length
@@ -77,6 +83,8 @@ export function Today() {
           <div className="stack">
             <NextUp next={next} plan={plan} onSkip={(task) => { setUi({ skipped: [...skipped.filter((id) => id !== task.id), task.id] }); toast('Moved to the end of today’s list') }} />
 
+            <YourDay />
+
             {attentionItems.length > 0 && (
               <section aria-labelledby="attn-m" className="section phone-only">
                 <div className="section-head"><h2 id="attn-m">Needs attention <span className="count count-attention">{attentionItems.length}</span></h2></div>
@@ -101,15 +109,17 @@ export function Today() {
               )}
             </section>
 
-            <section aria-labelledby="habit-h" className="section">
-              <div className="section-head">
-                <h2 id="habit-h">Habits</h2>
-                <a className="small" href="#/plan/habits">Manage</a>
-              </div>
-              {habitsToday.length
-                ? <div className="rows">{habitsToday.map((h) => <Fragment key={h.id}><HabitRow habit={h} /><BlockStep habit={h} /></Fragment>)}</div>
-                : <Empty body="Habits show up here on the days they’re scheduled." icon="leaf" pad={false} title="No habits scheduled today" />}
-            </section>
+            {(untimedToday.length > 0 || habitsToday.length === 0) && (
+              <section aria-labelledby="habit-h" className="section">
+                <div className="section-head">
+                  <h2 id="habit-h">Habits</h2>
+                  <a className="small" href="#/plan/habits">Manage</a>
+                </div>
+                {untimedToday.length
+                  ? <div className="rows">{untimedToday.map((h) => <Fragment key={h.id}><HabitRow habit={h} /><BlockStep habit={h} /></Fragment>)}</div>
+                  : <Empty body="Habits show up here on the days they’re scheduled." icon="leaf" pad={false} title="No habits scheduled today" />}
+              </section>
+            )}
 
             <TurkishToday />
 

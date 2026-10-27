@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { setTimezone } from './dates.ts'
-import { goalHealth, habitMinutes, habitState, habitWeek, monthEnd, zeroLastTime, monthFacts, nextForGoal, reviewMonth, todayPlan } from './rules.ts'
+import { eventOccurrences, goalHealth, habitDue, habitMinutes, habitState, habitWeek, monthEnd, targetOn, workBetween, workFacts, zeroLastTime, monthFacts, nextForGoal, reviewMonth, todayPlan } from './rules.ts'
 import type { Goal, Habit, HopData, Task } from './types.ts'
 
 setTimezone('UTC')
@@ -10,7 +10,7 @@ const stamp = '2026-01-01T00:00:00.000Z'
 
 function empty(): HopData {
   return {
-    settings: {} as HopData['settings'], goals: [], tasks: [], habits: [], completions: [], events: [], opportunities: [], projects: [], skills: [],
+    settings: {} as HopData['settings'], goals: [], tasks: [], taskCompletions: [], habits: [], completions: [], events: [], opportunities: [], projects: [], skills: [],
     evidence: [], weeklyReviews: [], monthlyReviews: [], milestones: [], contacts: [], interactions: [], resumes: [], reflections: [],
     terms: [], courses: [], keyDates: [], pins: [], uniLinks: [], resources: [], ideas: [], finds: [], books: [],
     practiceActivities: [], practiceSessions: [], practiceTests: [], languageChecks: [], practiceTotals: { minutes: { listening: 0, reading: 0, writing: 0, speaking: 0, words: 0 }, days: 0 }, accounts: [],
@@ -24,7 +24,7 @@ const goal = (fields: Partial<Goal>): Goal => ({
 
 const task = (fields: Partial<Task>): Task => ({
   id: 't', title: 'Task', description: null, status: 'completed', priority: 'medium', areaId: null, goalId: null, projectId: null, opportunityId: null,
-  courseId: null, assessmentId: null, scheduledDate: null, dueDate: null, estimatedMinutes: null, completedAt: null, createdAt: stamp, updatedAt: stamp, ...fields,
+  courseId: null, assessmentId: null, scheduledDate: null, dueDate: null, estimatedMinutes: null, repeat: null, completedAt: null, createdAt: stamp, updatedAt: stamp, ...fields,
 })
 
 test('monthEnd handles short months and leap years', () => {
@@ -44,7 +44,7 @@ test('reviewMonth offers last month during the first week until it is reviewed',
 
 test('monthFacts counts meaningful days once, however much happened that day', () => {
   const data = empty()
-  const habit = { id: 'h', name: 'Study', frequency: 'daily', targetPerWeek: 7, goalId: null, days: [0, 1, 2, 3, 4, 5, 6], minutes: 30, unit: 'minutes', target: 30, minimum: null, active: true, createdAt: stamp, updatedAt: stamp } as Habit
+  const habit = { id: 'h', name: 'Study', frequency: 'daily', targetPerWeek: 7, goalId: null, days: [0, 1, 2, 3, 4, 5, 6], minutes: 30, unit: 'minutes', target: 30, minimum: null, slots: [], active: true, createdAt: stamp, updatedAt: stamp } as Habit
   data.habits = [habit]
   data.tasks = [
     task({ id: 'a', completedAt: '2026-09-03T10:00:00.000Z' }),
@@ -74,7 +74,7 @@ test('monthFacts reports goal movement and areas with no activity', () => {
 })
 
 test('habitWeek ignores days before the habit existed and counts today once it is done', () => {
-  const habit = { id: 'h', name: 'Study', frequency: 'daily', targetPerWeek: 7, goalId: null, days: [0, 1, 2, 3, 4, 5, 6], minutes: 30, unit: 'minutes', target: 30, minimum: null, active: true, createdAt: '2026-10-09T09:00:00.000Z', updatedAt: stamp } as Habit
+  const habit = { id: 'h', name: 'Study', frequency: 'daily', targetPerWeek: 7, goalId: null, days: [0, 1, 2, 3, 4, 5, 6], minutes: 30, unit: 'minutes', target: 30, minimum: null, slots: [], active: true, createdAt: '2026-10-09T09:00:00.000Z', updatedAt: stamp } as Habit
 
   const fresh = habitWeek(habit, [], '2026-10-09')
   assert.equal(fresh.scheduled, 0)
@@ -89,7 +89,7 @@ test('habitWeek ignores days before the habit existed and counts today once it i
 })
 
 test('habitWeek still counts completions recorded before the habit’s creation date', () => {
-  const habit = { id: 'h', name: 'Study', frequency: 'daily', targetPerWeek: 7, goalId: null, days: [0, 1, 2, 3, 4, 5, 6], minutes: 30, unit: 'minutes', target: 30, minimum: null, active: true, createdAt: '2026-10-09T09:00:00.000Z', updatedAt: stamp } as Habit
+  const habit = { id: 'h', name: 'Study', frequency: 'daily', targetPerWeek: 7, goalId: null, days: [0, 1, 2, 3, 4, 5, 6], minutes: 30, unit: 'minutes', target: 30, minimum: null, slots: [], active: true, createdAt: '2026-10-09T09:00:00.000Z', updatedAt: stamp } as Habit
   const week = habitWeek(habit, [{ id: 'c1', habitId: 'h', date: '2026-10-05', amount: null, completedAt: stamp }], '2026-10-10')
   assert.equal(week.scheduled, 2)
   assert.equal(week.done, 1)
@@ -132,7 +132,7 @@ test('undated tasks stay out of Today’s plan', () => {
   assert.deepEqual(todayPlan(tasks, '2026-10-22').all.map((t) => t.id), ['today'])
 })
 
-const reading = (fields: Partial<Habit> = {}) => ({ id: 'r', name: 'Read 10 pages', frequency: 'daily', targetPerWeek: 7, goalId: null, days: [0, 1, 2, 3, 4, 5, 6], minutes: 20, unit: 'pages', target: 10, minimum: 2, active: true, createdAt: '2026-10-01T09:00:00.000Z', updatedAt: stamp, ...fields }) as Habit
+const reading = (fields: Partial<Habit> = {}) => ({ id: 'r', name: 'Read 10 pages', frequency: 'daily', targetPerWeek: 7, goalId: null, days: [0, 1, 2, 3, 4, 5, 6], minutes: 20, unit: 'pages', target: 10, minimum: 2, slots: [], active: true, createdAt: '2026-10-01T09:00:00.000Z', updatedAt: stamp, ...fields }) as Habit
 const logged = (date: string, amount: number | null) => ({ id: `c-${date}`, habitId: 'r', date, amount, completedAt: stamp })
 
 test('a day is done at the target, kept at the minimum, and anything less still shows', () => {
@@ -168,4 +168,51 @@ test('learning minutes follow what was done', () => {
   assert.equal(habitMinutes(reading(), { amount: 5 }), 10)
   assert.equal(habitMinutes(reading(), { amount: null }), 20)
   assert.equal(habitMinutes(reading({ unit: 'minutes', target: 30, minutes: 30 }), { amount: 17 }), 17)
+})
+
+/* ---- Week plan ---- */
+// 2026-11-23 and 2026-11-30 are Mondays; 2026-11-28 a Saturday.
+test('a timed habit is due on the days of its times, within their dates, and is as long as that day’s times', () => {
+  const mawaheb = reading({
+    unit: 'minutes', target: 50, minimum: 15, days: [1, 6],
+    slots: [
+      { day: 1, start: '19:00', end: '20:45', until: '2026-11-29' },
+      { day: 1, start: '21:30', end: '22:20', from: '2026-11-30' },
+      { day: 6, start: '14:00', end: '17:00' },
+    ],
+  })
+  assert.equal(habitDue(mawaheb, '2026-11-23'), true)
+  assert.equal(habitDue(mawaheb, '2026-11-24'), false)
+  assert.deepEqual([targetOn(mawaheb, '2026-11-23'), targetOn(mawaheb, '2026-11-30'), targetOn(mawaheb, '2026-11-28')], [105, 50, 180])
+  // A tick without an amount is that day's whole length.
+  assert.equal(habitState(mawaheb, [{ id: 'c', habitId: 'r', date: '2026-11-28', amount: 60, completedAt: stamp }], '2026-11-28'), 'minimum')
+  assert.equal(habitMinutes(mawaheb, { amount: null, date: '2026-11-28' }), 180)
+  // Counted in pages, a timed habit keeps its one target.
+  assert.equal(targetOn(reading({ slots: [{ day: 1, start: '22:30', end: '23:00' }] }), '2026-11-23'), 10)
+})
+
+const work = (fields: Partial<Task>): Task => task({ id: 'v', title: 'Veribir', status: 'todo', createdAt: '2026-11-01T08:00:00.000Z', repeat: [{ day: 1, start: '13:30', end: '16:00' }, { day: 3, start: '13:30', end: '15:50' }], ...fields })
+
+test('repeating work has one occurrence per time, ticked, skipped, missed or still open, from the day it was made', () => {
+  const data = { tasks: [work({})], taskCompletions: [
+    { id: 'a', taskId: 'v', date: '2026-11-02', skipped: false, completedAt: stamp },
+    { id: 'b', taskId: 'v', date: '2026-11-04', skipped: true, completedAt: stamp },
+  ] }
+  const list = workBetween(data, '2026-10-26', '2026-11-11', '2026-11-10')
+  assert.deepEqual(list.map((o) => `${o.date} ${o.start} ${o.state}`), ['2026-11-02 13:30 done', '2026-11-04 13:30 skipped', '2026-11-09 13:30 missed', '2026-11-11 13:30 open'])
+  assert.deepEqual(workFacts(data, '2026-11-02', '2026-11-15', '2026-11-10'), [{ title: 'Veribir', done: 1, skipped: 1, missed: 1 }])
+
+  // Completing the series stops it; an ordinary task never has occurrences.
+  assert.equal(workBetween({ tasks: [work({ status: 'completed', completedAt: '2026-11-04T18:00:00.000Z' })], taskCompletions: [] }, '2026-11-01', '2026-11-30', '2026-11-30').length, 2)
+  assert.equal(workBetween({ tasks: [task({ status: 'todo' })], taskCompletions: [] }, '2026-11-01', '2026-11-30', '2026-11-30').length, 0)
+  // Slots with an end date stop then (Garanti until 31 Dec).
+  assert.equal(workBetween({ tasks: [work({ repeat: [{ day: 5, start: '17:15', end: '19:15', until: '2026-12-31' }] })], taskCompletions: [] }, '2027-01-01', '2027-01-31', '2027-01-01').length, 0)
+})
+
+test('a repeating event has its own time on each day and skips the dates it was skipped', () => {
+  const kaleem = { id: 'k', title: 'Kaleem meeting', description: null, type: 'meeting', date: '2026-11-01', startTime: null, endTime: null, goalId: null, projectId: null, opportunityId: null,
+    repeat: [{ day: 3, start: '19:30', end: '20:30' }, { day: 0, start: '21:15', end: '22:15' }], skips: ['2026-11-08'], createdAt: stamp, updatedAt: stamp } as HopData['events'][number]
+  assert.deepEqual(eventOccurrences(kaleem, '2026-11-02', '2026-11-15').map((o) => `${o.date} ${o.start}`), ['2026-11-04 19:30', '2026-11-11 19:30', '2026-11-15 21:15'])
+  const once = { ...kaleem, repeat: null, skips: [], date: '2026-11-05', startTime: '10:00', endTime: '11:00' }
+  assert.deepEqual(eventOccurrences(once, '2026-11-01', '2026-11-30').map((o) => `${o.date} ${o.start}–${o.end}`), ['2026-11-05 10:00–11:00'])
 })

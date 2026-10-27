@@ -270,6 +270,11 @@ a.find-title:hover { text-decoration: underline; }
 .slot-list { display: grid; gap: var(--s-2); }
 .slot-row { display: grid; grid-template-columns: minmax(90px, 1fr) minmax(90px, 1fr) minmax(90px, 1fr) minmax(110px, 1.4fr) auto; gap: var(--s-2); align-items: end; }
 .slot-row .icon-btn { margin-bottom: 4px; }
+/* Weekly times on habits, repeating tasks and events: the dates line sits under its row. */
+.time-slot { display: grid; gap: var(--s-2); }
+.time-slot .slot-row > .btn { margin-bottom: 4px; justify-self: start; }
+.time-slot .btn.is-on { border-color: var(--primary); color: var(--primary); }
+.slot-dates { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s-2); padding-left: var(--s-3); border-left: 2px solid var(--border); }
 @media (max-width: 699px) {
   .slot-row { grid-template-columns: 1fr 1fr; }
 }

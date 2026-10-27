@@ -1,7 +1,7 @@
 // Plan: everything scheduled, in one place. Agenda first (time), then Tasks (lists), then Habits.
 import { useEffect } from 'react'
 import * as D from '../lib/dates.ts'
-import { agenda, isOpen, isOverdue, sortTasks, todayPlan } from '../lib/rules.ts'
+import { agenda, isOpen, isOverdue, isRepeating, sortTasks, todayPlan } from '../lib/rules.ts'
 import type { AgendaGroup } from '../lib/rules.ts'
 import type { Route } from '../lib/router.ts'
 import { navigate } from '../lib/router.ts'
@@ -86,11 +86,12 @@ function DayGroup({ group, today }: { group: AgendaGroup; today: string }) {
   )
 }
 
-const LABELS: Record<string, string> = { today: 'Today', upcoming: 'Upcoming', inbox: 'No date', overdue: 'Overdue', done: 'Done' }
+const LABELS: Record<string, string> = { today: 'Today', upcoming: 'Upcoming', inbox: 'No date', repeating: 'Repeating', overdue: 'Overdue', done: 'Done' }
 const HINTS: Record<string, string> = {
   today: 'Planned for today, due today, or slipped from earlier days.',
   upcoming: 'Scheduled or due after today.',
   inbox: 'Captured without a date. Give each one a day, or delete it.',
+  repeating: 'Work at set times every week. Tick each day it happens on the Calendar or in Today’s Your day.',
   overdue: 'Past their due date. Finish, reschedule, or let them go.',
   done: 'Completed tasks keep their completion time.',
 }
@@ -101,7 +102,8 @@ function taskBuckets(tasks: Task[], today: string): Record<string, Task[]> {
   return {
     today: todayPlan(tasks, today).all,
     upcoming: sortTasks(open.filter((t) => dateOf(t) && dateOf(t)! > today)).sort((a, b) => dateOf(a)!.localeCompare(dateOf(b)!)),
-    inbox: sortTasks(open.filter((t) => !t.scheduledDate && !t.dueDate)),
+    inbox: sortTasks(open.filter((t) => !t.scheduledDate && !t.dueDate && !isRepeating(t))),
+    repeating: open.filter(isRepeating).sort((a, b) => a.title.localeCompare(b.title)),
     overdue: sortTasks(open.filter((t) => isOverdue(t, today))),
     done: tasks.filter((t) => t.status === 'completed').sort((a, b) => (b.completedAt ?? '').localeCompare(a.completedAt ?? '')),
   }
