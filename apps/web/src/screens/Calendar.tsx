@@ -1,21 +1,33 @@
 // Calendar: Hop's own data laid out by day. A month or week at a glance (events, classes, tasks open
 // and done, application deadlines, opportunity steps, milestones), and the chosen day in full beside
 // it, with that day's habits. Routes: #/calendar[/month|week[/YYYY-MM-DD]].
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { KeyboardEvent } from 'react'
 import * as D from '../lib/dates.ts'
-import { agendaItems, habitAmount, habitDue, habitState, habitUnits } from '../lib/rules.ts'
+import { agendaItems, habitAmount, habitDue, habitState, habitUnits, targetOn } from '../lib/rules.ts'
 import type { AgendaItem } from '../lib/rules.ts'
 import type { Route } from '../lib/router.ts'
 import { navigate } from '../lib/router.ts'
 import { AGENDA_META } from '../lib/labels.ts'
 import { useEditors } from '../editors/editors.tsx'
 import { Icon } from '../components/Icon.tsx'
-import { AgendaRow, HabitRow, TaskRow } from '../components/rows.tsx'
+import { AgendaRow, HabitRow, TaskRow, WorkRow } from '../components/rows.tsx'
 import { Empty, Segmented } from '../components/ui.tsx'
 import { useHop } from '../store/store.ts'
+import { Timetable } from './Timetable.tsx'
 
 type View = 'month' | 'week'
+type WeekMode = 'list' | 'timetable'
+
+/** The week view's mode is remembered on this device only; storage may be unavailable. */
+const WEEK_MODE_KEY = 'hop.calendar.weekMode'
+function storedWeekMode(): WeekMode {
+  try {
+    return localStorage.getItem(WEEK_MODE_KEY) === 'timetable' ? 'timetable' : 'list'
+  } catch {
+    return 'list'
+  }
+}
 
 const isDate = (value: string | undefined): value is string => Boolean(value && /^\d{4}-\d{2}-\d{2}$/.test(value) && !Number.isNaN(Date.parse(value)))
 const href = (view: View, date: string) => `#/calendar/${view}/${date}`
@@ -25,6 +37,7 @@ const HABIT_HISTORY_DAYS = 27
 
 function entryTone(item: AgendaItem) {
   if (item.kind === 'task') return item.ref.status === 'completed' ? 'done' : 'task'
+  if (item.kind === 'work') return item.state === 'done' || item.state === 'skipped' ? 'done' : 'task'
   return AGENDA_META[item.type]?.[2] || 'event'
 }
 
@@ -40,6 +53,12 @@ export function Calendar({ route }: { route: Route }) {
   const selected = isDate(route.params[1]) ? route.params[1] : today
   const weekStart = data.settings.weekStart
   const filter = ui.agendaFilter
+  const [weekMode, setWeekModeState] = useState<WeekMode>(storedWeekMode)
+  const timetable = view === 'week' && weekMode === 'timetable'
+  function setWeekMode(mode: WeekMode) {
+    setWeekModeState(mode)
+    try { localStorage.setItem(WEEK_MODE_KEY, mode) } catch { /* Not remembered; it still switches. */ }
+  }
 
   // The visible range: whole weeks covering the month, or the one week.
   const first = view === 'month' ? D.startOfWeek(D.startOfMonth(selected), weekStart) : D.startOfWeek(selected, weekStart)
@@ -49,9 +68,9 @@ export function Calendar({ route }: { route: Route }) {
   const days = Array.from({ length: weeks * 7 }, (_, i) => D.addDays(first, i))
 
   const byDay = new Map<string, AgendaItem[]>()
-  for (const item of agendaItems(data, first, last, { includeDone: true, includeClasses: true })) {
-    if (filter === 'tasks' && item.kind !== 'task') continue
-    if (filter === 'dated' && (item.kind === 'task' || item.kind === 'class')) continue
+  for (const item of agendaItems(data, first, last, { includeDone: true, includeClasses: true, includeWork: true })) {
+    if (filter === 'tasks' && item.kind !== 'task' && item.kind !== 'work') continue
+    if (filter === 'dated' && (item.kind === 'task' || item.kind === 'class' || item.kind === 'work')) continue
     if (filter === 'classes' && item.kind !== 'class') continue
     byDay.set(item.date, [...(byDay.get(item.date) ?? []), item])
   }
@@ -82,14 +101,26 @@ export function Calendar({ route }: { route: Route }) {
           <h2 aria-live="polite" className="cal-title">{title}</h2>
           {(selected !== today || !days.includes(today)) && <button className="btn btn-sm" onClick={() => navigate(href(view, today))} type="button">Today</button>}
         </div>
-        <Segmented label={<span className="visually-hidden">View</span>} name="cal-view" onChange={(value) => navigate(href(value as View, selected))} options={[['month', 'Month'], ['week', 'Week']]} small value={view} />
+        <div className="btn-row">
+          {view === 'week' && <Segmented label={<span className="visually-hidden">Week as</span>} name="cal-week-mode" onChange={(value) => setWeekMode(value as WeekMode)} options={[['list', 'List'], ['timetable', 'Timetable']]} small value={weekMode} />}
+          <Segmented label={<span className="visually-hidden">View</span>} name="cal-view" onChange={(value) => navigate(href(value as View, selected))} options={[['month', 'Month'], ['week', 'Week']]} small value={view} />
+        </div>
       </div>
       <div aria-label="Show" className="chips" role="group">{chip('all', 'Everything')}{chip('dated', 'Events and deadlines')}{chip('classes', 'Classes')}{chip('tasks', 'Tasks')}</div>
 
-      <div className="cal-layout">
-        <CalendarGrid byDay={byDay} days={days} month={view === 'month' ? selected.slice(0, 7) : null} onSelect={(date) => navigate(href(view, date))} selected={selected} today={today} />
-        <DayPanel date={selected} items={byDay.get(selected) ?? []} today={today} />
-      </div>
+      {timetable
+        ? (
+          <div className="cal-timetable">
+            <Timetable days={days} onSelect={(date) => navigate(href(view, date))} selected={selected} untimed={new Map(days.map((d) => [d, (byDay.get(d) ?? []).filter((item) => !item.time)]))} />
+            <DayPanel date={selected} items={byDay.get(selected) ?? []} today={today} />
+          </div>
+        )
+        : (
+          <div className="cal-layout">
+            <CalendarGrid byDay={byDay} days={days} month={view === 'month' ? selected.slice(0, 7) : null} onSelect={(date) => navigate(href(view, date))} selected={selected} today={today} />
+            <DayPanel date={selected} items={byDay.get(selected) ?? []} today={today} />
+          </div>
+        )}
     </div>
   )
 }
@@ -163,9 +194,14 @@ function DayPanel({ date, items, today }: { date: string; items: AgendaItem[]; t
   const habits = data.habits.filter((h) => habitDue(h, date))
   const n = D.diffDays(date, today)
   const heading = n === 0 ? 'Today' : n === 1 ? 'Tomorrow' : n === -1 ? 'Yesterday' : D.long(date)
-  const open = items.filter((item) => item.kind !== 'task' || item.ref.status !== 'completed')
-  const done = items.filter((item) => item.kind === 'task' && item.ref.status === 'completed')
-  const row = (item: AgendaItem) => (item.kind === 'task' ? <TaskRow key={item.ref.id} task={item.ref} /> : <AgendaRow item={item} key={`${item.kind}-${item.ref.id}-${item.date}`} />)
+  const finished = (item: AgendaItem) => (item.kind === 'task' && item.ref.status === 'completed') || (item.kind === 'work' && (item.state === 'done' || item.state === 'skipped'))
+  const open = items.filter((item) => !finished(item))
+  const done = items.filter(finished)
+  const row = (item: AgendaItem) => (item.kind === 'task'
+    ? <TaskRow key={item.ref.id} task={item.ref} />
+    : item.kind === 'work'
+      ? <WorkRow date={item.date} end={item.end} key={`work-${item.ref.id}-${item.date}-${item.time}`} start={item.time} state={item.state} task={item.ref} />
+      : <AgendaRow item={item} key={`${item.kind}-${item.ref.id}-${item.date}-${item.time ?? ''}`} />)
 
   return (
     <aside aria-labelledby="cal-day-h" className="cal-panel panel panel-pad">
@@ -192,7 +228,7 @@ function DayPanel({ date, items, today }: { date: string; items: AgendaItem[]; t
                     <li key={h.id}>
                       <Icon className={`icon-sm${hit ? ' is-done' : ''}`} name={n > 0 ? 'clock' : hit ? 'check' : state === 'some' ? 'minus' : known ? 'x' : 'clock'} />
                       <span>{h.name}</span>
-                      <span className="xs muted">{n > 0 ? habitUnits(h, h.target) : state === 'done' ? 'Done' : state === 'minimum' ? `Minimum: ${habitUnits(h, amount)}` : state === 'some' ? habitUnits(h, amount) : known ? 'Not done' : 'Scheduled'}</span>
+                      <span className="xs muted">{n > 0 ? habitUnits(h, targetOn(h, date)) : state === 'done' ? 'Done' : state === 'minimum' ? `Minimum: ${habitUnits(h, amount)}` : state === 'some' ? habitUnits(h, amount) : known ? 'Not done' : 'Scheduled'}</span>
                     </li>
                   )
                 })}

@@ -23,4 +23,8 @@ export const eventRepository = {
     db.update(events).set(changes).where(eq(events.id, id)).run();
     return this.findById(id);
   },
+
+  delete(id: string): boolean {
+    return db.delete(events).where(eq(events.id, id)).run().changes > 0;
+  },
 };

@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { EVENT_TYPES } from '@hop/domain';
 
 import { dateSchema as date, entityIdSchema as id } from './common.js';
+import { timeSlotsSchema } from './schedule.js';
 
 const time = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'Time must use HH:MM format');
 const text = (label: string, max: number) => z.string().trim().max(max, `${label} cannot exceed ${max} characters`);
@@ -17,6 +18,8 @@ const eventFields = {
   goalId: id.nullable().optional(),
   projectId: id.nullable().optional(),
   opportunityId: id.nullable().optional(),
+  repeat: timeSlotsSchema.min(1, 'Add at least one time').nullable().optional(),
+  skips: z.array(date).max(500).optional(),
 };
 
 function validateEventTimes(value: { startTime?: string | null | undefined; endTime?: string | null | undefined }, ctx: z.RefinementCtx) {

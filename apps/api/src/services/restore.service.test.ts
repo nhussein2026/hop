@@ -19,6 +19,7 @@ import { opportunityService } from './opportunity.service.js';
 import { projectService } from './project.service.js';
 import { restoreService } from './restore.service.js';
 import { taskService } from './task.service.js';
+import { eventService } from './event.service.js';
 
 // Round-trips through JSON, exactly like a downloaded backup file.
 function exportSnapshot() {
@@ -108,6 +109,9 @@ test('restore accepts a version 1 backup and fills the newer tables and columns 
   assert.deepEqual(habitService.getAll().map((item) => [item.id, item.days, item.minutes, item.unit, item.target, item.minimum]), [['h-v1', [0, 1, 2, 3, 4, 5, 6], 30, 'minutes', 30, null]]);
   // A tick from before amounts means the whole target.
   assert.deepEqual(habitService.getCompletions('2026-09-02').map((item) => item.amount), [null]);
+  // Before the week plan: no times, no repeating tasks or events, no occurrences.
+  assert.deepEqual(habitService.getAll().map((item) => item.slots), [[]]);
+  assert.equal(backupRepository.countRows().taskCompletions, 0);
   assert.equal(backupRepository.countRows().goalCriteria, 0);
 });
 
@@ -186,6 +190,24 @@ test('accounts and pinned notes survive a backup and restore', () => {
 
   assert.equal(accountService.getAll().find((a) => a.id === account.id)?.cost, 59.99);
   assert.equal(libraryService.getAll().find((r) => r.id === note.id)?.pinned, true);
+});
+
+test('the week plan survives a backup and restore: timed habits, repeating work and its ticks, repeating events', () => {
+  const habit = habitService.create({ name: 'Fajr and hizb', slots: [{ day: 1, start: '06:30', end: '07:15', until: '2026-11-29' }] });
+  const work = taskService.create({ title: 'Veribir', repeat: [{ day: 1, start: '13:30', end: '16:00' }] });
+  taskService.tickOccurrence(work.id, '2026-11-02', true);
+  const meeting = eventService.create({ title: 'Kaleem meeting', date: '2026-10-28', repeat: [{ day: 3, start: '19:30', end: '20:30' }], skips: ['2026-11-04'] });
+  const snapshot = exportSnapshot();
+
+  habitService.update(habit.id, { slots: [] });
+  taskService.delete(work.id);
+  eventService.delete(meeting.id);
+  restoreService.restore(snapshot);
+
+  assert.equal(habitService.getAll().find((h) => h.id === habit.id)?.slots[0]?.until, '2026-11-29');
+  assert.equal(taskService.getById(work.id)?.repeat?.[0]?.start, '13:30');
+  assert.deepEqual(taskService.getOccurrences('2026-11-02', '2026-11-02').filter((o) => o.taskId === work.id).map((o) => o.skipped), [true]);
+  assert.deepEqual(eventService.getAll().find((e) => e.id === meeting.id)?.skips, ['2026-11-04']);
 });
 
 test('a backup from before proof levels restores, with defaults for the new skill and evidence fields', () => {

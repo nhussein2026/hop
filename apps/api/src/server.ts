@@ -45,6 +45,7 @@ import {
   updateProjectSchema,
   updateSkillSchema,
   updateTaskSchema,
+  taskOccurrenceSchema,
   updateWeeklyReviewSchema,
   completeCourseSchema,
   createAssessmentSchema,
@@ -766,6 +767,11 @@ const server = createServer(async (request, response) => {
       return;
     }
 
+    if (request.method === 'DELETE' && eventId) {
+      sendFound(response, eventService.delete(eventId) ? { ok: true } : undefined, 'Event not found');
+      return;
+    }
+
     if (request.method === 'POST' && url.pathname === '/api/evidence') {
       const result = createEvidenceSchema.safeParse(await readBody(request));
 
@@ -1002,6 +1008,54 @@ const server = createServer(async (request, response) => {
 
     if (request.method === 'GET' && url.pathname === '/api/tasks') {
       sendJson(response, 200, taskService.getAll());
+      return;
+    }
+
+    // Occurrences of repeating tasks: ticked done or skipped, one per task and date.
+    if (request.method === 'GET' && url.pathname === '/api/tasks/occurrences') {
+      const result = habitCompletionRangeSchema.safeParse({ from: url.searchParams.get('from'), to: url.searchParams.get('to') });
+
+      if (!result.success) {
+        sendJson(response, 400, { error: result.error.flatten() });
+        return;
+      }
+
+      sendJson(response, 200, taskService.getOccurrences(result.data.from, result.data.to));
+      return;
+    }
+
+    const occurrenceTaskId = url.pathname.match(/^\/api\/tasks\/([^/]+)\/occurrences$/)?.[1];
+
+    if (request.method === 'POST' && occurrenceTaskId) {
+      const result = taskOccurrenceSchema.safeParse(await readBody(request));
+
+      if (!result.success) {
+        sendJson(response, 400, { error: result.error.flatten() });
+        return;
+      }
+
+      const occurrence = taskService.tickOccurrence(occurrenceTaskId, result.data.date, result.data.skipped ?? false);
+
+      if (!occurrence) {
+        sendJson(response, 404, { error: 'Task not found' });
+        return;
+      }
+
+      sendJson(response, 201, occurrence);
+      return;
+    }
+
+    const occurrencePath = url.pathname.match(/^\/api\/tasks\/([^/]+)\/occurrences\/([^/]+)$/);
+
+    if (request.method === 'DELETE' && occurrencePath) {
+      const date = dateSchema.safeParse(occurrencePath[2]);
+
+      if (!date.success) {
+        sendJson(response, 400, { error: 'Date must use YYYY-MM-DD format' });
+        return;
+      }
+
+      sendFound(response, taskService.untickOccurrence(occurrencePath[1]!, date.data) ? { ok: true } : undefined, 'Occurrence not found');
       return;
     }
 

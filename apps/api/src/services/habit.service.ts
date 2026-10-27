@@ -4,6 +4,8 @@ import type { CreateHabitInput, Habit, HabitCompletion, UpdateHabitInput } from 
 
 import { InvalidInputError } from '../errors.js';
 import { habitRepository } from '../repositories/habit.repository.js';
+import { slotDays } from './schedule.js';
+import { settingsService } from './settings.service.js';
 
 export const habitService = {
   /** Every habit, including paused ones: pausing keeps a habit's history. */
@@ -17,7 +19,9 @@ export const habitService = {
 
   create(input: CreateHabitInput): Habit {
     const now = new Date().toISOString();
-    const days = input.days ? [...input.days].sort() : [0, 1, 2, 3, 4, 5, 6];
+    const slots = input.slots ?? [];
+    // A timed habit's days are the days of its times.
+    const days = slots.length ? slotDays(slots, settingsService.today()) : input.days ? [...input.days].sort() : [0, 1, 2, 3, 4, 5, 6];
     const unit = input.unit ?? 'minutes';
     // A habit counted in minutes has one number for both; other units keep minutes as a time estimate.
     const target = input.target ?? (unit === 'minutes' ? input.minutes ?? 30 : 1);
@@ -25,13 +29,14 @@ export const habitService = {
       id: randomUUID(),
       name: input.name,
       frequency: input.frequency ?? 'daily',
-      targetPerWeek: input.targetPerWeek ?? (input.days ? days.length : input.frequency === 'weekly' ? 1 : 7),
+      targetPerWeek: input.targetPerWeek ?? (input.days || slots.length ? days.length : input.frequency === 'weekly' ? 1 : 7),
       goalId: input.goalId ?? null,
       days,
       minutes: unit === 'minutes' ? target : input.minutes ?? 30,
       unit,
       target,
       minimum: input.minimum ?? null,
+      slots,
       active: true,
       createdAt: now,
       updatedAt: now,
@@ -63,6 +68,13 @@ export const habitService = {
     if (input.days) {
       changes.days = [...input.days].sort();
       changes.targetPerWeek = input.days.length;
+    }
+
+    // Times win over days: a timed habit happens on the days of its times.
+    const slots = input.slots ?? existing.slots;
+    if (slots.length && (input.slots || input.days)) {
+      changes.days = slotDays(slots, settingsService.today());
+      changes.targetPerWeek = changes.days.length;
     }
 
     return habitRepository.update(id, changes);

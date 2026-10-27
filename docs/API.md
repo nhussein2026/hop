@@ -40,15 +40,20 @@ All routes live in `apps/api/src/server.ts`. Request bodies are validated by the
 
 | Method | Path | Description |
 | --- | --- | --- |
-| `GET` / `POST` | `/api/tasks` | List or create tasks. |
-| `PATCH` / `DELETE` | `/api/tasks/:id` | Update or delete a task. Setting `status` to `completed` records `completedAt`. |
-| `GET` / `POST` | `/api/habits` | List or create habits. A habit has a `unit` (`minutes`, `pages` or `times`), a `target` and an optional `minimum` (not above the target). For `minutes`, `minutes` and `target` are kept equal. |
+| `GET` / `POST` | `/api/tasks` | List or create tasks. A task with `repeat` (weekly time slots, see below) is repeating work: it has no `scheduledDate` or `dueDate` and is ticked per occurrence. |
+| `PATCH` / `DELETE` | `/api/tasks/:id` | Update or delete a task. Setting `status` to `completed` records `completedAt` (for repeating work, that ends the series). Setting `repeat` clears the dates; a date on a repeating task is refused with `400`. Deleting repeating work removes its occurrences. |
+| `GET` | `/api/tasks/occurrences?from=&to=` | Occurrences of repeating tasks ticked or skipped in a date range. |
+| `POST` | `/api/tasks/:id/occurrences` | Tick one occurrence done, or skip it: `{ date, skipped? }`. Only a date the task's times fall on (`400` otherwise); the same date again replaces it. |
+| `DELETE` | `/api/tasks/:id/occurrences/:date` | Undo a tick or a skip. |
+| `GET` / `POST` | `/api/habits` | List or create habits. A habit has a `unit` (`minutes`, `pages` or `times`), a `target` and an optional `minimum` (not above the target). For `minutes`, `minutes` and `target` are kept equal. Optional `slots` (weekly time slots) make it a timed habit; its `days` then follow from them. |
 | `PATCH` | `/api/habits/:id` | Update a habit. |
 | `GET` | `/api/habits/completions?from=&to=` | Completions in a date range, or `?date=` for one day. |
 | `POST` | `/api/habits/:id/completions` | Log a habit for a date: `{ date, amount? }`. No amount means the whole target. Logging the same date again replaces the amount. |
 | `DELETE` | `/api/habits/:id/completions/:date` | Undo a completion. |
-| `GET` / `POST` | `/api/events` | List or create calendar events. |
-| `PATCH` | `/api/events/:id` | Update an event. |
+| `GET` / `POST` | `/api/events` | List or create calendar events. With `repeat` (weekly time slots) an event repeats from its `date`, at its own time on each weekday; `skips` lists dates left out. |
+| `PATCH` / `DELETE` | `/api/events/:id` | Update an event (skip one date by adding it to `skips`), or delete it with all its dates. |
+
+A **weekly time slot** is `{ day, start, end, from?, until? }`: `day` 0 (Sunday) to 6, times `HH:MM` with `end` after `start` (`24:00` allowed), and optional first and last dates. At most 21 per habit, task or event.
 
 ## Goals
 

@@ -2,7 +2,7 @@
 // eligibility, and link recognition. Like rules.ts, raw facts are stored and all of this is derived.
 import { EXAM_TYPES, FIND_STALE_DAYS } from '@hop/domain'
 import * as D from './dates.ts'
-import { occurrences } from './schedule.ts'
+import { occurrences, slotsLabel } from './schedule.ts'
 import type { Assessment, AssessmentType, ClassSlot, Course, Find, FindKind, KeyDate, Term } from './types.ts'
 
 /* ---- Terms and classes --------------------------------------------------------- */
@@ -55,27 +55,8 @@ export function classDates(c: Course) {
 /** A course with classes but no dates of its own and no term shows its classes every week, with no end. */
 export const classesUndated = (course: Course) => course.schedule.length > 0 && !course.startDate && !course.endDate && !course.termId
 
-/** "Mon–Thu", "Mon, Wed", "Fri": runs of three or more days read as a range, Monday first. */
-function dayRange(days: number[]) {
-  const order = [1, 2, 3, 4, 5, 6, 0].filter((d) => days.includes(d))
-  const runs: number[][] = []
-  for (const day of order) {
-    const run = runs.at(-1)
-    if (run && [1, 2, 3, 4, 5, 6, 0].indexOf(day) === [1, 2, 3, 4, 5, 6, 0].indexOf(run.at(-1)!) + 1) run.push(day)
-    else runs.push([day])
-  }
-  return runs.map((run) => (run.length >= 3 ? `${D.DAYS[run[0]!]}–${D.DAYS[run.at(-1)!]}` : run.map((d) => D.DAYS[d]).join(', '))).join(', ')
-}
-
 /** Classes at the same time and place on several days read as one: "Mon–Thu 09:15–12:45". */
-export function scheduleLabel(course: Pick<Course, 'schedule'>) {
-  const byTime = new Map<string, number[]>()
-  for (const slot of course.schedule) {
-    const time = `${slot.start}–${slot.end}${slot.room ? `, ${slot.room}` : ''}`
-    byTime.set(time, [...(byTime.get(time) ?? []), slot.day])
-  }
-  return [...byTime].map(([time, days]) => `${dayRange(days)} ${time}`).join('; ')
-}
+export const scheduleLabel = (course: Pick<Course, 'schedule'>) => slotsLabel(course.schedule)
 
 /* ---- Graded items ------------------------------------------------------------------ */
 export const isExam = (a: Pick<Assessment, 'type'>) => EXAM_TYPES.includes(a.type)

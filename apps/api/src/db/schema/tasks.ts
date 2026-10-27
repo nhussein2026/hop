@@ -8,6 +8,7 @@ import {
   TASK_PRIORITIES,
   TASK_STATUSES,
 } from '@hop/domain';
+import type { TimeSlot } from '@hop/domain';
 
 export const tasks = sqliteTable('tasks', {
   id: text('id').primaryKey(),
@@ -39,6 +40,8 @@ export const tasks = sqliteTable('tasks', {
   dueDate: text('due_date'),
 
   estimatedMinutes: integer('estimated_minutes'),
+
+  repeat: text('repeat', { mode: 'json' }).$type<TimeSlot[]>(),
 
   completedAt: text('completed_at'),
 

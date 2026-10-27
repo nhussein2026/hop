@@ -28,6 +28,7 @@ import type {
   Settings,
   Skill,
   Task,
+  TaskCompletion,
   Term,
   UniLink,
   WeeklyReview,
@@ -115,9 +116,11 @@ export type {
   SkillLevel,
   SkillType,
   Task,
+  TaskCompletion,
   TaskPriority,
   WeekFacts,
   WeeklyReview,
+  WorkFacts,
   WorkMode,
 } from '@hop/domain'
 
@@ -126,6 +129,8 @@ export type HopData = {
   settings: Settings
   goals: GoalWithDetails[]
   tasks: Task[]
+  /** Occurrences of repeating tasks ticked or skipped, for the last six weeks. */
+  taskCompletions: TaskCompletion[]
   habits: Habit[]
   completions: HabitCompletion[]
   events: Event[]

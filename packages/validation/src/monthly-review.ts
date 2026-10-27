@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { GOAL_AREAS, MONTHLY_REVIEW_STATUSES } from '@hop/domain';
 
 import { dateSchema } from './common.js';
+import { workFactsSchema } from './weekly-review.js';
 
 const notes = z.string().trim().max(5000, 'Review notes cannot exceed 5000 characters');
 const count = z.number().int().min(0);
@@ -24,6 +25,7 @@ const monthFactsSchema = z.object({
   milestones: titles,
   evidence: titles,
   neglectedAreas: z.array(z.enum(GOAL_AREAS)).max(GOAL_AREAS.length),
+  work: workFactsSchema.optional(),
 }).strict();
 
 const reviewFields = {

@@ -1,7 +1,7 @@
 // One place to open any dialog, so screens and rows don't import each other's editors.
 import { useMemo } from 'react'
 import * as D from '../lib/dates.ts'
-import type { Account, Assessment, Book, BookLoan, Contact, Find, LanguageCheck, PracticeActivity, PracticeArea, PracticeSession, PracticeTest, Course, Evidence, Goal, Habit, Idea, Opportunity, OpportunityStage, Pin, Program, Project, Resource, ResourceKind, Resume, Skill, Task, Term } from '../lib/types.ts'
+import type { Account, Assessment, Book, BookLoan, Contact, Event, Find, LanguageCheck, PracticeActivity, PracticeArea, PracticeSession, PracticeTest, Course, Evidence, Goal, Habit, Idea, Opportunity, OpportunityStage, Pin, Program, Project, Resource, ResourceKind, Resume, Skill, Task, Term } from '../lib/types.ts'
 import { CloseOpportunity, ContactDrawer, ContactEditor, LogActivity, OpportunityEditor, ResumeEditor } from './career.tsx'
 import { MoreSheet, Notifications, QuickAdd, ReflectionEditor, Search } from './global.tsx'
 import type { AddKind } from './global.tsx'
@@ -26,6 +26,7 @@ export function useEditors() {
       logHabit: (habit: Habit) => open((close) => <LogHabit close={close} habit={habit} />),
       goal: (goal?: Goal | null) => open((close) => <GoalEditor close={close} goal={goal} />),
       event: (date?: string) => open((close) => <EventEditor close={close} date={date} />),
+      editEvent: (event: Event, occurrence?: string) => open((close) => <EventEditor close={close} event={event} occurrence={occurrence} />),
       opportunity: (opportunity?: Opportunity | null) => open((close) => <OpportunityEditor close={close} opportunity={opportunity} />),
       closeOpportunity: (opportunity: Opportunity) => open((close) => <CloseOpportunity close={close} onClosed={(outcome: OpportunityStage) => { if (outcome === 'accepted') celebrate() }} opportunity={opportunity} />),
       logActivity: (opportunity: Opportunity) => open((close) => <LogActivity close={close} opportunity={opportunity} />),

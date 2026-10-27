@@ -19,6 +19,7 @@ import type { Collection, CommitOptions, Sync, UiState } from './store.ts'
 const endpoints: Record<Collection, string> = {
   goals: '/api/goals',
   tasks: '/api/tasks',
+  taskCompletions: '',
   habits: '/api/habits',
   completions: '',
   events: '/api/events',
@@ -66,9 +67,11 @@ async function loadAll(): Promise<HopData> {
   const [lists, practiceTotals] = await Promise.all([
     Promise.all(keys.map((key) => key === 'completions'
       ? api.get(`/api/habits/completions?from=${addDays(today, -completionDays)}&to=${today}`)
-      : key === 'practiceSessions'
-        ? api.get(`/api/practice/sessions?from=${addDays(today, -PRACTICE_HISTORY_DAYS)}&to=${today}`)
-        : api.get(endpoints[key]))),
+      : key === 'taskCompletions'
+        ? api.get(`/api/tasks/occurrences?from=${addDays(today, -completionDays)}&to=${today}`)
+        : key === 'practiceSessions'
+          ? api.get(`/api/practice/sessions?from=${addDays(today, -PRACTICE_HISTORY_DAYS)}&to=${today}`)
+          : api.get(endpoints[key]))),
     api.get<PracticeTotals>('/api/practice/totals'),
   ])
   return Object.fromEntries([['settings', settings], ['practiceTotals', practiceTotals], ...keys.map((key, index) => [key, lists[index]])]) as HopData

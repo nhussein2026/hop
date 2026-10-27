@@ -21,5 +21,6 @@ export * from './sessions.js';
 export * from './settings.js';
 export * from './skills.js';
 export * from './tasks.js';
+export * from './task-completions.js';
 export * from './university.js';
 export * from './weekly-reviews.js';

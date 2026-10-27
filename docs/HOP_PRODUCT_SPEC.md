@@ -176,6 +176,8 @@ Examples:
 
 A habit answers **what should I repeatedly do?**
 
+A habit can have **times of day** (weekly time slots, each optionally only between two dates, so one habit can change times when the week changes phase). A timed habit happens on the days of its times, shows on Today's Your day and the Calendar's Timetable, and, when counted in minutes, its target on a day is that day's times (3 h on Saturday, 50 min on a weekday). Meals, rides and free time can be timed habits too, so the whole day is visible.
+
 ---
 
 ## 4.6 Task
@@ -191,6 +193,8 @@ Examples:
 
 A task answers **what exactly do I need to do?**
 
+**Repeating work** (a job's hours, a weekly volunteer task) is one task with weekly time slots instead of a date. It is ticked done or skipped once per occurrence. An unticked past occurrence is missed history, never overdue, and never moves to another day: work not done yesterday isn't today's job. Repeating work shows on the Calendar and in Your day, not in Next up or today's priorities, and reviews count each series' occurrences done, skipped and missed.
+
 ---
 
 ## 4.7 Event
@@ -205,6 +209,8 @@ Examples:
 - Weekly review
 
 An event answers **when does something happen?**
+
+An event can **repeat every week**, with its own time on each weekday (a meeting on Wednesday 19:30 and Sunday 21:15). One date can be skipped; editing changes the whole series; deleting removes every date. Classes are not events: they come from courses.
 
 ---
 
@@ -506,6 +512,10 @@ A habit can be marked complete quickly.
 A completion should record an actual completion date/time rather than simply toggling a boolean forever.
 
 A habit linked to a goal can be a block of time for that goal. While it is due and not yet done, Today shows the goal's next task under it ("Next for <goal>: <task>"): the highest-priority open task, then the one planned earliest, then the oldest. **Start** marks it in progress and **Skip** shows the following one. It is a suggestion inside the habit, not part of today's priorities, so undated tasks have a place on a block day without crowding Today.
+
+## 9.3a Your Day
+
+Right under Next up, everything timed today in time order: classes, events (one-off and repeating), repeating work and timed habits. The block running now is highlighted with when it ends; finished blocks are folded behind "Show earlier"; blocks that overlap share one row; a gap of 30 minutes or more shows as free time. Work and habits are ticked right there. A timed habit linked to the language track shows how much of the day's plan is left and opens the plan instead of a second tick. A day with nothing timed shows no Your day at all.
 
 ---
 

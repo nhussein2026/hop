@@ -68,24 +68,28 @@ const goalRow = z.object({
   completedAt: optionalText, archivedAt: optionalText, ...timestamps,
 }).strict();
 
+const timeSlotRow = z.object({ day: z.number().int().min(0).max(6), start: text, end: text, from: optionalText.optional(), until: optionalText.optional() }).strict();
+
 const taskRow = z.object({
   id, title: text, description: optionalText, status: z.enum(TASK_STATUSES), priority: z.enum(TASK_PRIORITIES),
   areaId: optionalText, goalId: optionalText, projectId: optionalText, opportunityId: optionalText,
   courseId: optionalText.default(null), assessmentId: optionalText.default(null),
-  scheduledDate: optionalText, dueDate: optionalText, estimatedMinutes: optionalInteger, completedAt: optionalText, ...timestamps,
+  scheduledDate: optionalText, dueDate: optionalText, estimatedMinutes: optionalInteger, repeat: z.array(timeSlotRow).nullable().default(null), completedAt: optionalText, ...timestamps,
 }).strict();
+const taskCompletionRow = z.object({ id, taskId: id, date: text, skipped: flag, completedAt: text }).strict();
 
 const habitRow = z.object({
   id, name: text, frequency: z.enum(HABIT_FREQUENCIES), targetPerWeek: z.number().int(), goalId: optionalText,
   days: z.array(z.number().int().min(0).max(6)).default([0, 1, 2, 3, 4, 5, 6]), minutes: z.number().int().default(30),
-  unit: z.enum(HABIT_UNITS).default('minutes'), target: optionalInteger.default(null), minimum: optionalInteger.default(null), active: z.boolean(), ...timestamps,
+  unit: z.enum(HABIT_UNITS).default('minutes'), target: optionalInteger.default(null), minimum: optionalInteger.default(null), slots: z.array(timeSlotRow).default([]),
+  active: z.boolean(), ...timestamps,
 }).strict().transform((row) => ({ ...row, target: row.target ?? row.minutes })); // Before amounts, a habit's target was its minutes.
 
 const habitCompletionRow = z.object({ id, habitId: id, date: text, amount: optionalInteger.default(null), completedAt: text }).strict();
 
 const eventRow = z.object({
   id, title: text, description: optionalText, type: z.enum(EVENT_TYPES), date: text, startTime: optionalText, endTime: optionalText,
-  goalId: optionalText, projectId: optionalText, opportunityId: optionalText, ...timestamps,
+  goalId: optionalText, projectId: optionalText, opportunityId: optionalText, repeat: z.array(timeSlotRow).nullable().default(null), skips: z.array(text).default([]), ...timestamps,
 }).strict();
 
 const opportunityRow = z.object({
@@ -227,6 +231,10 @@ export const backupSnapshotSchema = z.object({
     (items) => uniqueBy(items, (item) => `${item.habitId}|${item.date}`),
     'Contains more than one completion for the same habit and date',
   ),
+  taskCompletions: rows(taskCompletionRow).refine(
+    (items) => uniqueBy(items, (item) => `${item.taskId}|${item.date}`),
+    'Contains more than one occurrence for the same task and date',
+  ).default([]),
   events: rows(eventRow),
   opportunities: rows(opportunityRow),
   projects: rows(projectRow),
@@ -274,7 +282,7 @@ export const backupSnapshotSchema = z.object({
 
 export type BackupSnapshot = z.infer<typeof backupSnapshotSchema>;
 export const BACKUP_TABLES = [
-  'goals', 'tasks', 'habits', 'habitCompletions', 'events', 'opportunities', 'projects', 'skills', 'evidence', 'weeklyReviews',
+  'goals', 'tasks', 'taskCompletions', 'habits', 'habitCompletions', 'events', 'opportunities', 'projects', 'skills', 'evidence', 'weeklyReviews',
   'goalCriteria', 'goalProgress', 'milestones', 'opportunityPrep', 'opportunityActivities', 'contacts', 'interactions', 'resumes',
   'resumeFiles', 'reflections', 'monthlyReviews', 'terms', 'courses', 'assessments', 'keyDates', 'pins', 'uniLinks',
   'resources', 'resourceFiles', 'ideas', 'finds', 'books', 'bookLoans', 'readingLog',

@@ -75,3 +75,17 @@ test('a habit counted in pages takes the pages read from its book', () => {
   const later = bookService.log(book.id, { date: '2026-10-20', page: 42 })!;
   assert.deepEqual([later.completion, later.tick?.amount], [null, 12]);
 });
+
+test('a timed habit happens on the days of its times', () => {
+  const habit = habitService.create({
+    name: 'Mawaheb',
+    days: [1, 2, 3, 4, 5],
+    slots: [{ day: 1, start: '19:00', end: '20:45' }, { day: 6, start: '14:00', end: '17:00' }, { day: 1, start: '21:30', end: '22:20' }],
+  });
+  assert.deepEqual([habit.days, habit.targetPerWeek, habit.slots.length], [[1, 6], 2, 3]);
+
+  // Days sent alongside times give way to the times; removing the times brings days back.
+  assert.deepEqual(habitService.update(habit.id, { days: [0] })?.days, [1, 6]);
+  assert.deepEqual(habitService.update(habit.id, { slots: [], days: [2, 4] })?.days, [2, 4]);
+  assert.deepEqual(habitService.create({ name: 'Untimed' }).slots, []);
+});

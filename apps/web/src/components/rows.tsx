@@ -2,8 +2,9 @@
 import { useState } from 'react'
 import type { ReactNode } from 'react'
 import * as D from '../lib/dates.ts'
-import { STAGE_LABEL, STAGES, agendaHref, agendaLabel, daysLabel, habitAmount, habitDue, habitState, habitUnits, habitWeek, isClosed, nextEvent, oppHealth, orgOf, placeOf, rank } from '../lib/rules.ts'
-import type { AgendaItem, AttentionItem } from '../lib/rules.ts'
+import { slotsLabel, slotsOn } from '../lib/schedule.ts'
+import { STAGE_LABEL, STAGES, agendaHref, agendaLabel, daysLabel, habitAmount, habitDue, habitState, habitUnits, habitWeek, isRepeating, plural, targetOn, workBetween, isClosed, nextEvent, oppHealth, orgOf, placeOf, rank } from '../lib/rules.ts'
+import type { AgendaItem, AttentionItem, WorkState } from '../lib/rules.ts'
 import type { Habit, Opportunity, Task } from '../lib/types.ts'
 import { navigate } from '../lib/router.ts'
 import { useActions } from '../store/actions.ts'
@@ -50,6 +51,38 @@ export function TaskRow({ task, showMust, showDate, hideGoal, menu = true }: { t
     if (!saved) setJustDone(false)
   }
 
+  // A repeating task is a series: it's ticked per occurrence (Calendar, Your day), never from here.
+  if (isRepeating(task)) {
+    const weekStart = D.startOfWeek(today, data.settings.weekStart)
+    const week = workBetween(data, weekStart, D.addDays(weekStart, 6), today).filter((o) => o.task.id === task.id)
+    const sofar = week.filter((o) => o.state !== 'open')
+    return (
+      <div className={`row row-link${task.status === 'completed' ? ' is-done' : ''}`}>
+        <span aria-hidden="true" className="type-tile"><Icon name="refresh" /></span>
+        <div className="row-main">
+          <button className="row-open" onClick={() => editors.task(task)} type="button">{task.title}</button>
+          <div className="row-meta">
+            <span className="num">{slotsLabel(task.repeat!)}</span>
+            {task.status === 'completed' ? <span><Icon name="check" />Finished</span> : sofar.length > 0 && <span className="num">{sofar.filter((o) => o.state === 'done').length} of {sofar.length} done this week</span>}
+            {goal && !hideGoal && <span><Icon name="goals" />{goal.name}</span>}
+          </div>
+        </div>
+        {menu && (
+          <div className="row-actions">
+            <Menu items={[
+              { label: 'Edit', icon: 'edit', onSelect: () => editors.task(task) },
+              task.status === 'completed'
+                ? { label: 'Start again', icon: 'refresh', onSelect: () => void actions.tasks.toggle(task) }
+                : { label: 'Finish the series', icon: 'check', onSelect: () => void actions.tasks.toggle(task) },
+              '-',
+              { label: 'Delete task', icon: 'trash', onSelect: () => void actions.tasks.remove(task), danger: true },
+            ]} label={`More actions for ${task.title}`} />
+          </div>
+        )}
+      </div>
+    )
+  }
+
   return (
     <div className={`row row-link${task.status === 'completed' ? ' is-done' : ''}`}>
       <button aria-checked={done} aria-label={`${task.status === 'completed' ? 'Mark as not done' : 'Complete'}: ${task.title}`} className={`check${justDone ? ' just-done' : ''}`} onClick={() => void toggle()} role="checkbox" type="button"><Icon name="check" /></button>
@@ -74,8 +107,8 @@ export function TaskRow({ task, showMust, showDate, hideGoal, menu = true }: { t
 }
 
 /** "5 of 10 pages", "45 min of 1 h"; just "10 pages" when it's exactly the target. */
-const amountOf = (habit: Habit, amount: number) =>
-  amount === habit.target ? habitUnits(habit, amount) : habit.unit === 'minutes' ? `${D.minutes(amount)} of ${D.minutes(habit.target)}` : `${amount} of ${habitUnits(habit, habit.target)}`
+const amountOf = (habit: Habit, amount: number, target: number) =>
+  amount === target ? habitUnits(habit, amount) : habit.unit === 'minutes' ? `${D.minutes(amount)} of ${D.minutes(target)}` : `${amount} of ${habitUnits(habit, target)}`
 const DAY_STATE: Record<string, string> = { done: 'done', minimum: 'minimum kept', some: 'some done', none: 'not done' }
 
 export function HabitRow({ habit, hideGoal, manage }: { habit: Habit; hideGoal?: boolean; manage?: boolean }) {
@@ -89,9 +122,11 @@ export function HabitRow({ habit, hideGoal, manage }: { habit: Habit; hideGoal?:
   const week = habitWeek(habit, data.completions, today)
   const goal = data.goals.find((g) => g.id === habit.goalId)
   const logged = state !== 'none'
+  const target = targetOn(habit, today)
+  const times = slotsOn(habit.slots, today).map((slot) => `${slot.start}–${slot.end}`).join(', ')
   // A minimum equal to the target (a whole hizb) says nothing new.
-  const minimum = habit.minimum !== null && habit.minimum < habit.target ? ` · minimum ${habitUnits(habit, habit.minimum)}` : ''
-  const howMuch = state === 'none' ? `${habitUnits(habit, habit.target)}${minimum}` : state === 'done' ? `Done · ${amountOf(habit, amount)}` : `${amountOf(habit, amount)}${state === 'minimum' ? ' · minimum kept' : ''}`
+  const minimum = habit.minimum !== null && habit.minimum < target ? ` · minimum ${habitUnits(habit, habit.minimum)}` : ''
+  const howMuch = state === 'none' ? `${habitUnits(habit, target)}${minimum}` : state === 'done' ? `Done · ${amountOf(habit, amount, target)}` : `${amountOf(habit, amount, target)}${state === 'minimum' ? ' · minimum kept' : ''}`
 
   return (
     <div className={`row habit-row${state === 'done' ? ' is-done-habit' : ''}`}>
@@ -100,12 +135,12 @@ export function HabitRow({ habit, hideGoal, manage }: { habit: Habit; hideGoal?:
         ? <button aria-checked={state === 'done' ? true : logged ? 'mixed' : false} aria-label={`${logged ? 'Undo' : 'Mark done'}: ${habit.name} today`} className="check" onClick={() => void actions.habits.toggle(habit)} role="checkbox" type="button"><Icon name="check" /></button>
         : <span aria-hidden="true" className="check" style={{ opacity: 0.35 }} />}
       <div className="row-main">
-        <span className="row-title">{habit.name}</span>
+        <span className="row-title">{times && <span className="habit-time num">{times}</span>}{habit.name}</span>
         <div className="row-meta">
           {due
             ? <button aria-label={`Log how much: ${habit.name}. ${howMuch}`} className="habit-amount" onClick={() => editors.logHabit(habit)} type="button">{howMuch}</button>
-            : <span>{habitUnits(habit, habit.target)}</span>}
-          <span>{daysLabel(habit.days)}</span>
+            : <span>{habitUnits(habit, target)}</span>}
+          <span>{habit.slots.length ? slotsLabel(habit.slots) : daysLabel(habit.days)}</span>
           {goal && !hideGoal && <span className="habit-goal"><Icon name="goals" />{goal.name}</span>}
           {!due && <span>Not scheduled today</span>}
         </div>
@@ -120,7 +155,7 @@ export function HabitRow({ habit, hideGoal, manage }: { habit: Habit; hideGoal?:
           ))}
         </span>
         <span className="xs muted num" title={week.scheduled ? `${week.rate}% of scheduled days in the last 4 weeks${week.minimum ? `, ${week.minimum} of them at the minimum` : ''}` : undefined}>
-          {week.scheduled ? `${week.done} of ${week.scheduled} days kept` : 'New: no full day yet'}
+          {week.scheduled ? `${week.done} of ${plural(week.scheduled, 'day')} kept` : 'New: no full day yet'}
         </span>
       </div>
       {manage && (
@@ -238,14 +273,46 @@ export function InlineAdd({ id, label, placeholder, onAdd, maxLength = 200, larg
 }
 
 /* ---- Agenda entries (events, deadlines, milestones) ------------------------------------- */
+/**
+ * One occurrence of repeating work: tick it done, skip it ("no Veribir tasks today"), or see that
+ * it was missed. Missed is history, never overdue.
+ */
+export function WorkRow({ task, date, start, end, state }: { task: Task; date: string; start: string; end: string; state: WorkState }) {
+  const actions = useActions()
+  const editors = useEditors()
+  const done = state === 'done'
+  return (
+    <div className={`row row-link work-row${done ? ' is-done' : ''}${state === 'skipped' ? ' is-skipped' : ''}`}>
+      <button aria-checked={done} aria-label={`${done ? 'Mark as not done' : 'Done'}: ${task.title}, ${D.withDay(date)}`} className="check" onClick={() => void (done ? actions.work.untick(task, date) : actions.work.tick(task, date))} role="checkbox" type="button"><Icon name="check" /></button>
+      <div className="row-main">
+        <button className="row-open" onClick={() => editors.task(task)} type="button">{task.title}</button>
+        <div className="row-meta">
+          <span className="num">{start}–{end}</span>
+          {state === 'skipped' && <span>Skipped</span>}
+          {state === 'missed' && <span className="work-missed">Missed</span>}
+        </div>
+      </div>
+      <div className="row-actions">
+        {state === 'skipped'
+          ? <button className="btn btn-sm btn-ghost" onClick={() => void actions.work.untick(task, date)} type="button">Undo skip</button>
+          : !done && <button className="btn btn-sm btn-ghost" onClick={() => void actions.work.tick(task, date, true)} type="button">Skip</button>}
+      </div>
+    </div>
+  )
+}
+
 export function AgendaRow({ item }: { item: AgendaItem }) {
+  const editors = useEditors()
   const [icon, , tone] = AGENDA_META[item.type] ?? AGENDA_META.event!
   const href = agendaHref(item)
+  // An event of your own opens for editing; one tied to an opportunity or a review goes there.
+  const open = href ? () => navigate(href) : item.kind === 'event' ? () => editors.editEvent(item.ref, item.date) : null
   return (
-    <div className={`row${href ? ' row-link' : ''} agenda-item`}>
+    <div className={`row${open ? ' row-link' : ''} agenda-item`}>
       <span className="agenda-time num">{item.time ?? <span className="faint">All day</span>}</span>
       <div className="row-main">
-        {href ? <button className="row-open" onClick={() => navigate(href)} type="button">{item.title}</button> : <span className="row-title">{item.title}</span>}
+        {open ? <button className="row-open" onClick={open} type="button">{item.title}</button> : <span className="row-title">{item.title}</span>}
+        {item.kind === 'event' && (item.end || item.ref.repeat) && <span className="row-meta">{[item.end && `${item.time}–${item.end}`, item.ref.repeat && 'Every week'].filter(Boolean).join(' · ')}</span>}
         {item.kind === 'event' && item.ref.description && <span className="row-meta">{item.ref.description}</span>}
         {item.kind === 'class' && <span className="row-meta">{item.time}–{item.end}{item.room ? `, ${item.room}` : ''}</span>}
       </div>

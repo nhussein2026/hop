@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { HABIT_FREQUENCIES, HABIT_UNITS } from '@hop/domain';
 
 import { dateSchema as date, entityIdSchema as id } from './common.js';
+import { timeSlotsSchema } from './schedule.js';
 
 const name = z.string().trim().min(1, 'Habit name is required').max(160, 'Habit name cannot exceed 160 characters');
 const days = z
@@ -30,6 +31,7 @@ export const createHabitSchema = z.object({
   unit: z.enum(HABIT_UNITS).optional(),
   target: amount.optional(),
   minimum: amount.nullable().optional(),
+  slots: timeSlotsSchema.optional(),
 }).strict().superRefine(minimumWithinTarget);
 
 export const updateHabitSchema = z.object({
@@ -40,6 +42,7 @@ export const updateHabitSchema = z.object({
   unit: z.enum(HABIT_UNITS).optional(),
   target: amount.optional(),
   minimum: amount.nullable().optional(),
+  slots: timeSlotsSchema.optional(),
   active: z.boolean().optional(),
 }).strict().superRefine(minimumWithinTarget);
 
