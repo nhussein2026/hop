@@ -32,6 +32,7 @@ test('migrateDatabase creates every table in a new database and is idempotent', 
     '__drizzle_migrations',
     'accounts',
     'assessments',
+    'bills',
     'book_loans',
     'books',
     'contacts',
@@ -46,15 +47,20 @@ test('migrateDatabase creates every table in a new database and is idempotent', 
     'habit_completions',
     'habits',
     'ideas',
+    'income_sources',
     'interactions',
     'key_dates',
     'language_checks',
     'milestones',
+    'money_entries',
+    'money_rates',
     'monthly_reviews',
     'opportunities',
     'opportunity_activities',
     'opportunity_prep',
     'pins',
+    'pot_moves',
+    'pots',
     'practice_activities',
     'practice_sessions',
     'practice_tests',
@@ -68,13 +74,15 @@ test('migrateDatabase creates every table in a new database and is idempotent', 
     'sessions',
     'settings',
     'skills',
+    'spend_categories',
     'task_completions',
     'tasks',
     'terms',
     'uni_links',
+    'wallets',
     'weekly_reviews',
   ]);
-  assert.equal(appliedMigrations(sqlite).length, 14);
+  assert.equal(appliedMigrations(sqlite).length, 15);
 });
 
 test('migrateDatabase baselines a pre-migration database without touching its data', () => {
@@ -85,7 +93,7 @@ test('migrateDatabase baselines a pre-migration database without touching its da
   migrateDatabase(sqlite, migrationsFolder);
 
   // The initial migration is recorded without running; later migrations still apply.
-  assert.deepEqual(appliedMigrations(sqlite).map((name) => String(name).slice(15)), ['initial', 'auth', 'features', 'resume_files_goal_criteria', 'monthly_reviews', 'university_and_radar', 'reading_shelf', 'language_track', 'notes_and_accounts', 'proven_skills', 'language_checks', 'course_provider_and_dates', 'habit_amounts_and_tiers', 'week_plan']);
+  assert.deepEqual(appliedMigrations(sqlite).map((name) => String(name).slice(15)), ['initial', 'auth', 'features', 'resume_files_goal_criteria', 'monthly_reviews', 'university_and_radar', 'reading_shelf', 'language_track', 'notes_and_accounts', 'proven_skills', 'language_checks', 'course_provider_and_dates', 'habit_amounts_and_tiers', 'week_plan', 'money']);
   assert.deepEqual(sqlite.prepare('SELECT name FROM goals').all().map((row) => row.name), ['Kept goal']);
 });
 
