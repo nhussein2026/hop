@@ -9,20 +9,21 @@ How it works (details in [Development](DEVELOPMENT.md#versions-and-releases)):
 - Ideas that come up while a version is being built go to the Backlog, unless we agree to pull them into Next.
 - After a release, its items leave this file and the first version under Later becomes Next.
 
-## Next: v1.5.0 (by mid-Dec, before the B1 gate on 4 Jan)
+## Next: v1.5.0 (by mid-November)
 
 | Item | Type | Spec | Status |
 | --- | --- | --- | --- |
-| Gates: each checkpoint's targets with ✓/✗, and a confirmation before passing with unmet targets | feat | [Türkçe proposal A](proposals/2026-10-turkish-c1-measurement.md#gates) | Scope to agree |
-| Score targets for mock exams | feat | [Türkçe proposal D](proposals/2026-10-turkish-c1-measurement.md#d-score-targets) | Scope to agree |
-| Error log: mistakes by category, recurring ones on Today, Anki export (moved from v1.3.0 on 2026-10-24) | feat | [Türkçe proposal B](proposals/2026-10-turkish-c1-measurement.md#b-error-log) | Scope to agree |
+| Money: wallets and every movement, mixed TL/USD/EUR at a monthly rate, the month (income, fixed costs, budgets, set aside, left to spend, safe per day), quick logging, wishes and savings, money on Today | feat | [Money proposal](proposals/2026-10-finance.md) | Agreed 2026-10-29 |
 
 ## Later
 
 | Version | Item | Type | Spec |
 | --- | --- | --- | --- |
-| v1.6.0 (January) | Ventures and project editing: Career or Venture, a progress log, a drawer that edits every field | feat | [Hop proposal D](proposals/2026-10-hop-improvements.md#d-ventures-and-project-editing) |
-| v1.6.0 | Job sources in Career: career sites to check every few weeks | feat | [Hop proposal E](proposals/2026-10-hop-improvements.md#e-job-sources) |
+| v1.6.0 (by mid-Dec, before the B1 gate on 4 Jan) | Gates: each checkpoint's targets with ✓/✗, and a confirmation before passing with unmet targets | feat | [Türkçe proposal A](proposals/2026-10-turkish-c1-measurement.md#gates) |
+| v1.6.0 | Score targets for mock exams | feat | [Türkçe proposal D](proposals/2026-10-turkish-c1-measurement.md#d-score-targets) |
+| v1.6.0 | Error log: mistakes by category, recurring ones on Today, Anki export (moved from v1.3.0 on 2026-10-24) | feat | [Türkçe proposal B](proposals/2026-10-turkish-c1-measurement.md#b-error-log) |
+| v1.7.0 (January) | Ventures and project editing: Career or Venture, a progress log, a drawer that edits every field | feat | [Hop proposal D](proposals/2026-10-hop-improvements.md#d-ventures-and-project-editing) |
+| v1.7.0 | Job sources in Career: career sites to check every few weeks | feat | [Hop proposal E](proposals/2026-10-hop-improvements.md#e-job-sources) |
 
 ## Backlog
 
@@ -59,3 +60,4 @@ Not assigned to a version. Each one needs a conversation before it moves up.
 | Plan → Habits shows a habit's minimum only on days it's scheduled | fix | Profile, Football and Family have minimums saved, but their rows show only the target on other days. |
 | "Timeline only" habits: meals, rides and free time show in Your day and the Timetable but don't count as habits or trigger "missed last time" | feat | Found testing v1.4.0: entered as ordinary habits they count in Today's Habits total and warn when not ticked. Until then, leave them out of Hop's habits. |
 | Your day's "to go" counts done and skipped blocks | fix | Found testing v1.4.0: "12 blocks, 12 to go" after ticking the first. |
+| Today's "Coming up" lists every routine occurrence (rides, meals, study blocks), pushing real deadlines and meetings out | fix | Found 2026-10-27 entering the week: routine blocks are repeating "personal" events (no timeline-only habits yet). Show meetings, interviews and deadlines there, not daily routine. Ties in with the "Timeline only" habits row. |
