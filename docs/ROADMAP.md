@@ -9,19 +9,18 @@ How it works (details in [Development](DEVELOPMENT.md#versions-and-releases)):
 - Ideas that come up while a version is being built go to the Backlog, unless we agree to pull them into Next.
 - After a release, its items leave this file and the first version under Later becomes Next.
 
-## Next: v1.5.0 (by mid-November)
+## Next: v1.6.0 (by mid-Dec, before the B1 gate on 4 Jan)
 
 | Item | Type | Spec | Status |
 | --- | --- | --- | --- |
-| Finances (money): wallets and every movement, mixed TL/USD/EUR at a monthly rate, the month (income, fixed costs, budgets, set aside, left to spend, safe per day), quick logging, wishes and savings, money on Today | feat | [Money proposal](proposals/2026-10-finance.md) | Agreed 2026-10-29 |
+| Gates: each checkpoint's targets with ✓/✗, and a confirmation before passing with unmet targets | feat | [Türkçe proposal A](proposals/2026-10-turkish-c1-measurement.md#gates) | Scope to agree |
+| Score targets for mock exams | feat | [Türkçe proposal D](proposals/2026-10-turkish-c1-measurement.md#d-score-targets) | Scope to agree |
+| Error log: mistakes by category, recurring ones on Today, Anki export (moved from v1.3.0 on 2026-10-24) | feat | [Türkçe proposal B](proposals/2026-10-turkish-c1-measurement.md#b-error-log) | Scope to agree |
 
 ## Later
 
 | Version | Item | Type | Spec |
 | --- | --- | --- | --- |
-| v1.6.0 (by mid-Dec, before the B1 gate on 4 Jan) | Gates: each checkpoint's targets with ✓/✗, and a confirmation before passing with unmet targets | feat | [Türkçe proposal A](proposals/2026-10-turkish-c1-measurement.md#gates) |
-| v1.6.0 | Score targets for mock exams | feat | [Türkçe proposal D](proposals/2026-10-turkish-c1-measurement.md#d-score-targets) |
-| v1.6.0 | Error log: mistakes by category, recurring ones on Today, Anki export (moved from v1.3.0 on 2026-10-24) | feat | [Türkçe proposal B](proposals/2026-10-turkish-c1-measurement.md#b-error-log) |
 | v1.7.0 (January) | Ventures and project editing: Career or Venture, a progress log, a drawer that edits every field | feat | [Hop proposal D](proposals/2026-10-hop-improvements.md#d-ventures-and-project-editing) |
 | v1.7.0 | Job sources in Career: career sites to check every few weeks | feat | [Hop proposal E](proposals/2026-10-hop-improvements.md#e-job-sources) |
 
