@@ -6,6 +6,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Ver
 
 ## [Unreleased]
 
+## [1.5.0] - 2026-10-29
+
 ### Added
 
 - **Finances**, a new section for organising what comes in each month and where it goes:
@@ -101,7 +103,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Ver
 
 - `deploy/update.sh` installs the newest release (the highest `vX.Y.Z` tag) instead of the newest commit on `master`. It refuses to take Hop back to an older release, and after the restart it checks that the new version is the one answering.
 
-[Unreleased]: https://github.com/nhussein2026/hop/compare/v1.4.0...HEAD
+[Unreleased]: https://github.com/nhussein2026/hop/compare/v1.5.0...HEAD
+[1.5.0]: https://github.com/nhussein2026/hop/compare/v1.4.0...v1.5.0
 [1.4.0]: https://github.com/nhussein2026/hop/compare/v1.3.0...v1.4.0
 [1.3.0]: https://github.com/nhussein2026/hop/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/nhussein2026/hop/compare/v1.1.0...v1.2.0
