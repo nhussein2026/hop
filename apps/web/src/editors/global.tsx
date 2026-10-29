@@ -14,7 +14,7 @@ import { closeDialog, focusFirstInvalid, formText } from '../components/ui-conte
 
 /* ---- Quick add ---------------------------------------------------------------------------- */
 /** `note` is a reflection; `memo` is a note for Notes. */
-export type AddKind = 'opportunity' | 'event' | 'evidence' | 'goal' | 'note' | 'project' | 'milestone' | 'deadline' | 'resource' | 'find' | 'idea' | 'book' | 'memo' | 'account'
+export type AddKind = 'opportunity' | 'event' | 'evidence' | 'goal' | 'note' | 'project' | 'milestone' | 'deadline' | 'resource' | 'find' | 'idea' | 'book' | 'memo' | 'account' | 'spending' | 'wish'
 
 function whenOptions(): [string, string][] {
   const today = D.today()
@@ -36,12 +36,12 @@ export function QuickAdd({ close, onSwitch }: { close: () => void; onSwitch: (ki
     setError(title ? '' : 'Type the task first.')
     if (!title) return focusFirstInvalid(form)
     const when = String(fd.get('when') || '')
-    const label = when === D.today() ? 'Added to today' : when ? `Added for ${D.relative(when).toLowerCase()}` : 'Added to your list (no date)'
+    const label = when === D.today() ? 'Added to today' : when ? `Added for ${D.inSentence(when)}` : 'Added to your list (no date)'
     const saved = await actions.tasks.add({ title, scheduledDate: when || null, priority: fd.get('must') ? 'high' : 'medium', goalId: String(fd.get('goalId') || '') || null }, label)
     if (saved) closeDialog(form)
   }
 
-  const more: [AddKind, string, string][] = [['memo', 'notes', 'Note'], ['deadline', 'school', 'Course deadline'], ['resource', 'library', 'To library'], ['find', 'radar', 'Radar find'], ['book', 'book', 'Book to read'], ['idea', 'bulb', 'Idea'], ['opportunity', 'career', 'Opportunity'], ['event', 'calendar', 'Event'], ['evidence', 'award', 'Evidence'], ['goal', 'goals', 'Goal'], ['note', 'edit', 'Reflection'], ['project', 'code', 'Project'], ['milestone', 'flag', 'Milestone'], ['account', 'key', 'Account or subscription']]
+  const more: [AddKind, string, string][] = [['spending', 'money', 'Spending'], ['memo', 'notes', 'Note'], ['deadline', 'school', 'Course deadline'], ['resource', 'library', 'To library'], ['find', 'radar', 'Radar find'], ['book', 'book', 'Book to read'], ['idea', 'bulb', 'Idea'], ['opportunity', 'career', 'Opportunity'], ['event', 'calendar', 'Event'], ['evidence', 'award', 'Evidence'], ['goal', 'goals', 'Goal'], ['note', 'edit', 'Reflection'], ['project', 'code', 'Project'], ['milestone', 'flag', 'Milestone'], ['account', 'key', 'Account or subscription'], ['wish', 'star', 'Wish']]
 
   return (
     <Dialog foot={<><span className="xs muted hide-phone qa-hint"><kbd>Enter</kbd> to add</span><span className="spacer" /><button className="btn" data-close type="button">Cancel</button><SubmitButton>Add task</SubmitButton></>} onClose={close} onSubmit={submit} title="Add">
@@ -68,7 +68,7 @@ export function QuickAdd({ close, onSwitch }: { close: () => void; onSwitch: (ki
 }
 
 /* ---- Search ---------------------------------------------------------------------------------- */
-const JUMP: [string, string, string][] = [['today', 'Today', '#/today'], ['plan', 'Plan', '#/plan'], ['school', 'İTÜ', '#/itu'], ['library', 'Library', '#/itu/library'], ['radar', 'Radar', '#/growth/radar'], ['goals', 'Goals', '#/goals'], ['career', 'Career', '#/career'], ['growth', 'Growth', '#/growth'], ['review', 'Review', '#/review'], ['settings', 'Settings', '#/settings']]
+const JUMP: [string, string, string][] = [['today', 'Today', '#/today'], ['plan', 'Plan', '#/plan'], ['school', 'İTÜ', '#/itu'], ['library', 'Library', '#/itu/library'], ['radar', 'Radar', '#/growth/radar'], ['goals', 'Goals', '#/goals'], ['career', 'Career', '#/career'], ['growth', 'Growth', '#/growth'], ['money', 'Finances', '#/finances'], ['review', 'Review', '#/review'], ['settings', 'Settings', '#/settings']]
 
 export function Search({ close }: { close: () => void }) {
   const { data } = useHop()
@@ -212,7 +212,7 @@ export function ReflectionEditor({ date, close }: { date: string; close: () => v
 /** Sections that aren't in the phone tab bar. `extra` is whichever of İTÜ and Türkçe the tab bar left out. */
 export function MoreSheet({ close, counts, extra }: { close: () => void; counts: Record<string, number>; extra?: 'itu' | 'turkish' }) {
   const extras: Record<'itu' | 'turkish', [string, string, string]> = { itu: ['itu', 'İTÜ', 'Courses, library, research'], turkish: ['turkish', 'Türkçe', 'Your road to the C1 exam'] }
-  const items: [string, string, string][] = [...(extra ? [extras[extra]] : []), ['career', 'Career', 'Opportunities, people, resumes'], ['calendar', 'Calendar', 'Events, tasks and deadlines by day'], ['goals', 'Goals', 'Where you’re going'], ['growth', 'Growth', 'Skills, projects, reading and Radar'], ['notes', 'Notes', 'Notes, accounts and subscriptions'], ['review', 'Review', 'Weekly and monthly reviews, reflections'], ['settings', 'Settings', 'Profile, backups, security']]
+  const items: [string, string, string][] = [...(extra ? [extras[extra]] : []), ['career', 'Career', 'Opportunities, people, resumes'], ['calendar', 'Calendar', 'Events, tasks and deadlines by day'], ['goals', 'Goals', 'Where you’re going'], ['growth', 'Growth', 'Skills, projects, reading and Radar'], ['notes', 'Notes', 'Notes, accounts and subscriptions'], ['finances', 'Finances', 'Budget, spending, wishes and savings'], ['review', 'Review', 'Weekly and monthly reviews, reflections'], ['settings', 'Settings', 'Profile, backups, security']]
   return (
     <Dialog foot={false} onClose={close} title="More">
       <nav aria-label="More sections" className="rows">

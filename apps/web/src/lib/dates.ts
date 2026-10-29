@@ -93,6 +93,12 @@ export function relative(ymd: string, from = today()) {
   return withDay(ymd)
 }
 
+/** relative() inside a sentence: "today", "tomorrow", "yesterday" go lowercase; "Thursday" and "Thu 1 Oct" keep their capitals. */
+export function inSentence(ymd: string, from = today()) {
+  const label = relative(ymd, from)
+  return /^(Today|Tomorrow|Yesterday)$/.test(label) ? label.toLowerCase() : label
+}
+
 export function dueLabel(ymd: string, from = today()) {
   const days = diffDays(ymd, from)
   if (days < 0) return `Overdue by ${-days} day${days === -1 ? '' : 's'}`

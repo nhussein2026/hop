@@ -157,7 +157,7 @@ function Accounts({ accountId }: { accountId?: string }) {
     <>
       {privacy}
       {soon.map(({ account: a, date }) => (
-        <Banner action={<button className="btn btn-sm" onClick={() => editors.account(a)} type="button">Open</button>} icon={a.status === 'trial' ? 'alert' : 'refresh'} key={a.id} title={a.status === 'trial' ? `${a.name}: free trial ends ${D.relative(date, today).toLowerCase()}.` : `${a.name} renews ${D.relative(date, today).toLowerCase()}${a.cost ? ` for ${money(a.cost, a.currency)}` : ''}.`} tone={a.status === 'trial' ? 'warning' : 'info'}>
+        <Banner action={<button className="btn btn-sm" onClick={() => editors.account(a)} type="button">Open</button>} icon={a.status === 'trial' ? 'alert' : 'refresh'} key={a.id} title={a.status === 'trial' ? `${a.name}: free trial ends ${D.inSentence(date, today)}.` : `${a.name} renews ${D.inSentence(date, today)}${a.cost ? ` for ${money(a.cost, a.currency)}` : ''}.`} tone={a.status === 'trial' ? 'warning' : 'info'}>
           {a.status === 'trial' ? 'Cancel before then if you don’t want to pay for it.' : 'Still using it? If not, cancel it today.'}
         </Banner>
       ))}
@@ -200,7 +200,7 @@ function AccountRow({ account: a }: { account: Account }) {
           {a.login && <span><Icon name="user" />{a.login}</span>}
           {a.purpose && <span>{a.purpose}</span>}
           {a.cost !== null && a.cycle !== 'none' && <span className="num">{money(a.cost, a.currency)} {BILLING_CYCLE_LABEL[a.cycle]}</span>}
-          {next && <span className={near ? 'is-warning' : ''}><Icon name="calendar" />{a.status === 'trial' ? 'Trial ends' : 'Renews'} {D.relative(next, today).toLowerCase()}</span>}
+          {next && <span className={near ? 'is-warning' : ''}><Icon name="calendar" />{a.status === 'trial' ? 'Trial ends' : 'Renews'} {D.inSentence(next, today)}</span>}
           {a.payment && <span>{a.payment}</span>}
           {a.secretIn && <span><Icon name="shield" />Password in {a.secretIn}</span>}
           {a.status !== 'active' && <Badge tone={tone}>{label}</Badge>}

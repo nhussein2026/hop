@@ -275,6 +275,8 @@ p > .icon { display: inline-block; vertical-align: -3px; margin-right: 2px; }
   grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   gap: var(--s-3);
 }
+/* A hint under one field doesn't push its neighbours' inputs down. */
+.form-row > .field { align-content: start; }
 
 /* Segmented control (radio group styled as buttons). */
 .segmented {

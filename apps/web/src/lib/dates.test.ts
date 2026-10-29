@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { addDays, addMonths, diffDays, dueLabel, monthLong, relative, setTimezone, startOfMonth, startOfWeek, ymdOf } from './dates.ts'
+import { addDays, addMonths, diffDays, dueLabel, inSentence, monthLong, relative, setTimezone, startOfMonth, startOfWeek, ymdOf } from './dates.ts'
 
 test('ymdOf uses the configured timezone, not UTC', () => {
   setTimezone('America/Los_Angeles')
@@ -25,6 +25,8 @@ test('relative and due labels are concrete', () => {
   assert.equal(relative('2026-10-09', '2026-10-08'), 'Tomorrow')
   assert.equal(relative('2026-10-05', '2026-10-08'), '3 days ago')
   assert.equal(dueLabel('2026-10-06', '2026-10-08'), 'Overdue by 2 days')
+  // Inside a sentence only the words go lowercase, never a day's or month's name.
+  assert.deepEqual(['2026-10-08', '2026-10-09', '2026-10-07', '2026-10-10', '2026-10-01'].map((d) => inSentence(d, '2026-10-08')), ['today', 'tomorrow', 'yesterday', 'Saturday', 'Thu 1 Oct'])
 })
 
 test('month steps stay inside the target month', () => {

@@ -14,6 +14,7 @@ function empty(): HopData {
     evidence: [], weeklyReviews: [], monthlyReviews: [], milestones: [], contacts: [], interactions: [], resumes: [], reflections: [],
     terms: [], courses: [], keyDates: [], pins: [], uniLinks: [], resources: [], ideas: [], finds: [], books: [],
     practiceActivities: [], practiceSessions: [], practiceTests: [], languageChecks: [], practiceTotals: { minutes: { listening: 0, reading: 0, writing: 0, speaking: 0, words: 0 }, days: 0 }, accounts: [],
+    wallets: [], moneyEntries: [], moneyRates: [], incomeSources: [], bills: [], spendCategories: [], pots: [], potMoves: [],
   }
 }
 

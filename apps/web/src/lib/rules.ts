@@ -8,6 +8,7 @@ import { classesBetween, dueTime, eligibility, isPending, isExam, satInClass, ta
 import { AGENDA_META, BOOK_STATUS_LABEL, FIND_KINDS, FIND_STATUS_LABEL, IDEA_STAGE_LABEL, RESOURCE_KINDS } from './labels.ts'
 import { LOAN_NOTICE_DAYS, loanState, openLoan } from './books.ts'
 import { money, nextRenewal, renewingSoon } from './accounts.ts'
+import { billsDue, formatMoney, monthOf, monthSummary } from './money.ts'
 import { PROOF_LABEL, proofLevel } from './skills.ts'
 
 /* ---- Opportunities ------------------------------------------------------- */
@@ -402,6 +403,8 @@ export function attention(s: HopData, today: string): AttentionItem[] {
       : { level: 'important', icon: 'refresh', title: `${a.name} renews ${when}${a.cost ? ` for ${money(a.cost, a.currency)}` : ''}`, detail: 'Still using it? If not, cancel it before then.', href: `#/notes/accounts?account=${a.id}` })
   }
 
+  items.push(...moneyAttention(s, today))
+
   for (const g of s.goals) {
     if (g.status !== 'active') continue
     const h = goalHealth(g, s, today)
@@ -410,6 +413,18 @@ export function attention(s: HopData, today: string): AttentionItem[] {
 
   const order = { critical: 0, important: 1, info: 2 }
   return items.sort((a, b) => order[a.level] - order[b.level])
+}
+
+/** Fixed costs due within a few days or past due, and a missing dollar or euro rate. */
+function moneyAttention(s: HopData, today: string): AttentionItem[] {
+  const items: AttentionItem[] = billsDue(s, today).map((c): AttentionItem => {
+    const n = D.diffDays(c.due, today)
+    const when = n < 0 ? `was due ${D.inSentence(c.due, today)}` : n === 0 ? 'is due today' : n === 1 ? 'is due tomorrow' : `is due ${D.relative(c.due, today)}`
+    return { level: n <= 0 ? 'critical' : 'important', icon: 'receipt', title: `${c.name} ${when}: ${formatMoney(c.amount, c.currency)}`, detail: 'Once it’s paid, mark it Paid in Finances.', href: '#/finances' }
+  })
+  const missing = s.wallets.length ? monthSummary(s, monthOf(today), today).missingRates : []
+  if (missing.length) items.push({ level: 'info', icon: 'money', title: `Add this month’s ${missing.join(' and ')} rate`, detail: 'Until then those amounts are left out of your month’s totals.', href: '#/finances/plan' })
+  return items
 }
 
 /** Library books due back soon or overdue: return them, or renew while renewals are left. */
@@ -451,7 +466,7 @@ function courseAttention(s: HopData, today: string): AttentionItem[] {
     })
   }
   for (const { course: c, item: a } of unsubmitted(s.courses, today)) {
-    items.push({ level: 'important', icon: 'flag', title: `Did you submit ${c.code} ${a.title}?`, detail: `It was due ${D.relative(a.due!, today).toLowerCase()}. Mark it submitted or add the score.`, href: `#/itu/courses/${c.id}` })
+    items.push({ level: 'important', icon: 'flag', title: `Did you submit ${c.code} ${a.title}?`, detail: `It was due ${D.inSentence(a.due!, today)}. Mark it submitted or add the score.`, href: `#/itu/courses/${c.id}` })
   }
   for (const c of taking(s.courses)) {
     const v = eligibility(c)

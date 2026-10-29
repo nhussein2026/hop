@@ -14,6 +14,7 @@ import { isTrackHabit } from '../lib/day.ts'
 import { slotsOn } from '../lib/schedule.ts'
 import { YourDay } from './YourDay.tsx'
 import { loanLabel, loanState, openLoan, progress } from '../lib/books.ts'
+import { formatMoney, monthOf, monthSummary } from '../lib/money.ts'
 import { dayProgress, doneSession, minimumOn, planFor } from '../lib/practice.ts'
 import { PracticeRow } from './Turkish.tsx'
 import { useHop } from '../store/store.ts'
@@ -131,6 +132,7 @@ export function Today() {
               <div className="section-head"><h2 id="attn-h">Needs attention {attentionItems.length > 0 && <span className="count count-attention">{attentionItems.length}</span>}</h2></div>
               <AttentionList items={attentionItems} />
             </section>
+            <FinancesToday />
             <ClassesToday />
             <ComingUp />
             <GoalsMini />
@@ -280,6 +282,29 @@ function ReadingNow() {
   )
 }
 
+/** What's safe to spend today and what was spent, with Log spending one tap away. Hidden until Finances is set up. */
+function FinancesToday() {
+  const { data } = useHop()
+  const editors = useEditors()
+  const today = D.today()
+  if (!data.wallets.length) return null
+  const m = monthSummary(data, monthOf(today), today)
+  return (
+    <section aria-labelledby="money-h" className="section">
+      <div className="section-head"><h2 id="money-h">Finances</h2><a className="small" href="#/finances">This month</a></div>
+      <div className="panel panel-pad money-today">
+        <div>
+          {m.budget
+            ? <><span className="metric-label">Safe to spend today</span><span className={`metric-value num${m.left < 0 ? ' is-danger' : ''}`}>{formatMoney(m.safeToday ?? 0)}</span></>
+            : <span className="small muted">Set budgets in Finances to see what’s safe to spend each day.</span>}
+          <span className="xs muted num">Spent today {formatMoney(m.spentToday)}{m.left < 0 ? `, ${formatMoney(-m.left)} over this month’s budget` : ''}</span>
+        </div>
+        <button className="btn btn-sm" onClick={() => editors.logSpending()} type="button"><Icon className="icon-sm" name="plus" />Log spending</button>
+      </div>
+    </section>
+  )
+}
+
 /** Classes today, from the schedule of the courses being taken. Hidden when none is coming this week. */
 function ClassesToday() {
   const { data } = useHop()
@@ -305,7 +330,7 @@ function ClassesToday() {
             })}
           </ol>
         )
-        : <p className="small muted">No classes today.{next ? ` Next: ${next.course.code} ${D.relative(next.date, today).toLowerCase()} at ${next.slot.start}.` : ''}</p>}
+        : <p className="small muted">No classes today.{next ? ` Next: ${next.course.code} ${D.inSentence(next.date, today)} at ${next.slot.start}.` : ''}</p>}
     </section>
   )
 }

@@ -48,6 +48,14 @@ const endpoints: Record<Collection, string> = {
   practiceTests: '/api/practice/tests',
   languageChecks: '/api/practice/checks',
   accounts: '/api/accounts',
+  wallets: '/api/money/wallets',
+  moneyEntries: '/api/money/entries',
+  moneyRates: '/api/money/rates',
+  incomeSources: '/api/money/income',
+  bills: '/api/money/bills',
+  spendCategories: '/api/money/categories',
+  pots: '/api/money/pots',
+  potMoves: '/api/money/pot-moves',
 }
 
 /** Habit consistency looks back four weeks, and the monthly review may cover last month until the 7th. */

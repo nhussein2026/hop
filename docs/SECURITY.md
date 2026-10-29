@@ -45,6 +45,7 @@ Hop holds one person's private data and is meant to be reachable only from that 
 - The database and backups are plain files under `storage/` (or wherever `DATABASE_URL` and `BACKUP_DIR` point). They are **not encrypted by Hop**; rely on full-disk encryption on the server.
 - `.env`, `*.db` files, and `storage/backups/` are ignored by Git. Never commit them.
 - Backups exclude the password and sessions.
+- Hop keeps **no passwords, card numbers or account numbers**. Accounts has no password field, and Accounts and Finances refuse any run of 13 or more digits, the shape of a card number or an IBAN (400). Finances stores labels like “Ziraat card”, amounts, and the exchange rates you type in; it never connects to a bank or looks rates up.
 
 ## Deployment Checklist
 

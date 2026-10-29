@@ -1,0 +1,100 @@
+/* ==========================================================================
+   Money: the month's numbers, logging spending, wallets, wishes and savings.
+   ========================================================================== */
+
+/* An amount box with its currency symbol inside, on the left. */
+.amount-input { position: relative; display: flex; align-items: center; min-width: 0; }
+.amount-symbol { position: absolute; left: 11px; color: var(--text-muted); font-weight: 600; pointer-events: none; }
+.amount-input .input { padding-left: 28px; width: 100%; min-width: 0; }
+.amount-input-lg .amount-symbol { font-size: var(--fs-md); }
+.amount-input-lg .input { font-size: var(--fs-lg); font-weight: 700; padding-left: 32px; }
+
+/* Log spending: one tap on a category saves. */
+.spend-cats { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: var(--s-2); }
+.spend-cat {
+  display: grid;
+  gap: 2px;
+  justify-items: start;
+  min-height: 52px;
+  padding: var(--s-2) var(--s-3);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-control);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+.spend-cat:hover { border-color: var(--primary); background: var(--primary-soft); }
+.spend-cat:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.spend-cat .is-danger { color: var(--danger); font-weight: 700; }
+
+/* The budgets dialog: name, budget, remove. */
+.budget-lines { display: grid; gap: var(--s-2); margin-bottom: var(--s-3); }
+.budget-line { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) auto; gap: var(--s-2); align-items: center; }
+
+/* This month */
+.money-nav { margin-bottom: var(--s-2); }
+.money-setup { display: grid; gap: var(--s-4); max-width: 640px; }
+.money-setup h2 { margin: 0; }
+.money-setup ol { display: grid; gap: var(--s-3); margin: 0; padding: 0; list-style: none; }
+.money-setup li { display: flex; gap: var(--s-3); align-items: flex-start; }
+.money-setup li > .icon { flex: none; margin-top: 2px; color: var(--primary); }
+.money-setup li > span { display: grid; gap: 2px; }
+.money-steps { display: grid; gap: var(--s-2); margin-bottom: var(--s-4); }
+.money-steps h2 { margin: 0; font-size: var(--fs-md); }
+.money-steps ol { display: grid; gap: var(--s-2); margin: 0; padding: 0; list-style: none; }
+.money-steps li { display: flex; align-items: center; gap: var(--s-2); }
+.money-steps li .icon { color: var(--text-faint); }
+.money-steps li.is-done { color: var(--text-muted); text-decoration: line-through; }
+.money-steps li.is-done .icon { color: var(--success); }
+
+.money-top { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); gap: var(--s-4); margin-bottom: var(--s-6); align-items: start; }
+.safe-card { display: grid; gap: var(--s-2); align-content: start; }
+.safe-card h2 { margin: 0; }
+.safe-card p { margin: 0; }
+.safe-card.is-over .big-num { color: var(--danger); }
+.safe-card .is-warning { color: var(--warning); font-weight: 700; }
+
+.money-lines { display: grid; gap: var(--s-3); margin: var(--s-3) 0 0; }
+.money-lines > div { display: flex; justify-content: space-between; align-items: baseline; gap: var(--s-3); }
+.money-lines dt { display: grid; gap: 1px; font-weight: 600; }
+.money-lines dd { margin: 0; font-weight: 700; white-space: nowrap; }
+.money-total { padding-top: var(--s-3); border-top: 1px solid var(--border-strong); }
+.money-total dd { font-size: var(--fs-lg); color: var(--primary); }
+.money-total.is-danger dd { color: var(--danger); }
+
+.budget-row { display: flex; align-items: center; gap: var(--s-4); color: inherit; text-decoration: none; }
+.budget-row .row-main { display: grid; gap: 6px; }
+.budget-row .progress { max-width: 360px; }
+.budget-row > .num { white-space: nowrap; }
+.budget-row .is-danger, .budget-row.is-danger { color: var(--danger); font-weight: 700; }
+
+/* History, wallets, pots */
+.money-metrics .metric { align-content: start; }
+.money-expense { background: var(--surface-3); color: var(--text); }
+.money-income { background: var(--success-soft); color: var(--success); }
+.money-transfer, .money-adjust { background: var(--info-soft); color: var(--info); }
+.money-amount, .money-balance { flex: none; font-weight: 700; white-space: nowrap; }
+.money-amount-income { color: var(--success); }
+.money-amount-transfer, .money-amount-adjust { color: var(--text-muted); }
+.money-balance.is-danger, .metric-value.is-danger { color: var(--danger); }
+.pot-row .row-main { display: grid; gap: 4px; }
+.pot-row .progress { max-width: 360px; }
+.pot-why { margin: 0; }
+.row-meta .is-success { color: var(--success); font-weight: 700; }
+.row-meta .is-danger { color: var(--danger); font-weight: 700; }
+.row.is-muted .row-open { color: var(--text-muted); }
+
+/* Today's Money card */
+.money-today { display: flex; align-items: center; justify-content: space-between; gap: var(--s-3); padding: var(--s-4); }
+.money-today > div { display: grid; gap: 2px; min-width: 0; }
+.money-today .metric-value { font-size: var(--fs-lg); }
+
+@media (max-width: 699px) {
+  .money-top { grid-template-columns: 1fr; margin-bottom: var(--s-5); }
+  .spend-cats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .budget-row { gap: var(--s-3); }
+  .budget-row > .num { font-size: var(--fs-xs); }
+}
