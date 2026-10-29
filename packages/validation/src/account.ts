@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { ACCOUNT_STATUSES, BILLING_CYCLES, CARD_NUMBER, CURRENCIES } from '@hop/domain';
 
-import { dateSchema as date } from './common.js';
+import { dateSchema as date, entityIdSchema as id } from './common.js';
 
 const text = (label: string, max: number) => z.string().trim().max(max, `${label} cannot exceed ${max} characters`);
 
@@ -21,6 +21,7 @@ const accountFields = {
   payment: noCardNumber('Payment', 120).nullable(),
   secretIn: text('Password kept in', 80).nullable(),
   notes: noCardNumber('Notes', 2000),
+  walletId: id.nullable(),
 };
 
 export const createAccountSchema = z.object(accountFields).partial().required({ name: true }).strict();

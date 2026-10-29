@@ -2,6 +2,9 @@
    Money: the month's numbers, logging spending, wallets, wishes and savings.
    ========================================================================== */
 
+/* The display font draws ₺ almost like £, so big amounts show their symbol in the UI font. */
+.money-symbol { font-family: var(--font-ui); }
+
 /* An amount box with its currency symbol inside, on the left. */
 .amount-input { position: relative; display: flex; align-items: center; min-width: 0; }
 .amount-symbol { position: absolute; left: 11px; color: var(--text-muted); font-weight: 600; pointer-events: none; }
@@ -94,7 +97,10 @@
 
 @media (max-width: 699px) {
   .money-top { grid-template-columns: 1fr; margin-bottom: var(--s-5); }
-  .spend-cats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  /* All nine starter categories fit on a phone without scrolling. */
+  .spend-cats { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+  .spend-cat { min-height: 48px; padding: 6px 8px; font-size: var(--fs-sm); }
+  .log-spending .form-grid { gap: var(--s-3); }
   .budget-row { gap: var(--s-3); }
   .budget-row > .num { font-size: var(--fs-xs); }
 }

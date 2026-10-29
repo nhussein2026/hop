@@ -8,12 +8,17 @@ type MoneyData = Pick<HopData, 'wallets' | 'moneyEntries' | 'moneyRates' | 'inco
 
 export const SYMBOL: Record<Currency, string> = { TRY: '₺', USD: '$', EUR: '€' }
 
+/** An amount's sign, currency symbol and digits, for showing the symbol in another font. */
+export function moneyParts(amount: number, currency: Currency = BASE_CURRENCY) {
+  const value = Math.abs(amount)
+  const decimals = Number.isInteger(Math.round(value * 100) / 100) ? 0 : 2
+  return { sign: amount < 0 ? '−' : '', symbol: SYMBOL[currency], digits: value.toLocaleString('en-GB', { minimumFractionDigits: decimals, maximumFractionDigits: decimals }) }
+}
+
 /** "₺24,900", "$100.50": grouped, with cents only when there are any. */
 export function formatMoney(amount: number, currency: Currency = BASE_CURRENCY) {
-  const sign = amount < 0 ? '−' : ''
-  const value = Math.abs(amount)
-  const digits = Number.isInteger(Math.round(value * 100) / 100) ? 0 : 2
-  return `${sign}${SYMBOL[currency]}${value.toLocaleString('en-GB', { minimumFractionDigits: digits, maximumFractionDigits: digits })}`
+  const { sign, symbol, digits } = moneyParts(amount, currency)
+  return `${sign}${symbol}${digits}`
 }
 
 export const monthOf = (ymd: string) => ymd.slice(0, 7)
@@ -77,6 +82,13 @@ export function subscriptionCharge(a: Account, month: string): number {
   if (a.cycle === 'weekly') return Math.round(((a.cost * 52) / 12) * 100) / 100
   if (a.cycle === 'yearly' && a.renewsOn) return a.renewsOn.slice(5, 7) === month.slice(5, 7) ? a.cost : 0
   return 0
+}
+
+/** The wallet a subscription logs its charges in by itself, if it has one that still works. */
+export function autoWallet(a: Account, wallets: Wallet[]): Wallet | undefined {
+  if (a.cycle !== 'monthly' && a.cycle !== 'yearly') return undefined
+  const wallet = wallets.find((w) => w.id === a.walletId)
+  return wallet && !wallet.archived && wallet.currency === a.currency ? wallet : undefined
 }
 
 export type FixedCost = { key: string; name: string; amount: number; currency: Currency; due: string; paid: MoneyEntry | null; bill: Bill | null; account: Account | null; base: number | null }

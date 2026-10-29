@@ -3,14 +3,14 @@
 // at a time; wallets hold the real balances. Labels only: never card or account numbers.
 import * as D from '../lib/dates.ts'
 import { POT_PRIORITY_LABEL, WALLET_KIND_LABEL } from '../lib/labels.ts'
-import { canBuy, fixedCosts, formatMoney, isEveryday, monthOf, monthSummary, monthsToGo, potSaved, rateFor, setAsideTotal, subscriptionCharge, toBase, walletBalance } from '../lib/money.ts'
+import { autoWallet, canBuy, fixedCosts, formatMoney, isEveryday, monthOf, monthSummary, monthsToGo, potSaved, rateFor, setAsideTotal, subscriptionCharge, toBase, walletBalance } from '../lib/money.ts'
 import type { FixedCost, MonthSummary } from '../lib/money.ts'
 import type { Route } from '../lib/router.ts'
 import { plural } from '../lib/rules.ts'
 import type { MoneyEntry, Pot, Wallet } from '../lib/types.ts'
 import { useEditors } from '../editors/editors.tsx'
 import { Icon } from '../components/Icon.tsx'
-import { Badge, Banner, Empty, Menu, ProgressBar, Tabs } from '../components/ui.tsx'
+import { Badge, Banner, Empty, Menu, MoneyFigure, ProgressBar, Tabs } from '../components/ui.tsx'
 import { useConfirm } from '../components/confirm.tsx'
 import { useHop } from '../store/store.ts'
 import { useMoneyActions } from '../store/money-actions.ts'
@@ -155,8 +155,8 @@ function SafeCard({ m }: { m: MonthSummary }) {
     <section aria-labelledby="safe-h" className={`panel panel-pad safe-card${over ? ' is-over' : ''}`}>
       <h2 className="metric-label" id="safe-h">{m.safeToday === null ? 'Everyday spending' : 'Safe to spend today'}</h2>
       {m.safeToday === null
-        ? <span className="big-num num">{formatMoney(m.spent)}</span>
-        : <span className="big-num num">{formatMoney(m.safeToday)}</span>}
+        ? <span className="big-num num"><MoneyFigure amount={m.spent} /></span>
+        : <span className="big-num num"><MoneyFigure amount={m.safeToday} /></span>}
       <p className="small muted num">
         {m.safeToday === null
           ? `spent of ${formatMoney(m.budget)} budgeted.`
@@ -246,6 +246,7 @@ function FixedCosts({ items, month }: { items: FixedCost[]; month: string }) {
         {items.map((c) => {
           const days = D.diffDays(c.due, today)
           const late = !c.paid && days < 0 && !c.account
+          const logsFrom = c.account ? autoWallet(c.account, data.wallets) : undefined
           return (
             <div className="row" key={c.key}>
               <span aria-hidden="true" className="type-tile type-repo"><Icon name={c.account ? 'key' : 'receipt'} /></span>
@@ -254,9 +255,9 @@ function FixedCosts({ items, month }: { items: FixedCost[]; month: string }) {
                 <div className="row-meta">
                   <span className="num">{formatMoney(c.amount, c.currency)}</span>
                   {c.paid
-                    ? <span><Icon name="check" />Paid {D.inSentence(c.paid.date, today)}</span>
+                    ? <span><Icon name="check" />Paid {D.inSentence(c.paid.date, today)}{c.paid.auto ? ', logged automatically' : ''}</span>
                     : c.account
-                      ? <span><Icon name="refresh" />{days > 0 ? `Renews ${D.inSentence(c.due, today)}` : `Charged ${D.inSentence(c.due, today)}: tap Paid to log it`}</span>
+                      ? <span><Icon name="refresh" />{days > 0 ? `Renews ${D.inSentence(c.due, today)}${logsFrom ? `, logs itself from ${logsFrom.name}` : ''}` : `Charged ${D.inSentence(c.due, today)}: tap Paid to log it`}</span>
                       : <span className={late ? 'is-danger' : days <= 3 ? 'is-warning' : ''}><Icon name="calendar" />{D.dueLabel(c.due, today)}</span>}
                   {c.account && <span>Subscription</span>}
                 </div>
@@ -332,6 +333,7 @@ function EntryRow({ entry: e }: { entry: MoneyEntry }) {
           {wish && title !== wish && <span>Wish: {wish}</span>}
           {e.kind !== 'transfer' && wallet && <span>{wallet.name}</span>}
           {e.kind === 'transfer' && e.toAmount !== null && to && <span className="num">Arrived as {formatMoney(e.toAmount, to.currency)}</span>}
+          {e.auto && <span><Icon name="refresh" />Logged automatically</span>}
         </div>
       </div>
       <span className={`num money-amount money-amount-${e.kind}`}>{sign}{formatMoney(Math.abs(e.amount), e.currency)}</span>
@@ -452,9 +454,9 @@ function Wallets() {
   return (
     <>
       <div className="metric-row money-metrics">
-        <div className="metric"><span className="metric-label">In all wallets</span><span className="metric-value num">{formatMoney(Math.round(total))}</span>{missing && <span className="xs muted">Some wallets need a rate to count.</span>}</div>
-        <div className="metric"><span className="metric-label">Set aside</span><span className="metric-value num">{formatMoney(Math.round(aside))}</span></div>
-        <div className="metric"><span className="metric-label">Free</span><span className={`metric-value num${total - aside < 0 ? ' is-danger' : ''}`}>{formatMoney(Math.round(total - aside))}</span></div>
+        <div className="metric"><span className="metric-label">In all wallets</span><span className="metric-value num"><MoneyFigure amount={Math.round(total)} /></span>{missing && <span className="xs muted">Some wallets need a rate to count.</span>}</div>
+        <div className="metric"><span className="metric-label">Set aside</span><span className="metric-value num"><MoneyFigure amount={Math.round(aside)} /></span></div>
+        <div className="metric"><span className="metric-label">Free</span><span className={`metric-value num${total - aside < 0 ? ' is-danger' : ''}`}><MoneyFigure amount={Math.round(total - aside)} /></span></div>
       </div>
       <section aria-labelledby="wal-h" className="section">
         <div className="section-head"><h2 id="wal-h">Wallets</h2></div>
@@ -551,15 +553,18 @@ function Plan() {
                   </div>
                 </div>
               ))}
-              {subscriptions.map((a) => (
-                <div className="row row-link" key={a.id}>
-                  <span aria-hidden="true" className="type-tile type-repo"><Icon name="key" /></span>
-                  <div className="row-main">
-                    <button className="row-open" onClick={() => editors.account(a)} type="button">{a.name}</button>
-                    <div className="row-meta"><span className="num">{formatMoney(a.cost!, a.currency)} {a.cycle === 'yearly' ? 'a year' : a.cycle === 'weekly' ? 'a week' : 'a month'}</span><span>Subscription, from Accounts</span>{a.cycle === 'yearly' && !subscriptionCharge(a, month) && <span>Not this month</span>}</div>
+              {subscriptions.map((a) => {
+                const from = autoWallet(a, data.wallets)
+                return (
+                  <div className="row row-link" key={a.id}>
+                    <span aria-hidden="true" className="type-tile type-repo"><Icon name="key" /></span>
+                    <div className="row-main">
+                      <button className="row-open" onClick={() => editors.account(a)} type="button">{a.name}</button>
+                      <div className="row-meta"><span className="num">{formatMoney(a.cost!, a.currency)} {a.cycle === 'yearly' ? 'a year' : a.cycle === 'weekly' ? 'a week' : 'a month'}</span><span>{from ? `Subscription, logs itself from ${from.name}` : 'Subscription: tap Paid each month'}</span>{a.cycle === 'yearly' && !subscriptionCharge(a, month) && <span>Not this month</span>}</div>
+                    </div>
                   </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
           )
           : <p className="small muted">Rent, phone, internet, a transport card: what you pay every month.</p>}

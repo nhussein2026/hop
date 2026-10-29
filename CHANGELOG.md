@@ -12,6 +12,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Ver
   - **This month**: income, fixed costs, money set aside and everyday budgets add up to what's **not planned yet**, so every lira gets a job. **Safe to spend today** shares what's left of your budgets over the days left, and shows what you've spent today.
   - **Log spending** in two taps: type the amount, tap what it was for. Each category shows what's left in it. It's in the Add menu (`N`) and on Today, and each purchase can be undone, edited or deleted.
   - **Fixed costs** like rent and the phone, with their due day and a one-tap **Paid**. Subscriptions from Accounts count as fixed costs by themselves. Costs due within 3 days or overdue show in Needs attention.
+  - **Subscriptions can log themselves**: in Accounts, pick the wallet a monthly or yearly subscription is charged to, and on each renewal day Hop logs the charge there, marked "Logged automatically". Delete one that didn't happen and it stays deleted; cancel the subscription and it stops.
   - **Monthly income** that's expected until you mark it **Received**, plus any other money that comes in.
   - **Wallets** (cash, bank, card, app) in lira, dollars or euros, with their balances, **Move money** between them (with what arrived when the currencies differ), and **Match balance** for when Hop and your banking app disagree.
   - **Wish list**: each wish waits 30 days before it can be bought, with its price, why you want it and a link. Put money aside for it, then buy it or drop it.
@@ -23,6 +24,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Ver
 
 - Dates in the middle of a sentence keep their capitals everywhere: “Paid Thu 1 Oct”, not “thu 1 oct”.
 - Fields side by side in a dialog stay lined up when one of them has a hint under it.
+- Tall dialogs no longer show a second scrollbar along their edge.
 
 ## [1.4.0] - 2026-10-27
 

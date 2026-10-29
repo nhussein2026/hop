@@ -9,6 +9,8 @@ import { Icon, Pad } from './Icon.tsx'
 import { DialogBusyContext, DialogContext, ToastContext } from './ui-context.ts'
 import type { DialogRender, ToastOptions } from './ui-context.ts'
 import { sizeLabel } from '../lib/labels.ts'
+import { moneyParts } from '../lib/money.ts'
+import type { Currency } from '../lib/types.ts'
 
 /* ---- Toasts --------------------------------------------------------------------------- */
 type ToastItem = ToastOptions & { id: number; message: string }
@@ -434,6 +436,12 @@ export function Empty({ title, body, action, actionLabel, pad = true, icon = 'le
       {action && <button className={`btn${secondary ? '' : ' btn-primary'}`} onClick={action} type="button"><Icon className="icon-sm" name="plus" />{actionLabel}</button>}
     </div>
   )
+}
+
+/** A large amount. Its currency symbol is in the UI font: the display font draws ₺ almost like £. */
+export function MoneyFigure({ amount, currency }: { amount: number; currency?: Currency }) {
+  const { sign, symbol, digits } = moneyParts(amount, currency)
+  return <>{sign}<span className="money-symbol">{symbol}</span>{digits}</>
 }
 
 export function ProgressBar({ pct, label = 'Progress' }: { pct: number; label?: string }) {

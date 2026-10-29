@@ -40,9 +40,13 @@ export interface Account {
   /** Where the password is kept, such as "Bitwarden". */
   secretIn: string | null;
   notes: string;
+  /** The Finances wallet a monthly or yearly subscription is charged to: Hop logs each charge there on its renewal day. */
+  walletId: EntityId | null;
+  /** The last renewal Hop logged by itself, or found already logged, so one you deleted isn't logged again. */
+  autoLoggedOn: ISODate | null;
   createdAt: ISODateTime;
   updatedAt: ISODateTime;
 }
 
-export type CreateAccountInput = Pick<Account, 'name'> & Partial<Omit<Account, 'id' | 'name' | 'createdAt' | 'updatedAt'>>;
-export type UpdateAccountInput = Partial<Omit<Account, 'id' | 'createdAt' | 'updatedAt'>>;
+export type CreateAccountInput = Pick<Account, 'name'> & Partial<Omit<Account, 'id' | 'name' | 'autoLoggedOn' | 'createdAt' | 'updatedAt'>>;
+export type UpdateAccountInput = Partial<Omit<Account, 'id' | 'autoLoggedOn' | 'createdAt' | 'updatedAt'>>;

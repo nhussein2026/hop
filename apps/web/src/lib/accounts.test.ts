@@ -9,7 +9,7 @@ setTimezone('UTC')
 const stamp = '2026-10-01T00:00:00.000Z'
 const account = (fields: Partial<Account> = {}): Account => ({
   id: 'a', name: 'Service', url: null, login: null, purpose: '', status: 'active', cost: null, currency: 'TRY', cycle: 'none',
-  renewsOn: null, payment: null, secretIn: null, notes: '', createdAt: stamp, updatedAt: stamp, ...fields,
+  renewsOn: null, payment: null, secretIn: null, notes: '', walletId: null, autoLoggedOn: null, createdAt: stamp, updatedAt: stamp, ...fields,
 })
 
 test('renewals roll forward by the cycle; trials end once', () => {

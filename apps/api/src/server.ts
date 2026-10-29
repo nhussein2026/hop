@@ -196,6 +196,19 @@ function isLoopbackHost(value: string) {
   return value === 'localhost' || value === '::1' || value.startsWith('127.');
 }
 
+/** Subscriptions charged to a wallet log themselves on their renewal day; checked hourly. */
+function logSubscriptions() {
+  try {
+    const logged = moneyService.logSubscriptions();
+
+    if (logged.length) {
+      console.log(`Hop logged ${logged.length} subscription charge${logged.length === 1 ? '' : 's'}`);
+    }
+  } catch (error) {
+    console.error('Hop could not log subscription charges', error);
+  }
+}
+
 function runDailyBackup() {
   try {
     const backup = backupService.runDailyBackup();
@@ -1177,6 +1190,11 @@ const server = createServer(async (request, response) => {
       return;
     }
 
+    if (request.method === 'POST' && url.pathname === '/api/money/subscriptions/log') {
+      sendJson(response, 200, { entries: moneyService.logSubscriptions() });
+      return;
+    }
+
     const buyPotId = url.pathname.match(/^\/api\/money\/pots\/([^/]+)\/buy$/)?.[1];
     if (request.method === 'POST' && buyPotId) {
       const input = await readValid<{ date: string; amount: number; walletId: string; categoryId?: string | null; note?: string }>(request, response, buyPotSchema);
@@ -1402,4 +1420,6 @@ server.listen(port, host, () => {
   console.log(`Hop API running on http://${host}:${port}`);
   runDailyBackup();
   setInterval(runDailyBackup, backupCheckIntervalMs).unref();
+  logSubscriptions();
+  setInterval(logSubscriptions, 60 * 60 * 1000).unref();
 });

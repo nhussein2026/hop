@@ -58,6 +58,8 @@ export interface MoneyEntry {
   toWalletId: EntityId | null;
   toAmount: number | null;
   note: string;
+  /** Logged by Hop itself: a subscription's charge on its renewal day. */
+  auto: boolean;
   createdAt: ISODateTime;
   updatedAt: ISODateTime;
 }
@@ -162,7 +164,7 @@ export type CreateWalletInput = Pick<Wallet, 'name'> & Partial<Pick<Wallet, 'kin
 export type UpdateWalletInput = Partial<Pick<Wallet, 'name' | 'kind' | 'openingBalance' | 'openedOn' | 'archived' | 'position'>>;
 export type CreateMoneyEntryInput = Pick<MoneyEntry, 'date' | 'kind' | 'amount' | 'walletId'> &
   Partial<Pick<MoneyEntry, 'categoryId' | 'billId' | 'accountId' | 'potId' | 'incomeId' | 'toWalletId' | 'toAmount' | 'note'>>;
-export type UpdateMoneyEntryInput = Partial<Omit<MoneyEntry, 'id' | 'kind' | 'currency' | 'createdAt' | 'updatedAt'>>;
+export type UpdateMoneyEntryInput = Partial<Omit<MoneyEntry, 'id' | 'kind' | 'currency' | 'auto' | 'createdAt' | 'updatedAt'>>;
 export type SetMoneyRateInput = Pick<MoneyRate, 'month' | 'currency' | 'rate'>;
 export type CreateIncomeSourceInput = Pick<IncomeSource, 'name' | 'amount'> & Partial<Omit<IncomeSource, 'id' | 'name' | 'amount' | 'createdAt' | 'updatedAt'>>;
 export type UpdateIncomeSourceInput = Partial<Omit<IncomeSource, 'id' | 'createdAt' | 'updatedAt'>>;

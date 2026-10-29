@@ -1,4 +1,4 @@
-import { and, eq } from 'drizzle-orm';
+import { and, eq, like } from 'drizzle-orm';
 
 import type { Bill, IncomeSource, MoneyEntry, MoneyRate, Pot, PotMove, SpendCategory, Wallet } from '@hop/domain';
 
@@ -36,6 +36,10 @@ export const moneyEntryRepository = {
   /** Whether anything still points at a wallet, a category, a fixed cost, an income or a pot. */
   usedBy(field: 'walletId' | 'toWalletId' | 'categoryId' | 'billId' | 'incomeId' | 'potId', id: string): boolean {
     return Boolean(db.select({ id: moneyEntries.id }).from(moneyEntries).where(eq(moneyEntries[field], id)).get());
+  },
+  /** Whether a subscription's charge is logged in a month ("2026-10"), by hand or by itself. */
+  paidForAccount(accountId: string, month: string): boolean {
+    return Boolean(db.select({ id: moneyEntries.id }).from(moneyEntries).where(and(eq(moneyEntries.accountId, accountId), like(moneyEntries.date, `${month}-%`))).get());
   },
 };
 export const moneyRateRepository = {

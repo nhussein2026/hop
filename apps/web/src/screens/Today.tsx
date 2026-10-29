@@ -8,7 +8,7 @@ import { useActions } from '../store/actions.ts'
 import { useEditors } from '../editors/editors.tsx'
 import { Icon, Pad } from '../components/Icon.tsx'
 import { AttentionList, HabitRow, InlineAdd, TaskRow } from '../components/rows.tsx'
-import { DateChip, Empty, ProgressBar } from '../components/ui.tsx'
+import { DateChip, Empty, MoneyFigure, ProgressBar } from '../components/ui.tsx'
 import { classesOn, nextClass } from '../lib/uni.ts'
 import { isTrackHabit } from '../lib/day.ts'
 import { slotsOn } from '../lib/schedule.ts'
@@ -295,7 +295,7 @@ function FinancesToday() {
       <div className="panel panel-pad money-today">
         <div>
           {m.budget
-            ? <><span className="metric-label">Safe to spend today</span><span className={`metric-value num${m.left < 0 ? ' is-danger' : ''}`}>{formatMoney(m.safeToday ?? 0)}</span></>
+            ? <><span className="metric-label">Safe to spend today</span><span className={`metric-value num${m.left < 0 ? ' is-danger' : ''}`}><MoneyFigure amount={m.safeToday ?? 0} /></span></>
             : <span className="small muted">Set budgets in Finances to see what’s safe to spend each day.</span>}
           <span className="xs muted num">Spent today {formatMoney(m.spentToday)}{m.left < 0 ? `, ${formatMoney(-m.left)} over this month’s budget` : ''}</span>
         </div>

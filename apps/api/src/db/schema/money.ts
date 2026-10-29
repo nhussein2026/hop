@@ -30,6 +30,7 @@ export const moneyEntries = sqliteTable('money_entries', {
   toWalletId: text('to_wallet_id'),
   toAmount: real('to_amount'),
   note: text('note').notNull().default(''),
+  auto: integer('auto', { mode: 'boolean' }).notNull().default(false),
   createdAt: text('created_at').notNull(),
   updatedAt: text('updated_at').notNull(),
 });

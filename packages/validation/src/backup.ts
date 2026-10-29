@@ -211,12 +211,13 @@ const practiceActivityRow = z.object({
 const practiceSessionRow = z.object({ id, date: text, area: z.enum(PRACTICE_AREAS), minutes: z.number().int(), activityId: optionalText, note: text, createdAt: text }).strict();
 const accountRow = z.object({
   id, name: text, url: optionalText, login: optionalText, purpose: text, status: z.enum(ACCOUNT_STATUSES), cost: z.number().nullable(),
-  currency: z.enum(CURRENCIES), cycle: z.enum(BILLING_CYCLES), renewsOn: optionalText, payment: optionalText, secretIn: optionalText, notes: text, ...timestamps,
+  currency: z.enum(CURRENCIES), cycle: z.enum(BILLING_CYCLES), renewsOn: optionalText, payment: optionalText, secretIn: optionalText, notes: text,
+  walletId: optionalText.default(null), autoLoggedOn: optionalText.default(null), ...timestamps,
 }).strict();
 const walletRow = z.object({ id, name: text, kind: z.enum(WALLET_KINDS), currency: z.enum(CURRENCIES), openingBalance: z.number(), openedOn: text, archived: flag, position: z.number().int(), ...timestamps }).strict();
 const moneyEntryRow = z.object({
   id, date: text, kind: z.enum(MONEY_ENTRY_KINDS), amount: z.number(), currency: z.enum(CURRENCIES), walletId: id, categoryId: optionalText, billId: optionalText,
-  accountId: optionalText, potId: optionalText, incomeId: optionalText, toWalletId: optionalText, toAmount: z.number().nullable(), note: text, ...timestamps,
+  accountId: optionalText, potId: optionalText, incomeId: optionalText, toWalletId: optionalText, toAmount: z.number().nullable(), note: text, auto: flag.default(false), ...timestamps,
 }).strict();
 const moneyRateRow = z.object({ id, month: text, currency: z.enum(RATE_CURRENCIES), rate: z.number(), ...timestamps }).strict();
 const incomeSourceRow = z.object({ id, name: text, amount: z.number(), currency: z.enum(CURRENCIES), payDay: optionalInteger, walletId: optionalText, active: flag, ...timestamps }).strict();

@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 
 import { STARTER_CATEGORIES, WISH_WAIT_DAYS } from '@hop/domain';
 import type {
+  Account,
   Bill,
   CreateBillInput,
   CreateIncomeSourceInput,
@@ -45,6 +46,19 @@ import { settingsService } from './settings.service.js';
 const now = () => new Date().toISOString();
 const addDays = (date: string, days: number) => new Date(Date.parse(`${date}T00:00:00Z`) + days * 864e5).toISOString().slice(0, 10);
 const nextPosition = (list: { position: number }[]) => list.reduce((max, item) => Math.max(max, item.position + 1), 0);
+
+/**
+ * The day a monthly or yearly subscription renews in a month ("2026-10"): its day, or the month's
+ * last day. Null for a subscription that isn't charged that month, or not yet: never before the
+ * renewal day it was given.
+ */
+function renewalIn(account: Account, month: string): string | null {
+  if (account.status !== 'active' || !account.cost || !account.renewsOn) return null;
+  if (account.cycle !== 'monthly' && !(account.cycle === 'yearly' && account.renewsOn.slice(5, 7) === month.slice(5, 7))) return null;
+  const lastDay = new Date(Date.UTC(Number(month.slice(0, 4)), Number(month.slice(5, 7)), 0)).getUTCDate();
+  const day = `${month}-${String(Math.min(Number(account.renewsOn.slice(8, 10)), lastDay)).padStart(2, '0')}`;
+  return day < account.renewsOn ? null : day;
+}
 
 function walletOrThrow(id: string): Wallet {
   const wallet = walletRepository.findById(id);
@@ -94,18 +108,21 @@ export const walletService = {
     return walletRepository.update(id, { ...input, updatedAt: now() });
   },
 
-  /** A wallet with history is archived instead, so past months keep adding up. */
+  /** A wallet with history is archived instead, so past months keep adding up. Subscriptions charged to it go back to being logged by hand. */
   delete(id: string): boolean {
     if (moneyEntryRepository.usedBy('walletId', id) || moneyEntryRepository.usedBy('toWalletId', id)) throw new ConflictError('This wallet has entries. Archive it instead, so past months still add up.');
-    return walletRepository.delete(id);
+    return db.transaction(() => {
+      for (const account of accountRepository.findAll()) if (account.walletId === id) accountRepository.update(account.id, { walletId: null });
+      return walletRepository.delete(id);
+    });
   },
 };
 
 export const moneyEntryService = {
   getAll: (): MoneyEntry[] => moneyEntryRepository.findAll(),
 
-  /** An entry is in its wallet's currency. */
-  create(input: CreateMoneyEntryInput): MoneyEntry {
+  /** An entry is in its wallet's currency. `auto` marks one Hop logged by itself. */
+  create(input: CreateMoneyEntryInput, auto = false): MoneyEntry {
     const wallet = walletOrThrow(input.walletId);
     checkLinks(input);
     const stamp = now();
@@ -124,6 +141,7 @@ export const moneyEntryService = {
       toWalletId: input.kind === 'transfer' ? input.toWalletId ?? null : null,
       toAmount: input.kind === 'transfer' ? transferAmount(wallet, input.toWalletId, input.amount, input.toAmount) : null,
       note: input.note ?? '',
+      auto,
       createdAt: stamp,
       updatedAt: stamp,
     });
@@ -303,8 +321,30 @@ export const potMoveService = {
   delete: (id: string): boolean => potMoveRepository.delete(id),
 };
 
-/** First visit: the starter categories and a Cash wallet in lira, unless they exist. */
 export const moneyService = {
+  /**
+   * Subscriptions charged to a wallet log themselves: each renewal this month that has come, once.
+   * A renewal already paid by hand counts as logged, and one that was deleted stays deleted.
+   */
+  logSubscriptions(today = settingsService.today()): MoneyEntry[] {
+    const month = today.slice(0, 7);
+    return db.transaction(() => {
+      const logged: MoneyEntry[] = [];
+      for (const account of accountRepository.findAll()) {
+        const due = renewalIn(account, month);
+        if (!due || due > today || (account.autoLoggedOn && due <= account.autoLoggedOn)) continue;
+        const wallet = account.walletId ? walletRepository.findById(account.walletId) : undefined;
+        if (!wallet || wallet.archived || wallet.currency !== account.currency || due < wallet.openedOn) continue;
+        if (!moneyEntryRepository.paidForAccount(account.id, month)) {
+          logged.push(moneyEntryService.create({ date: due, kind: 'expense', amount: account.cost!, walletId: wallet.id, accountId: account.id, note: account.name }, true));
+        }
+        accountRepository.update(account.id, { autoLoggedOn: due });
+      }
+      return logged;
+    });
+  },
+
+  /** First visit: the starter categories and a Cash wallet in lira, unless they exist. */
   setup(): { categories: SpendCategory[]; wallets: Wallet[] } {
     db.transaction(() => {
       if (!spendCategoryRepository.findAll().length) STARTER_CATEGORIES.forEach((name, position) => spendCategoryService.create({ name, position }));

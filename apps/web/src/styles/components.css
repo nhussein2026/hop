@@ -820,6 +820,8 @@ dialog {
   box-shadow: var(--shadow-float);
   width: min(560px, calc(100vw - 32px));
   max-height: calc(100dvh - 48px);
+  /* The body scrolls inside; without this the border's 2px gives a tall dialog a second scrollbar. */
+  overflow: hidden;
 }
 dialog::backdrop { background: var(--overlay); }
 dialog[open] { animation: rise 180ms var(--ease); }

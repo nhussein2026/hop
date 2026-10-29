@@ -98,7 +98,7 @@ export function LogSpending({ close }: { close: () => void }) {
   }
 
   return (
-    <Dialog foot={<><span className="xs muted hide-phone">Tap a category to save</span><span className="spacer" /><button className="btn" data-close type="button">Cancel</button></>} initialFocus="#ls-amount" onClose={close} onSubmit={submit} title="Log spending">
+    <Dialog className="log-spending" foot={false} initialFocus="#ls-amount" onClose={close} onSubmit={submit} title="Log spending">
       <div className="form-grid" onKeyDown={onKeyDown}>
         <AmountField currency={wallet.currency} error={error} id="ls-amount" label="How much" large name="amount" />
         <Field label="What was it" name="note" optional placeholder="e.g. Simit and tea" />
@@ -107,7 +107,7 @@ export function LogSpending({ close }: { close: () => void }) {
           <Field defaultValue={today} id="ls-date" label="Day" name="date" type="date" />
         </div>
         <fieldset className="field">
-          <legend className="field-label">What it was for</legend>
+          <legend className="field-label">What it was for <span className="optional">(tap one to save)</span></legend>
           <div className="spend-cats">
             {categories.map((c) => {
               const line = summary.byCategory.find((x) => x.id === c.id)

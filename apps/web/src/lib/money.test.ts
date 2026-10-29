@@ -11,7 +11,7 @@ type Money = Pick<HopData, 'wallets' | 'moneyEntries' | 'moneyRates' | 'incomeSo
 const empty = (): Money => ({ wallets: [], moneyEntries: [], moneyRates: [], incomeSources: [], bills: [], spendCategories: [], pots: [], potMoves: [], accounts: [] })
 const wallet = (fields: Partial<Wallet>): Wallet => ({ id: 'w', name: 'Ziraat', kind: 'bank', currency: 'TRY', openingBalance: 0, openedOn: '2026-10-01', archived: false, position: 0, createdAt: stamp, updatedAt: stamp, ...fields })
 let n = 0
-const entry = (fields: Partial<MoneyEntry>): MoneyEntry => ({ id: `e${n++}`, date: '2026-10-05', kind: 'expense', amount: 0, currency: 'TRY', walletId: 'w', categoryId: null, billId: null, accountId: null, potId: null, incomeId: null, toWalletId: null, toAmount: null, note: '', createdAt: stamp, updatedAt: stamp, ...fields })
+const entry = (fields: Partial<MoneyEntry>): MoneyEntry => ({ id: `e${n++}`, date: '2026-10-05', kind: 'expense', amount: 0, currency: 'TRY', walletId: 'w', categoryId: null, billId: null, accountId: null, potId: null, incomeId: null, toWalletId: null, toAmount: null, note: '', auto: false, createdAt: stamp, updatedAt: stamp, ...fields })
 const bill = (fields: Partial<Bill>): Bill => ({ id: 'b', name: 'Rent', amount: 12000, currency: 'TRY', dueDay: 1, categoryId: null, walletId: null, active: true, notes: '', createdAt: stamp, updatedAt: stamp, ...fields })
 const category = (id: string, monthlyBudget: number | null): SpendCategory => ({ id, name: id, monthlyBudget, position: 0, archived: false, createdAt: stamp, updatedAt: stamp })
 const pot = (fields: Partial<Pot>): Pot => ({ id: 'p', name: 'Emergency fund', kind: 'saving', target: null, currency: 'TRY', monthly: null, priority: 'medium', why: '', url: null, waitUntil: null, status: 'saving', closedOn: null, position: 0, createdAt: stamp, updatedAt: stamp, ...fields })
@@ -59,7 +59,7 @@ test('other currencies count in lira at the month’s rate, or wait for one', ()
 })
 
 test('subscriptions from Accounts are fixed costs: monthly ones every month, yearly ones in their renewal month', () => {
-  const account = (fields: Partial<Account>): Account => ({ id: 'a', name: 'Spotify', url: null, login: null, purpose: '', status: 'active', cost: 59.99, currency: 'TRY', cycle: 'monthly', renewsOn: '2026-10-03', payment: null, secretIn: null, notes: '', createdAt: stamp, updatedAt: stamp, ...fields })
+  const account = (fields: Partial<Account>): Account => ({ id: 'a', name: 'Spotify', url: null, login: null, purpose: '', status: 'active', cost: 59.99, currency: 'TRY', cycle: 'monthly', renewsOn: '2026-10-03', payment: null, secretIn: null, notes: '', walletId: null, autoLoggedOn: null, createdAt: stamp, updatedAt: stamp, ...fields })
   const s = empty()
   s.accounts = [account({}), account({ id: 'y', name: 'Domain', cost: 400, cycle: 'yearly', renewsOn: '2026-03-20' }), account({ id: 't', name: 'Trial', status: 'trial' })]
   assert.deepEqual(fixedCosts(s, '2026-10').map((c) => `${c.name} ${c.amount} ${c.due}`), ['Spotify 59.99 2026-10-03'])
