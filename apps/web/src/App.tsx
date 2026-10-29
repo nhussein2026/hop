@@ -3,6 +3,7 @@ import { useEffect, useRef } from 'react'
 import type { ReactNode } from 'react'
 import * as D from './lib/dates.ts'
 import { isOverdue, oppHealth, orgOf } from './lib/rules.ts'
+import { billsDue } from './lib/money.ts'
 import { unsubmitted, upcoming } from './lib/uni.ts'
 import { navigate, useRoute } from './lib/router.ts'
 import type { Route } from './lib/router.ts'
@@ -20,13 +21,14 @@ import { Review } from './screens/Review.tsx'
 import { Settings } from './screens/Settings.tsx'
 import { Today } from './screens/Today.tsx'
 import { Turkish } from './screens/Turkish.tsx'
+import { Finances } from './screens/Finances.tsx'
 import { Notes } from './screens/Notes.tsx'
 import { useHop } from './store/store.ts'
 import type { Sync } from './store/store.ts'
 import { unreadCount } from './lib/notifications.ts'
 import { settingsTitle, useIsPhone } from './lib/layout.ts'
 
-const NAV: [string, string][] = [['today', 'Today'], ['plan', 'Plan'], ['calendar', 'Calendar'], ['turkish', 'Türkçe'], ['itu', 'İTÜ'], ['goals', 'Goals'], ['career', 'Career'], ['growth', 'Growth'], ['notes', 'Notes'], ['review', 'Review']]
+const NAV: [string, string][] = [['today', 'Today'], ['plan', 'Plan'], ['calendar', 'Calendar'], ['turkish', 'Türkçe'], ['itu', 'İTÜ'], ['goals', 'Goals'], ['career', 'Career'], ['growth', 'Growth'], ['notes', 'Notes'], ['finances', 'Finances'], ['review', 'Review']]
 const SCREENS = new Set([...NAV.map(([key]) => key), 'settings'])
 const SYNC_TEXT: Record<Sync | 'offline' | 'unreachable', string> = { saved: 'All changes saved', saving: 'Saving…', offline: 'Offline: read only', unreachable: 'Server unreachable: read only', error: 'Last change not saved' }
 
@@ -69,6 +71,7 @@ export default function App({ onSignOut }: { onSignOut: () => Promise<void> }) {
     itu: upcoming(data.courses, today, 2).length + unsubmitted(data.courses, today).length,
     // An inbox count, not an alert.
     growth: data.finds.filter((f) => f.status === 'inbox').length,
+    finances: billsDue(data, today).length,
   }
   const unread = unreadCount(data)
   const status = !online ? 'offline' : !reachable ? 'unreachable' : sync
@@ -99,13 +102,14 @@ export default function App({ onSignOut }: { onSignOut: () => Promise<void> }) {
   else if (screen === 'itu') body = <Itu route={route} />
   else if (screen === 'turkish') body = <Turkish route={route} />
   else if (screen === 'notes') body = <Notes route={route} />
+  else if (screen === 'finances') body = <Finances route={route} />
   else if (screen === 'review') body = <Review route={route} />
   else if (screen === 'settings') body = <Settings onSignOut={onSignOut} section={route.params[0]} />
   else body = <Today />
 
   // With a language track, Türkçe takes İTÜ's place in the phone tab bar, and İTÜ moves to More.
   const studying = Boolean(data.settings.languageTrack)
-  const phoneMore = ['calendar', 'goals', 'career', 'growth', 'notes', 'review', 'settings', studying ? 'itu' : 'turkish'].includes(screen)
+  const phoneMore = ['calendar', 'goals', 'career', 'growth', 'notes', 'finances', 'review', 'settings', studying ? 'itu' : 'turkish'].includes(screen)
   const tab = (key: string, label: string) => (
     <a aria-current={screen === key ? 'page' : undefined} className="tab-link" href={`#/${key}`}><Icon name={key} /><span>{label}</span>{counts[key] ? <span className="count count-attention">{counts[key]}</span> : null}</a>
   )
@@ -170,7 +174,7 @@ export default function App({ onSignOut }: { onSignOut: () => Promise<void> }) {
   )
 }
 
-/** N add · / or Ctrl/⌘ K search · G then T/P/L/K/U/G/C/W/N/R/S to jump (L for calendar, K for Türkçe, U for İTÜ, N for notes). */
+/** N add · / or Ctrl/⌘ K search · G then T/P/L/K/U/G/C/W/N/F/R/S to jump (L for calendar, K for Türkçe, U for İTÜ, N for notes, F for finances). */
 function useShortcuts(editors: ReturnType<typeof useEditors>, enabled: boolean) {
   useEffect(() => {
     if (!enabled) return
@@ -188,7 +192,7 @@ function useShortcuts(editors: ReturnType<typeof useEditors>, enabled: boolean) 
       if (typing || event.metaKey || event.ctrlKey || event.altKey || dialogOpen) return
       if (pending) {
         pending = false
-        const map: Record<string, string> = { t: 'today', p: 'plan', l: 'calendar', k: 'turkish', u: 'itu', g: 'goals', c: 'career', r: 'review', w: 'growth', n: 'notes', s: 'settings' }
+        const map: Record<string, string> = { t: 'today', p: 'plan', l: 'calendar', k: 'turkish', u: 'itu', g: 'goals', c: 'career', r: 'review', w: 'growth', n: 'notes', f: 'finances', s: 'settings' }
         if (map[event.key]) navigate(`#/${map[event.key]}`)
         return
       }

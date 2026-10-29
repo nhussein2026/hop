@@ -223,7 +223,7 @@ export function SessionEditor({ session, title, close }: { session: PracticeSess
   return (
     <Dialog
       className="dialog-sm"
-      desc={`${PRACTICE_AREA[session.area][1]}, ${D.relative(session.date).toLowerCase()}`}
+      desc={`${PRACTICE_AREA[session.area][1]}, ${D.inSentence(session.date)}`}
       foot={<>
         <button className="btn btn-ghost btn-danger" onClick={(event) => { const form = event.currentTarget.form!; void actions.sessions.remove(session).then((done) => { if (done !== undefined) closeDialog(form) }) }} type="button">Not done</button>
         <span className="spacer" />

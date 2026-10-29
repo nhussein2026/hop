@@ -287,7 +287,7 @@ function People({ contactId }: { contactId?: string }) {
             <span className="avatar">{initials(c.name)}</span>
             <div className="row-main">
               <button className="row-open" onClick={() => editors.contactDrawer(c)} type="button">{c.name}</button>
-              <div className="row-meta"><span>{[c.role, c.organization].filter(Boolean).join(', ') || 'No role recorded'}</span>{last && <span><Icon name={interactionIcon(last.type)} />{capitalize(last.type)} {D.relative(last.date).toLowerCase()}</span>}</div>
+              <div className="row-meta"><span>{[c.role, c.organization].filter(Boolean).join(', ') || 'No role recorded'}</span>{last && <span><Icon name={interactionIcon(last.type)} />{capitalize(last.type)} {D.inSentence(last.date)}</span>}</div>
             </div>
             <Badge>{c.kind}</Badge>
           </div>

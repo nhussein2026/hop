@@ -58,12 +58,17 @@ const STATUS_OPTIONS: [AccountStatus, string][] = [['active', 'Active'], ['trial
 const CURRENCY_OPTIONS = CURRENCIES.map((c): [string, string] => [c, c])
 
 export function AccountEditor({ account, close }: { account?: Account | null; close: () => void }) {
+  const { data } = useHop()
   const actions = useAccountActions()
   const confirm = useConfirm()
   const [errors, setErrors] = useState<Errors>({})
   const [status, setStatus] = useState<AccountStatus>(account?.status ?? 'active')
   const [cycle, setCycle] = useState<BillingCycle>(account?.cycle ?? 'none')
+  const [currency, setCurrency] = useState<Currency>(account?.currency ?? 'TRY')
   const paid = cycle !== 'none' || status === 'trial'
+  // Monthly and yearly charges can log themselves in Finances, from a wallet in the same currency.
+  const logsItself = paid && (cycle === 'monthly' || cycle === 'yearly') && data.wallets.length > 0
+  const wallets = data.wallets.filter((w) => !w.archived && w.currency === currency).map((w): [string, string] => [w.id, w.name])
 
   async function submit(form: HTMLFormElement) {
     const name = formText(form, 'name')
@@ -89,12 +94,13 @@ export function AccountEditor({ account, close }: { account?: Account | null; cl
       purpose: formText(form, 'purpose'),
       status,
       cost: paid ? cost : null,
-      currency: (formText(form, 'currency') || 'TRY') as Currency,
+      currency,
       cycle,
       renewsOn: paid ? formText(form, 'renewsOn') || null : null,
       payment: paid ? formText(form, 'payment') || null : null,
       secretIn: formText(form, 'secretIn') || null,
       notes: formText(form, 'notes'),
+      walletId: logsItself ? formText(form, 'walletId') || null : null,
     }
     // A password typed into Hop would sit unencrypted in backups and on every device.
     if ([fields.login ?? '', fields.purpose, fields.notes].some(looksLikeSecret) && !await confirm({
@@ -139,10 +145,22 @@ export function AccountEditor({ account, close }: { account?: Account | null; cl
           <>
             <div className="form-row">
               <Field defaultValue={account?.cost} error={errors.cost} label="Cost" name="cost" optional placeholder="59.99" />
-              <Field defaultValue={account?.currency ?? 'TRY'} label="Currency" name="currency" options={CURRENCY_OPTIONS} type="select" />
+              <Field defaultValue={currency} label="Currency" name="currency" onChange={(value) => setCurrency(value as Currency)} options={CURRENCY_OPTIONS} type="select" />
               <Field defaultValue={account?.renewsOn} error={errors.renewsOn} hint={status === 'trial' ? 'When the trial ends and the charging starts.' : 'Any renewal date you know; Hop works out the next ones.'} label={status === 'trial' ? 'Trial ends' : 'Renews on'} name="renewsOn" optional={status !== 'trial'} type="date" />
             </div>
             <Field defaultValue={account?.payment} error={errors.payment} hint="A name for the card or account, never its number." label="Paid with" name="payment" optional placeholder="e.g. Ziraat card" />
+            {logsItself && (
+              <Field
+                defaultValue={account?.walletId ?? ''}
+                hint={wallets.length ? 'On each renewal day Hop logs the charge in that wallet, marked “Logged automatically”.' : `You have no wallet in ${currency} in Finances yet.`}
+                id="ac-wallet"
+                key={currency}
+                label="Log it in Finances"
+                name="walletId"
+                options={[['', 'No, I’ll tap Paid myself'], ...wallets.map(([id, name]): [string, string] => [id, `From ${name}`])]}
+                type="select"
+              />
+            )}
           </>
         )}
         <Field defaultValue={account?.secretIn ?? 'Bitwarden'} label="Password kept in" name="secretIn" optional />

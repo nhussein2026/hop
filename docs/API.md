@@ -110,7 +110,25 @@ Notes are library items of kind `note` (see University); `pinned: true` keeps on
 
 | Method | Path | Description |
 | --- | --- | --- |
-| `GET` / `POST` / `PATCH` / `DELETE` | `/api/accounts[/:id]` | Accounts and subscriptions: login, purpose, cost and billing cycle, a known renewal day, how it's paid, where its password is kept. There is no password field, and text shaped like a card number is refused with 400. |
+| `GET` / `POST` / `PATCH` / `DELETE` | `/api/accounts[/:id]` | Accounts and subscriptions: login, purpose, cost and billing cycle, a known renewal day, how it's paid, where its password is kept, and `walletId`: the Finances wallet a monthly or yearly subscription is charged to, in the same currency (400 otherwise). There is no password field, and text shaped like a card number is refused with 400. |
+
+## Finances
+
+Amounts are numbers in the currency of their wallet (`TRY`, `USD` or `EUR`); totals in lira use the month's rate the user typed in. Names and notes holding 13 or more digits in a row (a card number or an IBAN) are refused with 400.
+
+| Method | Path | Description |
+| --- | --- | --- |
+| `POST` | `/api/money/setup` | First visit: adds the starter categories and a Cash wallet in lira, each only if none exist. Returns `{ categories, wallets }`. |
+| `GET` / `POST` / `PATCH` / `DELETE` | `/api/money/wallets[/:id]` | Wallets: name, kind (`cash`, `bank`, `card`, `app`), currency, opening balance and the day it was true. The currency can't change. A wallet with entries can't be deleted (409): archive it. |
+| `GET` / `POST` / `PATCH` / `DELETE` | `/api/money/entries[/:id]` | Money moving: `income`, `expense`, `transfer` or `adjust`. The amount is positive, except an `adjust`, which is signed. An entry takes its wallet's currency. An expense can link a category, a fixed cost (`billId`), a subscription (`accountId`) or a wish (`potId`); income can link its source (`incomeId`); a transfer needs `toWalletId`, and `toAmount` when the two wallets' currencies differ. Links that don't belong to the kind are dropped. |
+| `GET` / `POST` / `PATCH` / `DELETE` | `/api/money/rates[/:id]` | Lira for one `USD` or `EUR` in a month (`{ month: "2026-10", currency, rate }`). Posting the same month and currency again replaces the rate. |
+| `GET` / `POST` / `PATCH` / `DELETE` | `/api/money/income[/:id]` | Regular income: amount, currency, usual pay day and wallet. One that was received before can't be deleted (409): pause it with `active: false`. |
+| `GET` / `POST` / `PATCH` / `DELETE` | `/api/money/bills[/:id]` | Fixed monthly costs: amount, currency, due day (past the month's end means its last day), category and usual wallet. One that was paid before can't be deleted (409): pause it. |
+| `GET` / `POST` / `PATCH` / `DELETE` | `/api/money/categories[/:id]` | Everyday spending categories with an optional monthly budget in lira. One with spending logged can't be deleted (409): archive it. |
+| `GET` / `POST` / `PATCH` / `DELETE` | `/api/money/pots[/:id]` | Wishes (`kind: wish`) and savings (`kind: saving`): target, monthly amount, priority, why and a link. A new wish waits 30 days (`waitUntil`) unless a date is given. Setting `status` to `done`, `bought` or `dropped` closes it; deleting removes its money moves. |
+| `POST` | `/api/money/subscriptions/log` | Log the charges of subscriptions charged to a wallet whose renewal day this month has come, once each; the server also does this every hour. A renewal already paid by hand counts, and a logged charge that was deleted isn't logged again. Returns `{ entries }`, the ones it logged, with `auto: true`. |
+| `POST` | `/api/money/pots/:id/buy` | Buy a wish (`{ date, amount, walletId, categoryId?, note? }`): records the expense and closes it. Refused with 409 before `waitUntil` or when it's closed. Returns `{ pot, entry }`. |
+| `GET` / `POST` / `PATCH` / `DELETE` | `/api/money/pot-moves[/:id]` | Money put aside for a pot (positive) or taken back (negative), in the pot's currency. It earmarks money; nothing leaves a wallet. Refused with 409 on a closed pot. |
 
 ## Language track (Türkçe)
 

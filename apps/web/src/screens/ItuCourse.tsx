@@ -30,7 +30,7 @@ export function DeadlineRow({ course: c, item: a }: { course: Course; item: Asse
   const prep = data.tasks.find((t) => t.assessmentId === a.id && isOpen(t))
   const late = n !== null && n < 0
   const style = late ? { color: 'var(--danger)', fontWeight: 700 } : n !== null && n <= 1 ? { color: 'var(--warning)', fontWeight: 700 } : undefined
-  const when = late ? `Was due ${D.relative(a.due!, today).toLowerCase()}` : whenWord(a.due!, today).replace(/^on /, '').replace(/^./, (m) => m.toUpperCase())
+  const when = late ? `Was due ${D.inSentence(a.due!, today)}` : whenWord(a.due!, today).replace(/^on /, '').replace(/^./, (m) => m.toUpperCase())
   return (
     <div className="row assess-row">
       {satInClass(a)

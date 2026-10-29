@@ -17,6 +17,9 @@ export const accounts = sqliteTable('accounts', {
   payment: text('payment'),
   secretIn: text('secret_in'),
   notes: text('notes').notNull().default(''),
+  // The Finances wallet a subscription is charged to, and the last renewal logged there by itself.
+  walletId: text('wallet_id'),
+  autoLoggedOn: text('auto_logged_on'),
   createdAt: text('created_at').notNull(),
   updatedAt: text('updated_at').notNull(),
 });

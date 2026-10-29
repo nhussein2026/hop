@@ -13,7 +13,7 @@ How it works (details in [Development](DEVELOPMENT.md#versions-and-releases)):
 
 | Item | Type | Spec | Status |
 | --- | --- | --- | --- |
-| Money: wallets and every movement, mixed TL/USD/EUR at a monthly rate, the month (income, fixed costs, budgets, set aside, left to spend, safe per day), quick logging, wishes and savings, money on Today | feat | [Money proposal](proposals/2026-10-finance.md) | Agreed 2026-10-29 |
+| Finances (money): wallets and every movement, mixed TL/USD/EUR at a monthly rate, the month (income, fixed costs, budgets, set aside, left to spend, safe per day), quick logging, wishes and savings, money on Today | feat | [Money proposal](proposals/2026-10-finance.md) | Agreed 2026-10-29 |
 
 ## Later
 

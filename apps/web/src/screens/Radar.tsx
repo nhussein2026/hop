@@ -81,7 +81,7 @@ function FindCard({ find: f }: { find: Find }) {
   else if (f.ideaId) outcome = <a className="small" href={`#/itu/research?idea=${f.ideaId}`}><Icon className="icon-sm" name="bulb" /> Became an idea</a>
   else if (f.opportunityId) outcome = <a className="small" href={`#/career/${f.opportunityId}`}><Icon className="icon-sm" name="career" /> Tracked in Career</a>
   else if (f.eventId) outcome = <a className="small" href="#/calendar"><Icon className="icon-sm" name="calendar" /> On your calendar</a>
-  else if (task) outcome = <span className="small"><Icon className="icon-sm" name={task.status === 'completed' ? 'check' : 'calendar'} /> Task: {task.title}{task.status === 'completed' ? ' (done)' : task.scheduledDate ? `, ${D.relative(task.scheduledDate, today).toLowerCase()}` : ''}</span>
+  else if (task) outcome = <span className="small"><Icon className="icon-sm" name={task.status === 'completed' ? 'check' : 'calendar'} /> Task: {task.title}{task.status === 'completed' ? ' (done)' : task.scheduledDate ? `, ${D.inSentence(task.scheduledDate, today)}` : ''}</span>
 
   const edit: MenuItem = { label: 'Edit', icon: 'edit', onSelect: () => editors.find(f) }
   let buttons: ReactNode

@@ -6,6 +6,12 @@ import {
   EVIDENCE_KINDS,
   BILLING_CYCLES,
   CURRENCIES,
+  MONEY_ENTRY_KINDS,
+  POT_KINDS,
+  POT_PRIORITIES,
+  POT_STATUSES,
+  RATE_CURRENCIES,
+  WALLET_KINDS,
   BOOK_FORMATS,
   BOOK_STATUSES,
   CEFR_LEVELS,
@@ -205,8 +211,23 @@ const practiceActivityRow = z.object({
 const practiceSessionRow = z.object({ id, date: text, area: z.enum(PRACTICE_AREAS), minutes: z.number().int(), activityId: optionalText, note: text, createdAt: text }).strict();
 const accountRow = z.object({
   id, name: text, url: optionalText, login: optionalText, purpose: text, status: z.enum(ACCOUNT_STATUSES), cost: z.number().nullable(),
-  currency: z.enum(CURRENCIES), cycle: z.enum(BILLING_CYCLES), renewsOn: optionalText, payment: optionalText, secretIn: optionalText, notes: text, ...timestamps,
+  currency: z.enum(CURRENCIES), cycle: z.enum(BILLING_CYCLES), renewsOn: optionalText, payment: optionalText, secretIn: optionalText, notes: text,
+  walletId: optionalText.default(null), autoLoggedOn: optionalText.default(null), ...timestamps,
 }).strict();
+const walletRow = z.object({ id, name: text, kind: z.enum(WALLET_KINDS), currency: z.enum(CURRENCIES), openingBalance: z.number(), openedOn: text, archived: flag, position: z.number().int(), ...timestamps }).strict();
+const moneyEntryRow = z.object({
+  id, date: text, kind: z.enum(MONEY_ENTRY_KINDS), amount: z.number(), currency: z.enum(CURRENCIES), walletId: id, categoryId: optionalText, billId: optionalText,
+  accountId: optionalText, potId: optionalText, incomeId: optionalText, toWalletId: optionalText, toAmount: z.number().nullable(), note: text, auto: flag.default(false), ...timestamps,
+}).strict();
+const moneyRateRow = z.object({ id, month: text, currency: z.enum(RATE_CURRENCIES), rate: z.number(), ...timestamps }).strict();
+const incomeSourceRow = z.object({ id, name: text, amount: z.number(), currency: z.enum(CURRENCIES), payDay: optionalInteger, walletId: optionalText, active: flag, ...timestamps }).strict();
+const billRow = z.object({ id, name: text, amount: z.number(), currency: z.enum(CURRENCIES), dueDay: z.number().int(), categoryId: optionalText, walletId: optionalText, active: flag, notes: text, ...timestamps }).strict();
+const spendCategoryRow = z.object({ id, name: text, monthlyBudget: z.number().nullable(), position: z.number().int(), archived: flag, ...timestamps }).strict();
+const potRow = z.object({
+  id, name: text, kind: z.enum(POT_KINDS), target: z.number().nullable(), currency: z.enum(CURRENCIES), monthly: z.number().nullable(), priority: z.enum(POT_PRIORITIES),
+  why: text, url: optionalText, waitUntil: optionalText, status: z.enum(POT_STATUSES), closedOn: optionalText, position: z.number().int(), ...timestamps,
+}).strict();
+const potMoveRow = z.object({ id, potId: id, date: text, amount: z.number(), note: text, createdAt: text }).strict();
 const sectionPoints = z.record(z.string(), z.number());
 const practiceTestRow = z.object({ id, date: text, title: text, scores: sectionPoints, max: sectionPoints, note: text, ...timestamps }).strict();
 const languageCheckRow = z.object({
@@ -275,6 +296,14 @@ export const backupSnapshotSchema = z.object({
   practiceTests: rows(practiceTestRow).default([]),
   languageChecks: rows(languageCheckRow).default([]),
   accounts: rows(accountRow).default([]),
+  wallets: rows(walletRow).default([]),
+  moneyEntries: rows(moneyEntryRow).default([]),
+  moneyRates: rows(moneyRateRow).refine((items) => uniqueBy(items, (item) => `${item.month}|${item.currency}`), 'Contains more than one rate for the same month and currency').default([]),
+  incomeSources: rows(incomeSourceRow).default([]),
+  bills: rows(billRow).default([]),
+  spendCategories: rows(spendCategoryRow).default([]),
+  pots: rows(potRow).default([]),
+  potMoves: rows(potMoveRow).default([]),
   readingLog: rows(readingEntryRow).refine((items) => uniqueBy(items, (item) => `${item.bookId}|${item.date}`), 'Contains more than one reading entry for the same book and date').default([]),
   monthlyReviews: rows(monthlyReviewRow).refine((items) => uniqueBy(items, (item) => item.monthStart), 'Contains more than one review for the same month').default([]),
   settings: rows(settingsRow).default([]),
@@ -286,7 +315,8 @@ export const BACKUP_TABLES = [
   'goalCriteria', 'goalProgress', 'milestones', 'opportunityPrep', 'opportunityActivities', 'contacts', 'interactions', 'resumes',
   'resumeFiles', 'reflections', 'monthlyReviews', 'terms', 'courses', 'assessments', 'keyDates', 'pins', 'uniLinks',
   'resources', 'resourceFiles', 'ideas', 'finds', 'books', 'bookLoans', 'readingLog',
-  'practiceActivities', 'practiceSessions', 'practiceTests', 'languageChecks', 'accounts', 'settings',
+  'practiceActivities', 'practiceSessions', 'practiceTests', 'languageChecks', 'accounts',
+  'wallets', 'moneyEntries', 'moneyRates', 'incomeSources', 'bills', 'spendCategories', 'pots', 'potMoves', 'settings',
 ] as const;
 export type BackupTable = (typeof BACKUP_TABLES)[number];
 

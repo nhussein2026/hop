@@ -9,6 +9,14 @@ import { db } from '../db/client.js';
 import { migrateDatabase } from '../db/migrate.js';
 import {
   accounts,
+  bills,
+  incomeSources,
+  moneyEntries,
+  moneyRates,
+  potMoves,
+  pots,
+  spendCategories,
+  wallets,
   assessments,
   bookLoans,
   books,
@@ -92,6 +100,14 @@ const tables = {
   practiceTests,
   languageChecks,
   accounts,
+  wallets,
+  moneyEntries,
+  moneyRates,
+  incomeSources,
+  bills,
+  spendCategories,
+  pots,
+  potMoves,
   settings,
 } satisfies Record<BackupTable, unknown>;
 

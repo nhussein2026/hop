@@ -1,6 +1,6 @@
 // Display labels and small lookups shared by screens and dialogs.
 import { EVIDENCE_VALID_MONTHS } from '@hop/domain'
-import type { AccountStatus, AssessmentType, BillingCycle, BookFormat, BookStatus, CefrLevel, CheckArea, CheckJudge, CourseStatus, EvidenceKind, FindKind, FindStatus, IdeaKind, IdeaStage, KeyDateKind, Language, OpportunityActivityType, OpportunityType, PinKind, PracticeArea, PracticeSlot, PracticeTier, ResourceKind, SkillFocus, SkillLevel, SkillType } from './types.ts'
+import type { AccountStatus, AssessmentType, BillingCycle, BookFormat, BookStatus, CefrLevel, CheckArea, CheckJudge, CourseStatus, EvidenceKind, FindKind, FindStatus, IdeaKind, IdeaStage, KeyDateKind, Language, OpportunityActivityType, OpportunityType, PinKind, PotPriority, PracticeArea, PracticeSlot, PracticeTier, ResourceKind, SkillFocus, SkillLevel, SkillType, WalletKind } from './types.ts'
 
 export const OPPORTUNITY_TYPES: [OpportunityType, string][] = [
   ['job', 'Job'], ['internship', 'Internship'], ['program', 'Program'], ['scholarship', 'Scholarship'], ['fellowship', 'Fellowship'],
@@ -208,3 +208,7 @@ export const LEVEL_FOCUS: Record<CefrLevel, { title: string; points: string[] }>
 export const ACCOUNT_STATUS: Record<AccountStatus, [string, string]> = { active: ['Active', 'success'], trial: ['Free trial', 'warning'], cancelled: ['Cancelled', ''] }
 export const BILLING_CYCLE_LABEL: Record<BillingCycle, string> = { monthly: 'a month', yearly: 'a year', weekly: 'a week', none: 'free or paid once' }
 export const BILLING_CYCLE_OPTIONS: [BillingCycle, string][] = [['none', 'Free, or paid once'], ['monthly', 'Monthly'], ['yearly', 'Yearly'], ['weekly', 'Weekly']]
+
+/* ---- Finances ---------------------------------------------------------------------------- */
+export const WALLET_KIND_LABEL: Record<WalletKind, [string, string]> = { cash: ['Cash', 'wallet'], bank: ['Bank', 'bank'], card: ['Card', 'cards'], app: ['App', 'phone'] }
+export const POT_PRIORITY_LABEL: Record<PotPriority, string> = { high: 'Really want', medium: 'Want', low: 'Nice to have' }

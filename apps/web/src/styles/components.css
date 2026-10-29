@@ -275,6 +275,8 @@ p > .icon { display: inline-block; vertical-align: -3px; margin-right: 2px; }
   grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   gap: var(--s-3);
 }
+/* A hint under one field doesn't push its neighbours' inputs down. */
+.form-row > .field { align-content: start; }
 
 /* Segmented control (radio group styled as buttons). */
 .segmented {
@@ -818,6 +820,8 @@ dialog {
   box-shadow: var(--shadow-float);
   width: min(560px, calc(100vw - 32px));
   max-height: calc(100dvh - 48px);
+  /* The body scrolls inside; without this the border's 2px gives a tall dialog a second scrollbar. */
+  overflow: hidden;
 }
 dialog::backdrop { background: var(--overlay); }
 dialog[open] { animation: rise 180ms var(--ease); }

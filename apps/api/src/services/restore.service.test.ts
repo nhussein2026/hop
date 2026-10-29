@@ -20,6 +20,7 @@ import { projectService } from './project.service.js';
 import { restoreService } from './restore.service.js';
 import { taskService } from './task.service.js';
 import { eventService } from './event.service.js';
+import { moneyEntryService, moneyRateService, potMoveService, potService, walletService } from './money.service.js';
 
 // Round-trips through JSON, exactly like a downloaded backup file.
 function exportSnapshot() {
@@ -112,6 +113,8 @@ test('restore accepts a version 1 backup and fills the newer tables and columns 
   // Before the week plan: no times, no repeating tasks or events, no occurrences.
   assert.deepEqual(habitService.getAll().map((item) => item.slots), [[]]);
   assert.equal(backupRepository.countRows().taskCompletions, 0);
+  // Before Money: no wallets or entries.
+  assert.deepEqual([backupRepository.countRows().wallets, backupRepository.countRows().moneyEntries], [0, 0]);
   assert.equal(backupRepository.countRows().goalCriteria, 0);
 });
 
@@ -208,6 +211,24 @@ test('the week plan survives a backup and restore: timed habits, repeating work 
   assert.equal(taskService.getById(work.id)?.repeat?.[0]?.start, '13:30');
   assert.deepEqual(taskService.getOccurrences('2026-11-02', '2026-11-02').filter((o) => o.taskId === work.id).map((o) => o.skipped), [true]);
   assert.deepEqual(eventService.getAll().find((e) => e.id === meeting.id)?.skips, ['2026-11-04']);
+});
+
+test('Money survives a backup and restore: wallets, entries, rates, wishes and what was set aside', () => {
+  const wallet = walletService.create({ name: 'Ziraat', kind: 'bank', openingBalance: 2500 });
+  const entry = moneyEntryService.create({ date: '2026-10-29', kind: 'expense', amount: 85, walletId: wallet.id, note: 'Simit and tea' });
+  moneyRateService.create({ month: '2026-10', currency: 'USD', rate: 49.7 });
+  const wish = potService.create({ name: 'Headphones', kind: 'wish', target: 2400 });
+  potMoveService.create({ potId: wish.id, date: '2026-10-29', amount: 600 });
+  const snapshot = exportSnapshot();
+
+  moneyEntryService.delete(entry.id);
+  potService.delete(wish.id);
+  restoreService.restore(snapshot);
+
+  assert.equal(walletService.getAll().find((w) => w.id === wallet.id)?.openingBalance, 2500);
+  assert.equal(moneyEntryService.getAll().find((e) => e.id === entry.id)?.note, 'Simit and tea');
+  assert.equal(moneyRateService.getAll().find((r) => r.month === '2026-10')?.rate, 49.7);
+  assert.deepEqual(potMoveService.getAll().filter((m) => m.potId === wish.id).map((m) => m.amount), [600]);
 });
 
 test('a backup from before proof levels restores, with defaults for the new skill and evidence fields', () => {

@@ -84,6 +84,23 @@ import {
   updatePracticeTestSchema,
   createAccountSchema,
   updateAccountSchema,
+  buyPotSchema,
+  createBillSchema,
+  createIncomeSourceSchema,
+  createMoneyEntrySchema,
+  createPotMoveSchema,
+  createPotSchema,
+  createSpendCategorySchema,
+  createWalletSchema,
+  setMoneyRateSchema,
+  updateBillSchema,
+  updateIncomeSourceSchema,
+  updateMoneyEntrySchema,
+  updateMoneyRateSchema,
+  updatePotMoveSchema,
+  updatePotSchema,
+  updateSpendCategorySchema,
+  updateWalletSchema,
 } from '@hop/validation';
 import type { ZodType } from 'zod';
 import type {
@@ -135,6 +152,7 @@ import { RESOURCE_FILE_MAX_BYTES, RESUME_FILE_MAX_BYTES } from '@hop/domain';
 import { authService } from './services/auth.service.js';
 import { backupService } from './services/backup.service.js';
 import { accountService } from './services/account.service.js';
+import { billService, incomeSourceService, moneyEntryService, moneyRateService, moneyService, potMoveService, potService, spendCategoryService, walletService } from './services/money.service.js';
 import { bookService } from './services/book.service.js';
 import { practiceService } from './services/practice.service.js';
 import { contactService } from './services/contact.service.js';
@@ -176,6 +194,19 @@ const passwordAttempts = createRateLimiter({ maxFailures: 5, windowMs: 15 * 60 *
 
 function isLoopbackHost(value: string) {
   return value === 'localhost' || value === '::1' || value.startsWith('127.');
+}
+
+/** Subscriptions charged to a wallet log themselves on their renewal day; checked hourly. */
+function logSubscriptions() {
+  try {
+    const logged = moneyService.logSubscriptions();
+
+    if (logged.length) {
+      console.log(`Hop logged ${logged.length} subscription charge${logged.length === 1 ? '' : 's'}`);
+    }
+  } catch (error) {
+    console.error('Hop could not log subscription charges', error);
+  }
 }
 
 function runDailyBackup() {
@@ -1152,6 +1183,33 @@ const server = createServer(async (request, response) => {
     }
 
     if (await crudRoutes(request, response, url.pathname, 'accounts', accountService, { create: createAccountSchema, update: updateAccountSchema }, 'Account not found')) return;
+
+    // Money: wallets and their entries, rates, income, fixed costs, categories, wishes and savings.
+    if (request.method === 'POST' && url.pathname === '/api/money/setup') {
+      sendJson(response, 200, moneyService.setup());
+      return;
+    }
+
+    if (request.method === 'POST' && url.pathname === '/api/money/subscriptions/log') {
+      sendJson(response, 200, { entries: moneyService.logSubscriptions() });
+      return;
+    }
+
+    const buyPotId = url.pathname.match(/^\/api\/money\/pots\/([^/]+)\/buy$/)?.[1];
+    if (request.method === 'POST' && buyPotId) {
+      const input = await readValid<{ date: string; amount: number; walletId: string; categoryId?: string | null; note?: string }>(request, response, buyPotSchema);
+      if (input) sendFound(response, potService.buy(buyPotId, input), 'Not found');
+      return;
+    }
+
+    if (await crudRoutes(request, response, url.pathname, 'money/wallets', walletService, { create: createWalletSchema, update: updateWalletSchema }, 'Wallet not found')) return;
+    if (await crudRoutes(request, response, url.pathname, 'money/entries', moneyEntryService, { create: createMoneyEntrySchema, update: updateMoneyEntrySchema }, 'Entry not found')) return;
+    if (await crudRoutes(request, response, url.pathname, 'money/rates', moneyRateService, { create: setMoneyRateSchema, update: updateMoneyRateSchema }, 'Rate not found')) return;
+    if (await crudRoutes(request, response, url.pathname, 'money/income', incomeSourceService, { create: createIncomeSourceSchema, update: updateIncomeSourceSchema }, 'Income not found')) return;
+    if (await crudRoutes(request, response, url.pathname, 'money/bills', billService, { create: createBillSchema, update: updateBillSchema }, 'Fixed cost not found')) return;
+    if (await crudRoutes(request, response, url.pathname, 'money/categories', spendCategoryService, { create: createSpendCategorySchema, update: updateSpendCategorySchema }, 'Category not found')) return;
+    if (await crudRoutes(request, response, url.pathname, 'money/pots', potService, { create: createPotSchema, update: updatePotSchema }, 'Not found')) return;
+    if (await crudRoutes(request, response, url.pathname, 'money/pot-moves', potMoveService, { create: createPotMoveSchema, update: updatePotMoveSchema }, 'Not found')) return;
     if (await crudRoutes(request, response, url.pathname, 'books', bookService, { create: createBookSchema, update: updateBookSchema }, 'Book not found')) return;
 
     const bookPath = url.pathname.match(/^\/api\/books\/([^/]+)\/(log|loans)(?:\/([^/]+))?(?:\/(renew))?$/);
@@ -1362,4 +1420,6 @@ server.listen(port, host, () => {
   console.log(`Hop API running on http://${host}:${port}`);
   runDailyBackup();
   setInterval(runDailyBackup, backupCheckIntervalMs).unref();
+  logSubscriptions();
+  setInterval(logSubscriptions, 60 * 60 * 1000).unref();
 });

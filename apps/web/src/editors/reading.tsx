@@ -153,7 +153,7 @@ export function LogPages({ book, close }: { book: Book; close: () => void }) {
         <Field
           defaultValue={last?.page ?? ''}
           error={error}
-          hint={last ? `Last time: page ${last.page}, ${D.relative(last.date).toLowerCase()}.` : 'The page you’re on now. Hop works out how much you read.'}
+          hint={last ? `Last time: page ${last.page}, ${D.inSentence(last.date)}.` : 'The page you’re on now. Hop works out how much you read.'}
           label={current.pages ? `Page you reached (of ${current.pages})` : 'Page you reached'}
           max={current.pages ?? 20000}
           min={0}

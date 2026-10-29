@@ -1,5 +1,13 @@
 import type {
   Account,
+  Bill,
+  IncomeSource,
+  MoneyEntry,
+  MoneyRate,
+  Pot,
+  PotMove,
+  SpendCategory,
+  Wallet,
   BookWithDetails,
   Contact,
   CourseWithDetails,
@@ -122,6 +130,20 @@ export type {
   WeeklyReview,
   WorkFacts,
   WorkMode,
+  Bill,
+  IncomeSource,
+  MoneyEntry,
+  MoneyEntryKind,
+  MoneyRate,
+  Pot,
+  PotKind,
+  PotMove,
+  PotPriority,
+  PotStatus,
+  RateCurrency,
+  SpendCategory,
+  Wallet,
+  WalletKind,
 } from '@hop/domain'
 
 /** Everything Hop shows, loaded once and kept current as changes are saved. */
@@ -162,4 +184,12 @@ export type HopData = {
   /** Totals over everything ever logged, kept in step as sessions change. */
   practiceTotals: PracticeTotals
   accounts: Account[]
+  wallets: Wallet[]
+  moneyEntries: MoneyEntry[]
+  moneyRates: MoneyRate[]
+  incomeSources: IncomeSource[]
+  bills: Bill[]
+  spendCategories: SpendCategory[]
+  pots: Pot[]
+  potMoves: PotMove[]
 }

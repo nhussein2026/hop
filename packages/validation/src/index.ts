@@ -11,6 +11,7 @@ export * from './language.js';
 export * from './evidence.js';
 export * from './event.js';
 export * from './milestone.js';
+export * from './money.js';
 export * from './monthly-review.js';
 export * from './opportunity.js';
 export * from './project.js';
